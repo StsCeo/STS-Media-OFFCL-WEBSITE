@@ -10,7 +10,17 @@ async function action(_prev: State, formData: FormData): Promise<State> {
   return submitContact(formData);
 }
 
-export function ContactForm({ services, calendlyUrl }: { services: { slug: string; name: string }[]; calendlyUrl: string }) {
+export function ContactForm({
+  services,
+  calendlyUrl,
+  defaultAudience = "both",
+  defaultService,
+}: {
+  services: { slug: string; name: string }[];
+  calendlyUrl: string;
+  defaultAudience?: "owner" | "creator" | "both";
+  defaultService?: string;
+}) {
   const [state, formAction, pending] = useActionState(action, {});
   if (state.ok) {
     return (
@@ -37,8 +47,21 @@ export function ContactForm({ services, calendlyUrl }: { services: { slug: strin
         <Field label="Phone" name="phone">
           <input id="phone" name="phone" className={inputClass} />
         </Field>
+        <Field label="I am" name="audience">
+          <select id="audience" name="audience" className={inputClass} defaultValue={defaultAudience}>
+            <option value="owner">A business owner</option>
+            <option value="creator">A creator</option>
+            <option value="both">Both / not sure</option>
+          </select>
+        </Field>
         <Field label="Service" name="service">
-          <select id="service" name="service" required className={inputClass} defaultValue="">
+          <select
+            id="service"
+            name="service"
+            required
+            className={inputClass}
+            defaultValue={services.find((item) => item.slug === defaultService)?.name || ""}
+          >
             <option value="" disabled>
               Select a service
             </option>

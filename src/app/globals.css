@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  /* Brand primitives — change here or via Brand Settings accent override */
   --obsidian: #0b0d0c;
   --forest: #163d2b;
   --forest-hover: #0f2f21;
@@ -10,7 +9,6 @@
   --ivory: #f7f5ef;
   --white: #ffffff;
   --soft-gray: #a7ada8;
-
   --canvas: #f3f4f2;
   --card: #ffffff;
   --ink: #252825;
@@ -22,29 +20,18 @@
   --info: #2563a6;
   --lead: #7c5cfc;
   --pending: #a7ada8;
-
   --brand-accent: var(--emerald);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;
   --radius-xl: 28px;
-  --shadow-card: 0 1px 2px rgb(11 13 12 / 0.06), 0 8px 24px rgb(11 13 12 / 0.04);
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-
+  --shadow-card: 0 1px 2px rgb(11 13 12 / 0.06), 0 12px 28px rgb(11 13 12 / 0.05);
   --chart-revenue: #2e7d5b;
   --chart-profit: #c6a15b;
   --chart-traffic: #2563a6;
   --chart-leads: #7c5cfc;
   --chart-expenses: #b42318;
   --chart-pending: #a7ada8;
-
   --background: var(--ivory);
   --foreground: var(--ink);
   --surface: var(--white);
@@ -54,22 +41,11 @@
   --accent: var(--brand-accent);
 }
 
-[data-surface="public"] {
-  --background: var(--obsidian);
-  --foreground: var(--white);
-  --surface: #ffffff;
-  --border: var(--line);
-  --muted: var(--muted);
-  --ink: #252825;
-  --primary: var(--forest);
-}
-
 [data-surface="dashboard"] {
   --background: var(--canvas);
   --foreground: var(--ink);
   --surface: var(--card);
   --border: var(--line);
-  --muted: var(--muted);
   --primary: var(--forest);
 }
 
@@ -78,18 +54,16 @@ html[data-theme="dark"] {
   --background: #0b0d0c;
   --foreground: #f7f5ef;
   --surface: #171a18;
-  --surface-2: #202420;
   --border: #343936;
   --ink: #f7f5ef;
   --muted: #a7ada8;
   --card: #171a18;
   --canvas: #0b0d0c;
   --line: #343936;
-  --primary: #52a77d;
-  --primary-hover: #3f8d68;
-  --accent: #52a77d;
-  --brand-accent: #52a77d;
-  --focus: #52a77d;
+  --primary: var(--focus);
+  --primary-hover: var(--emerald);
+  --accent: var(--focus);
+  --brand-accent: var(--focus);
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.28);
 }
 
@@ -134,9 +108,7 @@ html[data-theme="dark"] {
   --radius-xl: var(--radius-xl);
 }
 
-* {
-  border-color: var(--border);
-}
+* { border-color: var(--border); }
 
 html {
   color-scheme: light;
@@ -155,18 +127,21 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+::selection {
+  background: color-mix(in srgb, var(--gold) 38%, transparent);
+}
+
+kbd {
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
+}
+
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
 
-.font-display {
-  font-family: var(--font-fraunces), Georgia, serif;
-}
-
-.font-mono {
-  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
-}
+.font-display { font-family: var(--font-fraunces), Georgia, serif; }
+.font-mono { font-family: var(--font-ibm-plex-mono), ui-monospace, monospace; }
 
 .gold-rule {
   height: 1px;
@@ -175,8 +150,16 @@ body {
 
 .public-grain {
   background-image:
-    radial-gradient(1200px 500px at 10% -10%, rgb(46 125 91 / 0.22), transparent 55%),
-    radial-gradient(900px 400px at 90% 0%, rgb(198 161 91 / 0.08), transparent 50%);
+    radial-gradient(1100px 480px at 8% -12%, color-mix(in srgb, var(--emerald) 28%, transparent), transparent 55%),
+    radial-gradient(800px 380px at 92% 0%, color-mix(in srgb, var(--gold) 14%, transparent), transparent 52%);
+}
+
+.lift {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
 }
 
 .device-frame {
@@ -185,12 +168,12 @@ body {
   box-shadow: var(--shadow-card);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .lift, .lift:hover { transition: none; transform: none; }
+}
+
 @media print {
-  .no-print {
-    display: none !important;
-  }
-  body {
-    background: white;
-    color: black;
-  }
+  .no-print { display: none !important; }
+  body { background: white; color: black; }
 }

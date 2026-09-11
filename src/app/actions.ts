@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { DEMO_COOKIE, isDemoModeEnabled, isSupabaseConfigured } from "@/lib/config";
+import { CONSENT_COOKIE, DEMO_COOKIE, PALETTE_COOKIE, isDemoModeEnabled, isSupabaseConfigured } from "@/lib/config";
 import { getWorkspace, mutateWorkspace, stampAudit } from "@/lib/data/store";
 import { clientKey, rateLimit } from "@/lib/security/rate-limit";
+import { allowedFile, assertSameOrigin } from "@/lib/security/origin";
+import { getPalette } from "@/lib/theme/palettes";
 import type { Expense, Lead, Project, RevenueEntry } from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText } from "@/lib/validation";
@@ -16,6 +18,7 @@ function isSafePath(path: string) {
 }
 
 export async function startDemoSession(formData: FormData) {
+  await assertSameOrigin();
   if (!isDemoModeEnabled()) {
     redirect("/login");
   }
@@ -60,6 +63,7 @@ export async function requestPasswordReset(formData: FormData) {
 }
 
 export async function submitContact(formData: FormData) {
+  await assertSameOrigin();
   const headerList = await headers();
   const limited = rateLimit(clientKey(headerList, "contact"), 5, 60 * 60 * 1000);
   if (!limited.ok) {
@@ -72,6 +76,7 @@ export async function submitContact(formData: FormData) {
     email: formData.get("email"),
     phone: formData.get("phone"),
     service: formData.get("service"),
+    audience: formData.get("audience") || "both",
     budget: formData.get("budget"),
     preferredContact: formData.get("preferredContact"),
     message: formData.get("message"),
@@ -85,8 +90,8 @@ export async function submitContact(formData: FormData) {
 
   const file = formData.get("file");
   const fileName = file instanceof File && file.size > 0 ? file.name : null;
-  if (file instanceof File && file.size > 8 * 1024 * 1024) {
-    return { error: "Files must be 8MB or smaller." };
+  if (file instanceof File && file.size > 0 && !allowedFile(file)) {
+    return { error: "Upload a PDF or image up to 8MB." };
   }
 
   mutateWorkspace((state) => {
@@ -121,7 +126,7 @@ export async function submitContact(formData: FormData) {
       callsMade: 0,
       emailsSent: 0,
       meetings: 0,
-      notes: parsed.data.message,
+      notes: `[Audience: ${parsed.data.audience}]\n${parsed.data.message}`,
       assignedTo: "Owner",
       createdAt: new Date().toISOString().slice(0, 10),
     });
@@ -133,6 +138,7 @@ export async function submitContact(formData: FormData) {
 }
 
 export async function saveBrand(formData: FormData) {
+  await assertSameOrigin();
   mutateWorkspace((state) => {
     state.brand.mission = sanitizeText(String(formData.get("mission") || state.brand.mission));
     state.brand.brandStatement = sanitizeText(String(formData.get("brandStatement") || state.brand.brandStatement));
@@ -148,12 +154,49 @@ export async function saveBrand(formData: FormData) {
     state.brand.linkedin = String(formData.get("linkedin") || "");
     state.brand.facebook = String(formData.get("facebook") || "");
     state.brand.tiktok = String(formData.get("tiktok") || "");
-    const accent = String(formData.get("accentColor") || state.brand.accentColor);
+    const palette = getPalette(String(formData.get("paletteId") || state.brand.paletteId));
+    state.brand.paletteId = palette.id;
+    const accent = String(formData.get("accentColor") || palette.tokens.emerald);
     if (/^#[0-9A-Fa-f]{6}$/.test(accent)) state.brand.accentColor = accent;
   });
   stampAudit("brand_updated", "brand_settings", "Brand settings saved.");
-  revalidatePath("/");
+  const jar = await cookies();
+  jar.delete(PALETTE_COOKIE);
+  revalidatePath("/", "layout");
   revalidatePath("/dashboard/settings/brand");
+}
+
+export async function previewPalette(formData: FormData) {
+  await assertSameOrigin();
+  const palette = getPalette(String(formData.get("paletteId") || ""));
+  const jar = await cookies();
+  jar.set(PALETTE_COOKIE, palette.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60,
+  });
+  const next = String(formData.get("next") || "/");
+  redirect(isSafePath(next) ? next : "/");
+}
+
+export async function clearPalettePreview() {
+  const jar = await cookies();
+  jar.delete(PALETTE_COOKIE);
+  revalidatePath("/", "layout");
+}
+
+export async function saveCookieConsent() {
+  const jar = await cookies();
+  jar.set(CONSENT_COOKIE, "essential", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  revalidatePath("/", "layout");
 }
 
 export async function saveLegalPage(formData: FormData) {
@@ -366,6 +409,7 @@ export async function toggleTheme(next: "light" | "dark") {
 }
 
 export async function signInWithPassword(formData: FormData) {
+  await assertSameOrigin();
   const headerList = await headers();
   const limited = rateLimit(clientKey(headerList, "login"), 8, 15 * 60 * 1000);
   if (!limited.ok) {

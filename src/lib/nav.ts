@@ -46,8 +46,33 @@ export const publicNav = [
   { href: "/work", label: "Work" },
   { href: "/services", label: "Services" },
   { href: "/packages", label: "Packages" },
+  { href: "/for/owners", label: "Owners" },
+  { href: "/for/creators", label: "Creators" },
+  { href: "/contact", label: "Contact" },
+];
+
+export const publicFooterVisit = [
+  { href: "/work", label: "Work" },
+  { href: "/services", label: "Services" },
+  { href: "/packages", label: "Packages" },
   { href: "/about", label: "About" },
   { href: "/process", label: "Process" },
-  { href: "/testimonials", label: "Testimonials" },
-  { href: "/contact", label: "Contact" },
+  { href: "/contact", label: "Book a call" },
+];
+
+export const publicFooterAudience = [
+  { href: "/for/owners", label: "For owners" },
+  { href: "/for/creators", label: "For creators" },
+  { href: "/resources", label: "Resources" },
+  { href: "/lookbook", label: "Color lookbook" },
+  { href: "/portal", label: "Client portal preview" },
+];
+
+export const publicFooterTrust = [
+  { href: "/faq", label: "FAQ" },
+  { href: "/security", label: "Security" },
+  { href: "/legal/privacy", label: "Privacy" },
+  { href: "/legal/terms", label: "Terms" },
+  { href: "/legal/cookies", label: "Cookies" },
+  { href: "/legal/accessibility", label: "Accessibility" },
 ];

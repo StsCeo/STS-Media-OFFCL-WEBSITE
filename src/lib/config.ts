@@ -5,6 +5,9 @@ export const SITE_HOST = "stsmedia.co";
 export const DEMO_COOKIE = "sts_demo_session";
 export const THEME_COOKIE = "sts_theme";
 export const SIDEBAR_COOKIE = "sts_sidebar";
+export const PALETTE_COOKIE = "sts_palette_preview";
+export const CONSENT_COOKIE = "sts_cookie_consent";
+export const LAST_ACTIVE_COOKIE = "sts_last_active";
 
 export const OWNER_ROLES = ["owner", "admin"] as const;
 export const MFA_REQUIRED_ROLES = ["owner", "admin"] as const;
@@ -19,6 +22,12 @@ export const PUBLIC_PATHS = [
   "/testimonials",
   "/contact",
   "/legal",
+  "/faq",
+  "/security",
+  "/resources",
+  "/for",
+  "/lookbook",
+  "/portal",
 ];
 
 export const AUTH_PATHS = [

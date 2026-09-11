@@ -9,12 +9,12 @@ export function createSeedWorkspace(): WorkspaceState {
       shortName: "STS Media",
       website: "https://stsmedia.co",
       mission:
-        "Scars to Stars Media helps overlooked businesses turn their stories, ideas, and potential into visible, credible growth through strategic websites, digital systems, content, and dependable support.",
+        "Scars to Stars Media helps overlooked businesses and creators turn their stories, ideas, and potential into visible, credible growth through strategic websites, digital systems, content, and dependable support.",
       brandStatement: "We turn overlooked potential into visible growth.",
       founderName: "Owner",
       founderRole: "Founder",
       founderBio:
-        "Scars to Stars Media was built for operators who have already done the hard part: surviving, serving, and showing up. The work now is making that substance visible online — without hype, without fake proof, and without disappearing after launch.",
+        "Scars to Stars Media was built for operators and creators who have already done the hard part: surviving, serving, and showing up. The work now is making that substance visible online — without hype, without fake proof, and without disappearing after launch.",
       email: "hello@stsmedia.co",
       phone: "",
       instagram: "https://instagram.com/stsmedia",
@@ -23,6 +23,7 @@ export function createSeedWorkspace(): WorkspaceState {
       tiktok: "",
       calendlyUrl: "",
       accentColor: "#2E7D5B",
+      paletteId: "forest-gold",
       logoText: "STS",
     },
     services: [

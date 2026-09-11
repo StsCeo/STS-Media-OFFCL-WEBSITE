@@ -7,7 +7,7 @@ export const metadata = { title: "Brand settings" };
 export default function BrandSettingsPage() {
   return (
     <div>
-      <PageHeader title="Brand settings" description="Mission and brand statements power the public website. Accent color is a CSS token." />
+      <PageHeader title="Brand settings" description="Mission and brand statements power the public website. Palettes and accent color are CSS tokens — status colors stay semantic." />
       <BrandForm brand={getWorkspace().brand} />
     </div>
   );

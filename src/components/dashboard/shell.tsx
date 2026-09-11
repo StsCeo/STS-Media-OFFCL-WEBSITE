@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Bell, ChevronLeft, ChevronRight, LogOut, Moon, Search, Sun } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, ExternalLink, LogOut, Moon, Search, Sun } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { CommandPalette } from "@/components/dashboard/command-palette";
+import { InactivityGuard } from "@/components/dashboard/inactivity";
 import { endDemoSession, toggleTheme } from "@/app/actions";
 import { dashboardNav } from "@/lib/nav";
 import { cn } from "@/lib/utils";
@@ -23,13 +25,14 @@ export function DashboardShell({
   email: string;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [collapsed, setCollapsed] = useState(collapsedDefault);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pending, start] = useTransition();
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
+      <CommandPalette />
+      <InactivityGuard />
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-card focus:px-3 focus:py-2">
         Skip to content
       </a>
@@ -99,17 +102,20 @@ export function DashboardShell({
             <button className="rounded-md border border-line px-2 py-1 text-sm md:hidden" onClick={() => setMobileOpen(true)}>
               Menu
             </button>
-            <form
-              className="relative hidden min-w-0 flex-1 md:block"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const q = new FormData(event.currentTarget).get("q");
-                router.push(`/dashboard/inbox?q=${encodeURIComponent(String(q || ""))}`);
-              }}
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("sts:open-command"))}
+              className="relative hidden min-w-0 flex-1 items-center md:flex"
             >
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted" />
-              <input name="q" placeholder="Search inbox, leads, projects…" className="h-9 w-full max-w-md rounded-md border border-line bg-canvas pl-9 pr-3 text-sm" />
-            </form>
+              <span className="flex h-9 w-full max-w-md items-center rounded-md border border-line bg-canvas pl-9 pr-3 text-left text-sm text-muted">
+                Search Command Center…
+                <kbd className="ml-auto hidden rounded border border-line px-1.5 py-0.5 text-[10px] text-muted sm:inline">⌘K</kbd>
+              </span>
+            </button>
+            <Link href="/" className="hidden rounded-md p-2 hover:bg-canvas lg:inline-flex" aria-label="View public site">
+              <ExternalLink size={18} />
+            </Link>
             <Link href="/dashboard/notifications" className="rounded-md p-2 hover:bg-canvas" aria-label="Notifications">
               <Bell size={18} />
             </Link>

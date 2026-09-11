@@ -594,6 +594,7 @@ create table if not exists public.brand_settings (
   mission text,
   brand_statement text,
   accent_color text,
+  palette_id text not null default 'forest-gold',
   calendly_url text,
   updated_at timestamptz not null default now()
 );

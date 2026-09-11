@@ -7,6 +7,7 @@ export const contactSchema = z.object({
   phone: z.string().trim().max(40).optional().default(""),
   service: z.string().trim().min(1).max(120),
   budget: z.string().trim().max(80).optional().default(""),
+  audience: z.enum(["owner", "creator", "both"]).optional().default("both"),
   preferredContact: z.enum(["email", "phone", "either"]),
   message: z.string().trim().min(10).max(5000),
   consent: z.boolean().refine((value) => value === true, "Consent is required."),

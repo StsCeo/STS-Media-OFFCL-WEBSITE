@@ -73,6 +73,7 @@ export interface BrandSettings {
   tiktok: string;
   calendlyUrl: string;
   accentColor: string;
+  paletteId: string;
   logoText: string;
 }
 

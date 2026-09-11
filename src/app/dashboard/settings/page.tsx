@@ -4,10 +4,12 @@ import { Card, PageHeader } from "@/components/ui";
 export const metadata = { title: "Settings" };
 
 const links = [
-  ["/dashboard/settings/brand", "Brand", "Mission, statements, accent color, social links"],
+  ["/dashboard/settings/brand", "Brand & color systems", "Mission, statements, palettes, accent, social links"],
+  ["/lookbook", "Public lookbook", "Preview all six palettes on the public site"],
   ["/dashboard/settings/security", "Security", "Sessions, MFA, password, audit log"],
   ["/dashboard/settings/legal", "Legal pages", "Editable placeholders pending professional review"],
   ["/dashboard/integrations", "Integrations", "OAuth and quick links"],
+  ["/security", "Public security page", "How the site handles cookies, headers, and uploads"],
 ];
 
 export default function SettingsPage() {

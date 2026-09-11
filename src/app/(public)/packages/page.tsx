@@ -15,7 +15,7 @@ export default function PackagesPage() {
         </p>
         <div className="mt-10 grid gap-6 lg:grid-cols-3">
           {packages.map((item) => (
-            <article key={item.id} className={`rounded-xl border bg-white p-6 ${item.featured ? "border-gold shadow-[var(--shadow-card)]" : "border-line"}`}>
+            <article key={item.id} className={`lift rounded-xl border bg-white p-6 ${item.featured ? "border-gold shadow-[var(--shadow-card)]" : "border-line"}`}>
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-2xl">{item.name}</h2>
                 {item.featured ? <Badge tone="gold">Featured</Badge> : null}

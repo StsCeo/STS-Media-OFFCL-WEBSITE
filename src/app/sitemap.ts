@@ -1,9 +1,29 @@
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@/lib/config";
+import { resources } from "@/lib/content/public";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = siteUrl();
-  return ["", "/work", "/services", "/packages", "/about", "/process", "/testimonials", "/contact", "/legal/privacy", "/legal/terms"].map((path) => ({
+  const paths = [
+    "",
+    "/work",
+    "/services",
+    "/packages",
+    "/about",
+    "/process",
+    "/testimonials",
+    "/contact",
+    "/for/owners",
+    "/for/creators",
+    "/faq",
+    "/security",
+    "/resources",
+    "/portal",
+    "/legal/privacy",
+    "/legal/terms",
+    ...resources.map((item) => `/resources/${item.slug}`),
+  ];
+  return paths.map((path) => ({
     url: `${base}${path || "/"}`,
     lastModified: new Date("2026-09-11"),
   }));

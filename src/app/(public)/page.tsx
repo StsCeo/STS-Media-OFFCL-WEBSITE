@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui";
+import { OrganizationJsonLd } from "@/components/public/json-ld";
 import { getWorkspace } from "@/lib/data/store";
+import { creatorPath, ownerPath } from "@/lib/content/public";
 
 export default function HomePage() {
   const { brand, services, portfolio, process, testimonials, packages } = getWorkspace();
@@ -11,7 +13,8 @@ export default function HomePage() {
 
   return (
     <div className="public-grain">
-      <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-20 pt-16 md:grid-cols-[1.2fr_0.8fr] md:pt-24">
+      <OrganizationJsonLd brand={brand} />
+      <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 pt-16 md:grid-cols-[1.2fr_0.8fr] md:pt-24">
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-gold">Scars to Stars Media</p>
           <h1 className="mt-4 max-w-xl font-display text-4xl leading-[1.15] text-ivory md:text-6xl">
@@ -43,10 +46,44 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-6xl px-4 pb-16">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Link href="/for/owners" className="lift rounded-xl border border-white/10 bg-white/5 p-6">
+            <p className="text-xs uppercase tracking-[0.18em] text-gold">{ownerPath.eyebrow}</p>
+            <h2 className="mt-3 font-display text-3xl text-ivory">{ownerPath.title}</h2>
+            <p className="mt-3 text-sm leading-6 text-soft-gray">{ownerPath.lede}</p>
+            <span className="mt-5 inline-flex items-center gap-2 text-sm text-gold">
+              Owners path <ArrowRight size={16} />
+            </span>
+          </Link>
+          <Link href="/for/creators" className="lift rounded-xl border border-white/10 bg-white/5 p-6">
+            <p className="text-xs uppercase tracking-[0.18em] text-gold">{creatorPath.eyebrow}</p>
+            <h2 className="mt-3 font-display text-3xl text-ivory">{creatorPath.title}</h2>
+            <p className="mt-3 text-sm leading-6 text-soft-gray">{creatorPath.lede}</p>
+            <span className="mt-5 inline-flex items-center gap-2 text-sm text-gold">
+              Creators path <ArrowRight size={16} />
+            </span>
+          </Link>
+        </div>
+      </section>
+
       <section className="bg-ivory text-ink">
         <div className="mx-auto max-w-6xl px-4 py-16">
           <p className="text-xs uppercase tracking-[0.18em] text-forest">Mission</p>
           <blockquote className="mt-4 max-w-3xl font-display text-2xl leading-snug md:text-3xl">{brand.mission}</blockquote>
+          <div className="mt-10 grid gap-4 md:grid-cols-4">
+            {[
+              ["No invented proof", "Quotes and results publish only when they are verified."],
+              ["Quoted after discovery", "Pilot prices are not the public rate card."],
+              ["Private command center", "Finance and leads stay behind sign-in."],
+              ["Six color systems", "Preview palettes without saving the brand."],
+            ].map(([title, body]) => (
+              <article key={title} className="rounded-lg border border-line bg-white p-4">
+                <h3 className="text-sm font-medium">{title}</h3>
+                <p className="mt-2 text-sm text-muted">{body}</p>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -63,7 +100,7 @@ export default function HomePage() {
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             {featured.map((item) => (
-              <Link key={item.id} href={`/work/${item.slug}`} className="rounded-xl border border-line bg-white p-6 shadow-[var(--shadow-card)]">
+              <Link key={item.id} href={`/work/${item.slug}`} className="lift rounded-xl border border-line bg-white p-6 shadow-[var(--shadow-card)]">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted">{item.industry}</p>
                 <h3 className="mt-2 font-display text-2xl">{item.companyName}</h3>
                 <p className="mt-2 text-sm text-muted">{item.projectTitle}</p>
@@ -142,8 +179,8 @@ export default function HomePage() {
           <Button href="/contact" size="lg">
             Start a Project
           </Button>
-          <Button href="/contact" variant="gold" size="lg">
-            Book a Call
+          <Button href="/lookbook" variant="gold" size="lg">
+            See color schemes
           </Button>
         </div>
       </section>
