@@ -1,0 +1,425 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { DEMO_COOKIE, isDemoModeEnabled, isSupabaseConfigured } from "@/lib/config";
+import { getWorkspace, mutateWorkspace, stampAudit } from "@/lib/data/store";
+import { clientKey, rateLimit } from "@/lib/security/rate-limit";
+import type { Expense, Lead, Project, RevenueEntry } from "@/lib/types";
+import { isSafeRedirect } from "@/lib/utils";
+import { contactSchema, sanitizeText } from "@/lib/validation";
+import { createSupabaseServer } from "@/lib/auth/session";
+
+function isSafePath(path: string) {
+  return isSafeRedirect(path);
+}
+
+export async function startDemoSession(formData: FormData) {
+  if (!isDemoModeEnabled()) {
+    redirect("/login");
+  }
+  const next = String(formData.get("next") || "/dashboard");
+  const mode = String(formData.get("mode") || "owner");
+  const jar = await cookies();
+  jar.set(DEMO_COOKIE, mode === "needs_mfa" ? "needs_mfa" : "owner", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 8,
+  });
+  stampAudit("demo_login", "session", "Demo workspace session started. Not a production credential.");
+  redirect(isSafePath(next) ? next : "/dashboard");
+}
+
+export async function endDemoSession() {
+  const jar = await cookies();
+  jar.delete(DEMO_COOKIE);
+  redirect("/sign-out?done=1");
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const headerList = await headers();
+  const limited = rateLimit(clientKey(headerList, "reset"), 5, 15 * 60 * 1000);
+  if (!limited.ok) {
+    return { error: "Too many requests. Try again later.", locked: true };
+  }
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  stampAudit("password_reset_request", email ? "auth" : "auth", "Password reset requested. Existence of the account is not confirmed in the UI.");
+  if (isSupabaseConfigured()) {
+    const factory = createSupabaseServer();
+    if (factory) {
+      const supabase = await factory();
+      await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
+      });
+    }
+  }
+  return { ok: true };
+}
+
+export async function submitContact(formData: FormData) {
+  const headerList = await headers();
+  const limited = rateLimit(clientKey(headerList, "contact"), 5, 60 * 60 * 1000);
+  if (!limited.ok) {
+    return { error: "Please wait before sending another message." };
+  }
+
+  const parsed = contactSchema.safeParse({
+    name: formData.get("name"),
+    businessName: formData.get("businessName"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+    service: formData.get("service"),
+    budget: formData.get("budget"),
+    preferredContact: formData.get("preferredContact"),
+    message: formData.get("message"),
+    consent: formData.get("consent") === "on",
+    companyWebsite: formData.get("companyWebsite"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Please check the form and try again." };
+  }
+
+  const file = formData.get("file");
+  const fileName = file instanceof File && file.size > 0 ? file.name : null;
+  if (file instanceof File && file.size > 8 * 1024 * 1024) {
+    return { error: "Files must be 8MB or smaller." };
+  }
+
+  mutateWorkspace((state) => {
+    state.contacts.unshift({
+      id: `contact-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      name: sanitizeText(parsed.data.name),
+      businessName: sanitizeText(parsed.data.businessName),
+      email: parsed.data.email,
+      phone: sanitizeText(parsed.data.phone),
+      service: parsed.data.service,
+      budget: parsed.data.budget,
+      preferredContact: parsed.data.preferredContact,
+      message: sanitizeText(parsed.data.message),
+      consent: true,
+      fileName,
+      status: "new",
+    });
+    state.leads.unshift({
+      id: `lead-${Date.now()}`,
+      businessName: parsed.data.businessName || parsed.data.name,
+      contactName: parsed.data.name,
+      email: parsed.data.email,
+      phone: parsed.data.phone,
+      source: "Contact form",
+      requestedService: parsed.data.service,
+      estimatedValue: 0,
+      probability: 10,
+      stage: "new_inquiry",
+      lastContact: null,
+      nextFollowUp: new Date().toISOString().slice(0, 10),
+      callsMade: 0,
+      emailsSent: 0,
+      meetings: 0,
+      notes: parsed.data.message,
+      assignedTo: "Owner",
+      createdAt: new Date().toISOString().slice(0, 10),
+    });
+  });
+  stampAudit("contact_submitted", "leads", "Public contact form created a new inquiry.");
+  revalidatePath("/dashboard/inbox");
+  revalidatePath("/dashboard/leads");
+  return { ok: true };
+}
+
+export async function saveBrand(formData: FormData) {
+  mutateWorkspace((state) => {
+    state.brand.mission = sanitizeText(String(formData.get("mission") || state.brand.mission));
+    state.brand.brandStatement = sanitizeText(String(formData.get("brandStatement") || state.brand.brandStatement));
+    state.brand.legalName = sanitizeText(String(formData.get("legalName") || state.brand.legalName));
+    state.brand.shortName = sanitizeText(String(formData.get("shortName") || state.brand.shortName));
+    state.brand.founderName = sanitizeText(String(formData.get("founderName") || state.brand.founderName));
+    state.brand.founderRole = sanitizeText(String(formData.get("founderRole") || state.brand.founderRole));
+    state.brand.founderBio = sanitizeText(String(formData.get("founderBio") || state.brand.founderBio));
+    state.brand.email = String(formData.get("email") || state.brand.email);
+    state.brand.phone = sanitizeText(String(formData.get("phone") || ""));
+    state.brand.calendlyUrl = String(formData.get("calendlyUrl") || "");
+    state.brand.instagram = String(formData.get("instagram") || "");
+    state.brand.linkedin = String(formData.get("linkedin") || "");
+    state.brand.facebook = String(formData.get("facebook") || "");
+    state.brand.tiktok = String(formData.get("tiktok") || "");
+    const accent = String(formData.get("accentColor") || state.brand.accentColor);
+    if (/^#[0-9A-Fa-f]{6}$/.test(accent)) state.brand.accentColor = accent;
+  });
+  stampAudit("brand_updated", "brand_settings", "Brand settings saved.");
+  revalidatePath("/");
+  revalidatePath("/dashboard/settings/brand");
+}
+
+export async function saveLegalPage(formData: FormData) {
+  const id = String(formData.get("id"));
+  const body = sanitizeText(String(formData.get("body") || ""));
+  mutateWorkspace((state) => {
+    const page = state.legal.find((item) => item.id === id);
+    if (page) page.body = body;
+  });
+  stampAudit("legal_updated", id, "Legal placeholder copy updated. Still requires professional review.");
+  revalidatePath("/legal");
+}
+
+export async function upsertExpense(input: Partial<Expense> & { id?: string }) {
+  mutateWorkspace((state) => {
+    if (input.id) {
+      const current = state.expenses.find((item) => item.id === input.id);
+      if (current) {
+        Object.assign(current, input, {
+          totalAmount: Number(input.pretaxAmount ?? current.pretaxAmount) + Number(input.salesTax ?? current.salesTax),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } else {
+      const pretax = Number(input.pretaxAmount || 0);
+      const tax = Number(input.salesTax || 0);
+      state.expenses.unshift({
+        id: `exp-${Date.now()}`,
+        transactionDate: input.transactionDate || new Date().toISOString().slice(0, 10),
+        postedDate: input.postedDate || input.transactionDate || new Date().toISOString().slice(0, 10),
+        vendor: input.vendor || "Add vendor",
+        description: input.description || "Add description",
+        pretaxAmount: pretax,
+        salesTax: tax,
+        totalAmount: pretax + tax,
+        currency: input.currency || "USD",
+        category: input.category || "Needs review",
+        subcategory: input.subcategory || "",
+        clientId: input.clientId ?? null,
+        projectId: input.projectId ?? null,
+        businessPurpose: input.businessPurpose || "",
+        paymentAccount: input.paymentAccount || "",
+        paymentMethod: input.paymentMethod || "",
+        recurring: Boolean(input.recurring),
+        billingFrequency: input.billingFrequency || "one_time",
+        receiptName: input.receiptName ?? null,
+        receiptStatus: input.receiptStatus || "missing",
+        reimbursable: Boolean(input.reimbursable),
+        reimbursementStatus: input.reimbursementStatus || "n/a",
+        directProjectCost: Boolean(input.directProjectCost),
+        taxReviewStatus: input.taxReviewStatus || "needs_review",
+        deductibilityStatus: input.deductibilityStatus || "unknown",
+        taxYear: input.taxYear || new Date().getFullYear(),
+        notes: input.notes || "",
+        createdBy: "Owner",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        archived: false,
+        confirmationStatus: input.confirmationStatus || "draft",
+        demoLabel: true,
+      });
+    }
+  });
+  stampAudit("expense_upsert", input.id || "new", "Expense ledger updated.");
+  revalidatePath("/dashboard/expenses");
+  revalidatePath("/dashboard");
+}
+
+export async function archiveExpenses(ids: string[]) {
+  mutateWorkspace((state) => {
+    state.expenses.forEach((item) => {
+      if (ids.includes(item.id)) item.archived = true;
+    });
+  });
+  stampAudit("expense_archive", ids.join(","), "Expenses archived.");
+  revalidatePath("/dashboard/expenses");
+}
+
+export async function deleteExpenses(ids: string[]) {
+  mutateWorkspace((state) => {
+    state.expenses = state.expenses.filter((item) => !ids.includes(item.id));
+  });
+  stampAudit("expense_delete", ids.join(","), "Expenses deleted.");
+  revalidatePath("/dashboard/expenses");
+}
+
+export async function duplicateExpense(id: string) {
+  const source = getWorkspace().expenses.find((item) => item.id === id);
+  if (!source) return;
+  await upsertExpense({ ...source, id: undefined, description: `${source.description} (copy)` });
+}
+
+export async function upsertRevenue(input: Partial<RevenueEntry> & { id?: string }) {
+  mutateWorkspace((state) => {
+    if (input.id) {
+      const current = state.revenue.find((item) => item.id === input.id);
+      if (current) Object.assign(current, input);
+    } else {
+      state.revenue.unshift({
+        id: `rev-${Date.now()}`,
+        date: input.date || new Date().toISOString().slice(0, 10),
+        type: input.type || "one_time_project",
+        description: input.description || "Add description",
+        amount: Number(input.amount || 0),
+        currency: "USD",
+        clientId: input.clientId ?? null,
+        projectId: input.projectId ?? null,
+        service: input.service || "",
+        invoiceStatus: input.invoiceStatus || "draft",
+        paymentStatus: input.paymentStatus || "unpaid",
+        dueDate: input.dueDate ?? null,
+        stripeCustomerId: "",
+        stripeSubscriptionId: "",
+        recognized: Boolean(input.recognized),
+        notes: input.notes || "",
+        demoLabel: true,
+      });
+    }
+  });
+  stampAudit("revenue_upsert", input.id || "new", "Revenue ledger updated.");
+  revalidatePath("/dashboard/revenue");
+  revalidatePath("/dashboard");
+}
+
+export async function upsertLead(input: Partial<Lead> & { id?: string }) {
+  mutateWorkspace((state) => {
+    if (input.id) {
+      const current = state.leads.find((item) => item.id === input.id);
+      if (current) Object.assign(current, input);
+    } else {
+      state.leads.unshift({
+        id: `lead-${Date.now()}`,
+        businessName: input.businessName || "New inquiry",
+        contactName: input.contactName || "Add contact name",
+        email: input.email || "",
+        phone: input.phone || "",
+        source: input.source || "Manual",
+        requestedService: input.requestedService || "",
+        estimatedValue: Number(input.estimatedValue || 0),
+        probability: Number(input.probability || 10),
+        stage: input.stage || "new_inquiry",
+        lastContact: input.lastContact ?? null,
+        nextFollowUp: input.nextFollowUp ?? null,
+        callsMade: Number(input.callsMade || 0),
+        emailsSent: Number(input.emailsSent || 0),
+        meetings: Number(input.meetings || 0),
+        notes: input.notes || "",
+        assignedTo: input.assignedTo || "Owner",
+        createdAt: new Date().toISOString().slice(0, 10),
+      });
+    }
+  });
+  stampAudit("lead_upsert", input.id || "new", "Lead updated.");
+  revalidatePath("/dashboard/leads");
+}
+
+export async function upsertProject(input: Partial<Project> & { id?: string }) {
+  mutateWorkspace((state) => {
+    if (input.id) {
+      const current = state.projects.find((item) => item.id === input.id);
+      if (current) Object.assign(current, input);
+    }
+  });
+  stampAudit("project_upsert", input.id || "project", "Project updated.");
+  revalidatePath("/dashboard/projects");
+}
+
+export async function savePortfolio(formData: FormData) {
+  const id = String(formData.get("id"));
+  mutateWorkspace((state) => {
+    const item = state.portfolio.find((entry) => entry.id === id);
+    if (!item) return;
+    item.companyName = sanitizeText(String(formData.get("companyName") || item.companyName));
+    item.industry = sanitizeText(String(formData.get("industry") || item.industry));
+    item.projectTitle = sanitizeText(String(formData.get("projectTitle") || item.projectTitle));
+    item.challenge = sanitizeText(String(formData.get("challenge") || item.challenge));
+    item.solution = sanitizeText(String(formData.get("solution") || item.solution));
+    item.websiteUrl = String(formData.get("websiteUrl") || "");
+    const results = String(formData.get("results") || "").split("\n").map((line) => line.trim()).filter(Boolean);
+    item.results = results.length ? results : ["Add verified result"];
+  });
+  stampAudit("portfolio_updated", id, "Portfolio item updated.");
+  revalidatePath("/work");
+  revalidatePath("/dashboard/portfolio");
+}
+
+export async function saveTestimonial(formData: FormData) {
+  mutateWorkspace((state) => {
+    const quote = sanitizeText(String(formData.get("quote") || ""));
+    if (!quote) return;
+    state.testimonials.unshift({
+      id: `t-${Date.now()}`,
+      authorName: sanitizeText(String(formData.get("authorName") || "Add name")),
+      authorRole: sanitizeText(String(formData.get("authorRole") || "")),
+      company: sanitizeText(String(formData.get("company") || "")),
+      quote,
+      approved: formData.get("approved") === "on",
+      published: formData.get("published") === "on",
+      source: "Owner entry",
+      relatedPortfolioId: String(formData.get("relatedPortfolioId") || "") || null,
+    });
+  });
+  revalidatePath("/dashboard/portfolio");
+}
+
+export async function toggleTheme(next: "light" | "dark") {
+  const jar = await cookies();
+  jar.set("sts_theme", next, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+  revalidatePath("/");
+}
+
+export async function signInWithPassword(formData: FormData) {
+  const headerList = await headers();
+  const limited = rateLimit(clientKey(headerList, "login"), 8, 15 * 60 * 1000);
+  if (!limited.ok) {
+    return { error: "Too many attempts. Try again later.", locked: true };
+  }
+  if (!isSupabaseConfigured()) {
+    return { error: "Supabase is not configured. Use demo workspace locally, or add environment variables." };
+  }
+  const factory = createSupabaseServer();
+  if (!factory) return { error: "Supabase is not configured." };
+  const supabase = await factory();
+  const email = String(formData.get("email") || "");
+  const password = String(formData.get("password") || "");
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    stampAudit("login_failed", "auth", "Failed password sign-in. Email existence is not confirmed in the UI.");
+    return { error: "We could not sign you in. Check the details or try another method." };
+  }
+  stampAudit("login_success", "auth", "Password sign-in succeeded.");
+  const next = String(formData.get("next") || "/dashboard");
+  redirect(isSafeRedirect(next) ? next : "/dashboard");
+}
+
+export async function requestOtp(formData: FormData) {
+  const limited = rateLimit(clientKey(await headers(), "otp"), 5, 15 * 60 * 1000);
+  if (!limited.ok) return { error: "Please wait before requesting another code.", locked: true };
+  const email = String(formData.get("email") || "");
+  if (!isSupabaseConfigured()) {
+    return { sent: true, demo: true };
+  }
+  const factory = createSupabaseServer();
+  if (!factory) return { sent: true, demo: true };
+  const supabase = await factory();
+  await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: false },
+  });
+  return { sent: true };
+}
+
+export async function requestMagicLink(formData: FormData) {
+  const limited = rateLimit(clientKey(await headers(), "magic"), 5, 15 * 60 * 1000);
+  if (!limited.ok) return { error: "Please wait before requesting another link.", locked: true };
+  const email = String(formData.get("email") || "");
+  if (!isSupabaseConfigured()) return { sent: true, demo: true };
+  const factory = createSupabaseServer();
+  if (!factory) return { sent: true, demo: true };
+  const supabase = await factory();
+  await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: false,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+    },
+  });
+  return { sent: true };
+}

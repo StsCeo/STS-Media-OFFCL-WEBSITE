@@ -1,0 +1,30 @@
+import { Button } from "@/components/ui";
+import { getWorkspace } from "@/lib/data/store";
+
+export const metadata = { title: "Services" };
+
+export default function ServicesPage() {
+  const services = getWorkspace().services.filter((item) => item.active);
+  return (
+    <div className="bg-ivory text-ink">
+      <div className="mx-auto max-w-6xl px-4 py-16">
+        <h1 className="font-display text-4xl">Services</h1>
+        <p className="mt-4 max-w-2xl text-muted">
+          Practical digital work for businesses that already know how to serve people — and need the public side to catch up.
+        </p>
+        <div className="mt-10 grid gap-4 md:grid-cols-2">
+          {services.map((service) => (
+            <article key={service.id} className="rounded-xl border border-line bg-white p-6">
+              <h2 className="text-lg font-semibold">{service.name}</h2>
+              <p className="mt-2 text-sm text-muted">{service.summary}</p>
+              <p className="mt-3 text-sm">{service.description}</p>
+            </article>
+          ))}
+        </div>
+        <Button href="/contact" className="mt-10">
+          Start a Project
+        </Button>
+      </div>
+    </div>
+  );
+}
