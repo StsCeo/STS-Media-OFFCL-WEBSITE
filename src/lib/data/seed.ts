@@ -1,4 +1,5 @@
 import type { WorkspaceState } from "../types";
+import { legalBodies } from "../content/trust";
 
 const now = "2026-09-11T14:00:00.000Z";
 
@@ -129,11 +130,11 @@ export function createSeedWorkspace(): WorkspaceState {
       { id: "pr-7", order: 7, title: "Maintenance and growth", summary: "Keep the site current and improve it as the business earns new proof.", detail: "Updates, monitoring, and the next useful improvement — without pretending a website is finished forever." },
     ],
     legal: [
-      legal("privacy", "Privacy Policy", "How STS Media collects, uses, and stores information."),
-      legal("terms", "Terms of Service", "The terms that govern use of stsmedia.co and related services."),
-      legal("cookies", "Cookie notice", "How cookies and similar technologies are used on this website."),
-      legal("accessibility", "Accessibility statement", "STS Media’s commitment to an accessible public website and command center."),
-      legal("client-portal", "Client portal terms", "Future terms for clients who access project files, invoices, and approvals."),
+      legal("privacy", "Privacy Policy", "How STS Media collects, uses, and stores information.", legalBodies.privacy),
+      legal("terms", "Terms of Service", "The terms that govern use of stsmedia.co and related services.", legalBodies.terms),
+      legal("cookies", "Cookie notice", "How cookies and similar technologies are used on this website.", legalBodies.cookies),
+      legal("accessibility", "Accessibility statement", "STS Media’s commitment to an accessible public website and command center.", legalBodies.accessibility),
+      legal("client-portal", "Client portal terms", "Future terms for clients who access project files, invoices, and approvals.", legalBodies["client-portal"]),
     ],
     contacts: [],
     clients: [
@@ -494,13 +495,13 @@ function s(slug: string, name: string, summary: string, description: string, fea
   return { id: `svc-${slug}`, slug, name, summary, description, category: name, active: true, featured, order: 0 };
 }
 
-function legal(slug: string, title: string, summary: string) {
+function legal(slug: string, title: string, summary: string, body: string) {
   return {
     id: `legal-${slug}`,
     title,
     slug,
     summary,
-    body: `${summary}\n\nThis page is a placeholder. It is not legal advice and must be reviewed by a qualified professional before it is treated as an official policy. Do not publish operational legal language until that review is complete.`,
+    body,
     lastReviewed: null,
     needsProfessionalReview: true,
   };

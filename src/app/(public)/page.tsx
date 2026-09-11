@@ -136,7 +136,7 @@ export default function HomePage() {
           <div className="mt-6 grid gap-4 md:grid-cols-4">
             {process.map((step) => (
               <div key={step.id} className="rounded-lg border border-line p-4">
-                <p className="text-xs text-gold">{String(step.order).padStart(2, "0")}</p>
+                <p className="text-xs text-gold-ink">{String(step.order).padStart(2, "0")}</p>
                 <h3 className="mt-2 font-medium">{step.title}</h3>
                 <p className="mt-2 text-sm text-muted">{step.summary}</p>
               </div>

@@ -56,7 +56,7 @@ export function Badge({
     warning: "bg-warning/10 text-warning border-warning/20",
     danger: "bg-danger/10 text-danger border-danger/20",
     info: "bg-info/10 text-info border-info/20",
-    gold: "bg-gold/10 text-gold border-gold/25",
+    gold: "bg-gold/15 text-gold-ink border-gold-ink/25",
     demo: "bg-lead/10 text-lead border-lead/20",
   };
   return (
@@ -122,18 +122,33 @@ export function Field({
   name,
   children,
   hint,
+  error,
 }: {
   label: string;
   name?: string;
   children: React.ReactNode;
   hint?: string;
+  error?: string;
 }) {
+  const hintId = name ? `${name}-hint` : undefined;
+  const errorId = name ? `${name}-error` : undefined;
   return (
-    <label className="block space-y-1.5 text-sm" htmlFor={name}>
-      <span className="font-medium text-current">{label}</span>
+    <div className="block space-y-1.5 text-sm">
+      <label className="font-medium text-current" htmlFor={name}>
+        {label}
+      </label>
       {children}
-      {hint ? <span className="block text-xs text-muted">{hint}</span> : null}
-    </label>
+      {hint ? (
+        <p id={hintId} className="text-xs text-muted">
+          {hint}
+        </p>
+      ) : null}
+      {error ? (
+        <p id={errorId} className="text-sm text-danger" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

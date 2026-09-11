@@ -11,13 +11,13 @@ export function Logo({
   href?: string;
 }) {
   return (
-    <Link href={href} className={cn("group inline-flex items-center gap-3", invert ? "text-ivory" : "text-ink")}>
+    <Link href={href} aria-label="STS Media home" className={cn("group inline-flex items-center gap-3", invert ? "text-ivory" : "text-ink")}>
       <span
         className={cn(
           "grid h-9 w-9 place-items-center rounded-md border",
           invert ? "border-gold/40 bg-obsidian text-gold" : "border-forest/20 bg-forest text-ivory",
         )}
-        aria-hidden
+        aria-hidden="true"
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
           <path d="M4 16h16" stroke="currentColor" strokeWidth="1.4" />

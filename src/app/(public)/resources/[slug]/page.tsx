@@ -31,7 +31,7 @@ export default async function ResourcePage({ params }: { params: Promise<{ slug:
       <ol className="mt-10 space-y-4">
         {item.body.map((line, index) => (
           <li key={line} className="rounded-xl border border-line bg-white p-5 text-sm leading-6">
-            <span className="text-xs text-gold">{String(index + 1).padStart(2, "0")}</span>
+            <span className="text-xs text-gold-ink">{String(index + 1).padStart(2, "0")}</span>
             <p className="mt-2">{line}</p>
           </li>
         ))}

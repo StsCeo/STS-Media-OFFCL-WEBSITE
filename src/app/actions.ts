@@ -10,7 +10,7 @@ import { allowedFile, assertSameOrigin } from "@/lib/security/origin";
 import { getPalette } from "@/lib/theme/palettes";
 import type { Expense, Lead, Project, RevenueEntry } from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
-import { contactSchema, sanitizeText } from "@/lib/validation";
+import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
 import { createSupabaseServer } from "@/lib/auth/session";
 
 function isSafePath(path: string) {
@@ -134,6 +134,43 @@ export async function submitContact(formData: FormData) {
   stampAudit("contact_submitted", "leads", "Public contact form created a new inquiry.");
   revalidatePath("/dashboard/inbox");
   revalidatePath("/dashboard/leads");
+  return { ok: true };
+}
+
+export async function reportVulnerability(formData: FormData) {
+  await assertSameOrigin();
+  const headerList = await headers();
+  const limited = rateLimit(clientKey(headerList, "vuln"), 3, 60 * 60 * 1000);
+  if (!limited.ok) {
+    return { error: "Please wait before sending another report." };
+  }
+  const parsed = vulnerabilitySchema.safeParse({
+    reporter: formData.get("reporter") || "",
+    email: formData.get("email") || "",
+    product: formData.get("product"),
+    summary: formData.get("summary"),
+    details: formData.get("details"),
+    goodFaith: formData.get("goodFaith") === "on",
+    companyWebsite: formData.get("companyWebsite"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Please check the form and try again." };
+  }
+  mutateWorkspace((state) => {
+    state.securityEvents.unshift({
+      id: `vuln-${Date.now()}`,
+      at: new Date().toISOString(),
+      type: "vulnerability_report",
+      actor: parsed.data.email || "anonymous",
+      detail: `${parsed.data.product}: ${sanitizeText(parsed.data.summary)}`,
+    });
+  });
+  stampAudit(
+    "vulnerability_report",
+    "security",
+    "A vulnerability report was filed. Details are not written to ordinary logs.",
+  );
+  revalidatePath("/dashboard/settings/security");
   return { ok: true };
 }
 

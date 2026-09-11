@@ -32,6 +32,7 @@ export function BrandForm({ brand }: { brand: BrandSettings }) {
                   setAccent(item.tokens.emerald);
                 }}
                 className={`rounded-lg border p-3 text-left ${paletteId === item.id ? "border-forest ring-2 ring-focus" : "border-line"}`}
+              aria-pressed={paletteId === item.id}
               >
                 <div className="mb-3 flex h-10 overflow-hidden rounded-md">
                   {[item.tokens.obsidian, item.tokens.forest, item.tokens.emerald, item.tokens.gold, item.tokens.ivory].map((color) => (

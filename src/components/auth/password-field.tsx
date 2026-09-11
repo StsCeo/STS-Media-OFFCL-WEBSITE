@@ -25,6 +25,8 @@ export function PasswordField({
         autoComplete="new-password"
         className={inputClass}
         value={value}
+        aria-describedby="password-hint"
+        aria-invalid={value.length > 0 && !result.ok ? true : undefined}
         onChange={(event) => setValue(event.target.value)}
       />
       {value ? (

@@ -108,21 +108,22 @@ export function ExpenseLedger({ expenses }: { expenses: Expense[] }) {
 
       <div className="hidden overflow-x-auto rounded-lg border border-line md:block">
         <table className="min-w-[1400px] w-full text-left text-sm">
+          <caption className="sr-only">Expense ledger</caption>
           <thead className="bg-canvas text-xs uppercase tracking-wide text-muted">
             <tr>
-              <th className="p-2"><input type="checkbox" aria-label="Select all" onChange={(e) => setSelected(e.target.checked ? rows.map((r) => r.id) : [])} /></th>
+              <th className="p-2" scope="col"><input type="checkbox" aria-label="Select all expenses" onChange={(e) => setSelected(e.target.checked ? rows.map((r) => r.id) : [])} /></th>
               {columns.map((col) => (
-                <th key={col.key} className="p-2">
-                  <button onClick={() => { setSort(col.key); setDir(dir === "asc" ? "desc" : "asc"); }}>{col.label}</button>
+                <th key={col.key} className="p-2" scope="col">
+                  <button type="button" onClick={() => { setSort(col.key); setDir(dir === "asc" ? "desc" : "asc"); }}>{col.label}</button>
                 </th>
               ))}
-              <th className="p-2">Actions</th>
+              <th className="p-2" scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id} className="border-t border-line">
-                <td className="p-2"><input type="checkbox" checked={selected.includes(row.id)} onChange={(e) => setSelected((cur) => e.target.checked ? [...cur, row.id] : cur.filter((id) => id !== row.id))} /></td>
+                <td className="p-2"><input type="checkbox" aria-label={`Select ${row.vendor}`} checked={selected.includes(row.id)} onChange={(e) => setSelected((cur) => e.target.checked ? [...cur, row.id] : cur.filter((id) => id !== row.id))} /></td>
                 {columns.map((col) => (
                   <td key={col.key} className="p-2 align-top">
                     {col.key === "confirmationStatus" && row.confirmationStatus === "draft" ? <Badge tone="warning">Draft</Badge> : null}
@@ -133,9 +134,9 @@ export function ExpenseLedger({ expenses }: { expenses: Expense[] }) {
                 ))}
                 <td className="p-2">
                   <div className="flex flex-col gap-1">
-                    <button className="text-forest" onClick={() => setEditing(row)}>Edit</button>
-                    <button onClick={() => start(() => duplicateExpense(row.id))}>Duplicate</button>
-                    <button onClick={() => setReceipt(row)}>Receipt</button>
+                    <button type="button" className="text-forest underline" onClick={() => setEditing(row)}>Edit</button>
+                    <button type="button" className="underline" onClick={() => start(() => duplicateExpense(row.id))}>Duplicate</button>
+                    <button type="button" className="underline" onClick={() => setReceipt(row)}>Receipt</button>
                   </div>
                 </td>
               </tr>

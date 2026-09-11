@@ -28,7 +28,7 @@ export default function AboutPage() {
           </Link>
         </div>
         <div className="mt-10 rounded-xl border border-line bg-white p-6">
-          <p className="text-xs uppercase tracking-[0.18em] text-gold">{brand.founderRole}</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-gold-ink">{brand.founderRole}</p>
           <h2 className="mt-2 font-display text-2xl">{brand.founderName}</h2>
           <p className="mt-3 text-sm leading-6">{brand.founderBio}</p>
         </div>

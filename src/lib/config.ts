@@ -28,6 +28,8 @@ export const PUBLIC_PATHS = [
   "/for",
   "/lookbook",
   "/portal",
+  "/accessibility",
+  "/rights",
 ];
 
 export const AUTH_PATHS = [

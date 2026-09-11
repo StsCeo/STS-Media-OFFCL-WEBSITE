@@ -70,9 +70,11 @@ export const publicFooterAudience = [
 
 export const publicFooterTrust = [
   { href: "/faq", label: "FAQ" },
+  { href: "/accessibility", label: "Accessibility" },
+  { href: "/rights", label: "Your rights" },
   { href: "/security", label: "Security" },
+  { href: "/security/vulnerabilities", label: "Report a vulnerability" },
   { href: "/legal/privacy", label: "Privacy" },
   { href: "/legal/terms", label: "Terms" },
   { href: "/legal/cookies", label: "Cookies" },
-  { href: "/legal/accessibility", label: "Accessibility" },
 ];

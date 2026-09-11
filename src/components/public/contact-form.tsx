@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { submitContact } from "@/app/actions";
 import { Button, Field, inputClass, textareaClass } from "@/components/ui";
 
@@ -24,7 +25,7 @@ export function ContactForm({
   const [state, formAction, pending] = useActionState(action, {});
   if (state.ok) {
     return (
-      <div className="rounded-xl border border-emerald/30 bg-white p-8 text-ink">
+      <div className="rounded-xl border border-emerald/30 bg-white p-8 text-ink" role="status">
         <h2 className="font-display text-2xl">Message received</h2>
         <p className="mt-3 text-sm text-muted">
           Thank you. We will review this and respond using the contact method you selected. Nothing is auto-sent until the owner reviews it.
@@ -36,16 +37,16 @@ export function ContactForm({
     <form action={formAction} className="space-y-4 rounded-xl border border-line bg-white p-6 text-ink">
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Name" name="name">
-          <input id="name" name="name" required className={inputClass} />
+          <input id="name" name="name" required autoComplete="name" className={inputClass} aria-invalid={state.error ? true : undefined} />
         </Field>
         <Field label="Business name" name="businessName">
-          <input id="businessName" name="businessName" className={inputClass} />
+          <input id="businessName" name="businessName" autoComplete="organization" className={inputClass} />
         </Field>
         <Field label="Business email" name="email">
-          <input id="email" name="email" type="email" required className={inputClass} />
+          <input id="email" name="email" type="email" required autoComplete="email" className={inputClass} />
         </Field>
         <Field label="Phone" name="phone">
-          <input id="phone" name="phone" className={inputClass} />
+          <input id="phone" name="phone" autoComplete="tel" className={inputClass} />
         </Field>
         <Field label="I am" name="audience">
           <select id="audience" name="audience" className={inputClass} defaultValue={defaultAudience}>
@@ -98,10 +99,24 @@ export function ContactForm({
         <input name="companyWebsite" tabIndex={-1} autoComplete="off" />
       </div>
       <label className="flex items-start gap-2 text-sm">
-        <input name="consent" type="checkbox" required className="mt-1" />
-        <span>I agree to be contacted about this inquiry and understand the privacy policy is a placeholder pending legal review.</span>
+        <input id="consent" name="consent" type="checkbox" required className="mt-1 h-4 w-4" />
+        <span>
+          I agree to be contacted about this inquiry. I have read the{" "}
+          <Link className="underline" href="/legal/privacy">
+            privacy policy
+          </Link>{" "}
+          and{" "}
+          <Link className="underline" href="/rights">
+            my rights
+          </Link>
+          . Those pages are placeholders pending legal review.
+        </span>
       </label>
-      {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+      {state.error ? (
+        <p className="text-sm text-danger" role="alert">
+          {state.error}
+        </p>
+      ) : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Sending…" : "Send message"}
       </Button>

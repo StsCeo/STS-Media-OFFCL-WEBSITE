@@ -83,6 +83,18 @@ export const faqs = [
     q: "Can I try the dashboard?",
     a: "A labeled demo workspace exists for local exploration. Demo data is draft, not production books, and is not a production credential.",
   },
+  {
+    q: "Is the site accessible?",
+    a: "We aim to meet WCAG 2.2 Level AA. Keyboard, skip links, labeled fields, contrast, and reduced-motion are built in. Report a barrier at /accessibility or hello@stsmedia.co. We do not claim an ADA certification badge.",
+  },
+  {
+    q: "What rights do I have over my information?",
+    a: "You can ask us to access, correct, or delete contact records we hold, and we do not sell personal information. How to request that is at /rights. Legal pages still need professional review.",
+  },
+  {
+    q: "How do I report a security issue?",
+    a: "Use /security/vulnerabilities or email hello@stsmedia.co. Describe the URL and impact. Do not send passwords, client files, or reusable exploits. There is no bug bounty at this time.",
+  },
 ];
 
 export const resources = [

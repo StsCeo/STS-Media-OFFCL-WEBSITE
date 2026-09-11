@@ -22,7 +22,21 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
         ) : null}
         <p className="mt-8 whitespace-pre-wrap leading-7">{page.body}</p>
         <p className="mt-10 text-sm">
-          <Link href="/legal/privacy" className="text-forest">Privacy</Link> · <Link href="/legal/terms">Terms</Link> · <Link href="/legal/cookies">Cookies</Link> · <Link href="/legal/accessibility">Accessibility</Link> · <Link href="/legal/client-portal">Client portal</Link>
+          <Link href="/rights" className="text-forest underline">Your rights</Link>
+          {" · "}
+          <Link href="/accessibility" className="underline">Accessibility</Link>
+          {" · "}
+          <Link href="/security/vulnerabilities" className="underline">Report a vulnerability</Link>
+          {" · "}
+          <Link href="/legal/privacy" className="underline">Privacy</Link>
+          {" · "}
+          <Link href="/legal/terms" className="underline">Terms</Link>
+          {" · "}
+          <Link href="/legal/cookies" className="underline">Cookies</Link>
+          {" · "}
+          <Link href="/legal/accessibility" className="underline">Accessibility statement</Link>
+          {" · "}
+          <Link href="/legal/client-portal" className="underline">Client portal</Link>
         </p>
       </div>
     </div>

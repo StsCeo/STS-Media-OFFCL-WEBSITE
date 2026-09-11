@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { SkipLink } from "@/components/a11y/skip-link";
 import { PublicFooter, PublicHeader } from "@/components/public/chrome";
 import { CookieBanner, PalettePreviewBar } from "@/components/public/notices";
 import { CONSENT_COOKIE, PALETTE_COOKIE } from "@/lib/config";
@@ -13,12 +14,7 @@ export default async function PublicLayout({ children }: { children: React.React
   const consent = Boolean(jar.get(CONSENT_COOKIE)?.value);
   return (
     <div data-surface="public" className="min-h-screen bg-obsidian text-ivory">
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-card focus:px-3 focus:py-2 focus:text-ink"
-      >
-        Skip to content
-      </a>
+      <SkipLink />
       {preview ? <PalettePreviewBar name={preview.name} /> : null}
       <PublicHeader />
       <main id="main" className="flex-1">

@@ -6,7 +6,8 @@ export function GET() {
     `Expires: 2027-09-11T00:00:00.000Z`,
     `Preferred-Languages: en`,
     `Canonical: ${siteUrl()}/.well-known/security.txt`,
-    `Policy: ${siteUrl()}/security`,
+    `Policy: ${siteUrl()}/security/vulnerabilities`,
+    `Acknowledgments: ${siteUrl()}/security/acknowledgments`,
     `Hiring: ${siteUrl()}/contact`,
   ].join("\n");
 

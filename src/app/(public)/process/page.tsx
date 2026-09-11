@@ -12,7 +12,7 @@ export default function ProcessPage() {
         <ol className="mt-10 space-y-6">
           {steps.map((step) => (
             <li key={step.id} className="rounded-xl border border-line bg-white p-6">
-              <p className="text-xs text-gold">{String(step.order).padStart(2, "0")}</p>
+              <p className="text-xs text-gold-ink">{String(step.order).padStart(2, "0")}</p>
               <h2 className="mt-1 font-display text-2xl">{step.title}</h2>
               <p className="mt-2 text-sm font-medium">{step.summary}</p>
               <p className="mt-2 text-sm text-muted">{step.detail}</p>

@@ -24,11 +24,13 @@ export function LoginForm({ next, demoEnabled, supabaseConfigured }: { next: str
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-3 gap-1 rounded-md bg-black/30 p-1 text-xs">
+      <div className="grid grid-cols-3 gap-1 rounded-md bg-black/30 p-1 text-xs" role="tablist" aria-label="Sign-in method">
         {(["password", "code", "magic"] as const).map((item) => (
           <button
             key={item}
             type="button"
+            role="tab"
+            aria-selected={tab === item}
             onClick={() => setTab(item)}
             className={`rounded-md px-2 py-2 ${tab === item ? "bg-forest text-ivory" : "text-soft-gray"}`}
           >
@@ -46,7 +48,11 @@ export function LoginForm({ next, demoEnabled, supabaseConfigured }: { next: str
           <Field label="Password" name="password">
             <input id="password" name="password" type="password" required className={inputClass} autoComplete="current-password" />
           </Field>
-          {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+          {state.error ? (
+            <p className="text-sm text-danger" role="alert">
+              {state.error}
+            </p>
+          ) : null}
           <Button type="submit" disabled={pending} className="w-full">
             {pending ? "Signing in…" : "Sign in"}
           </Button>
@@ -70,7 +76,11 @@ export function LoginForm({ next, demoEnabled, supabaseConfigured }: { next: str
           <Field label="Email" name="email">
             <input id="email-code" name="email" type="email" required className={inputClass} />
           </Field>
-          {otpState ? <p className="text-sm text-danger">{otpState}</p> : null}
+          {otpState ? (
+            <p className="text-sm text-danger" role="alert">
+              {otpState}
+            </p>
+          ) : null}
           <Button type="submit" className="w-full">
             Send verification code
           </Button>
@@ -129,7 +139,11 @@ export function ForgotForm() {
       <Field label="Email" name="email">
         <input id="email" name="email" type="email" required className={inputClass} />
       </Field>
-      {error ? <p className="text-sm text-danger">{error}</p> : null}
+      {error ? (
+        <p className="text-sm text-danger" role="alert">
+          {error}
+        </p>
+      ) : null}
       <Button type="submit" className="w-full">
         Send reset link
       </Button>

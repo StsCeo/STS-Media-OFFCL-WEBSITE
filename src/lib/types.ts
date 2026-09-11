@@ -456,7 +456,8 @@ export interface SecurityEvent {
     | "session_revoked"
     | "role_change"
     | "invitation"
-    | "rate_limited";
+    | "rate_limited"
+    | "vulnerability_report";
   actor: string;
   detail: string;
 }

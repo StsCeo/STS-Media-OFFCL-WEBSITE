@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Bell, ChevronLeft, ChevronRight, ExternalLink, LogOut, Moon, Search, Sun } from "lucide-react";
+import { SkipLink } from "@/components/a11y/skip-link";
 import { Logo } from "@/components/brand/logo";
 import { CommandPalette } from "@/components/dashboard/command-palette";
 import { InactivityGuard } from "@/components/dashboard/inactivity";
@@ -31,11 +32,9 @@ export function DashboardShell({
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
+      <SkipLink />
       <CommandPalette />
       <InactivityGuard />
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-card focus:px-3 focus:py-2">
-        Skip to content
-      </a>
       {demo ? (
         <div className="bg-forest px-4 py-2 text-center text-xs text-ivory">
           Demo workspace — labeled draft data, not production books. Supabase Auth is required before this is a live command center.
@@ -55,10 +54,10 @@ export function DashboardShell({
               onClick={() => setCollapsed((value) => !value)}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              {collapsed ? <ChevronRight size={16} aria-hidden /> : <ChevronLeft size={16} aria-hidden />}
             </button>
           </div>
-          <nav className="flex-1 overflow-y-auto px-2 pb-4">
+          <nav className="flex-1 overflow-y-auto px-2 pb-4" aria-label="Command Center">
             {dashboardNav.map((item) => {
               const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
               const Icon = item.icon;
@@ -72,8 +71,10 @@ export function DashboardShell({
                     collapsed && "justify-center px-0",
                   )}
                   title={item.label}
+                  aria-label={collapsed ? item.label : undefined}
+                  aria-current={active ? "page" : undefined}
                 >
-                  <Icon size={18} />
+                  <Icon size={18} aria-hidden />
                   {collapsed ? null : item.label}
                 </Link>
               );
@@ -86,7 +87,7 @@ export function DashboardShell({
             <button className="absolute inset-0 bg-black/50" aria-label="Close menu" onClick={() => setMobileOpen(false)} />
             <aside className="relative h-full w-72 overflow-y-auto bg-obsidian p-4 text-ivory">
               <Logo invert href="/dashboard" />
-              <nav className="mt-6 space-y-1">
+              <nav className="mt-6 space-y-1" aria-label="Command Center">
                 {dashboardNav.map((item) => (
                   <Link key={item.href} href={item.href} className="block rounded-md px-2 py-2 text-sm text-soft-gray hover:bg-white/5" onClick={() => setMobileOpen(false)}>
                     {item.label}
@@ -99,39 +100,41 @@ export function DashboardShell({
 
         <div className="min-w-0 flex-1">
           <header className="no-print sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-card/90 px-4 py-3 backdrop-blur">
-            <button className="rounded-md border border-line px-2 py-1 text-sm md:hidden" onClick={() => setMobileOpen(true)}>
+            <button className="rounded-md border border-line px-2 py-1 text-sm md:hidden" onClick={() => setMobileOpen(true)} aria-label="Open menu">
               Menu
             </button>
             <button
               type="button"
+              aria-haspopup="dialog"
+              aria-label="Open command palette"
               onClick={() => window.dispatchEvent(new Event("sts:open-command"))}
               className="relative hidden min-w-0 flex-1 items-center md:flex"
             >
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted" aria-hidden />
               <span className="flex h-9 w-full max-w-md items-center rounded-md border border-line bg-canvas pl-9 pr-3 text-left text-sm text-muted">
                 Search Command Center…
                 <kbd className="ml-auto hidden rounded border border-line px-1.5 py-0.5 text-[10px] text-muted sm:inline">⌘K</kbd>
               </span>
             </button>
             <Link href="/" className="hidden rounded-md p-2 hover:bg-canvas lg:inline-flex" aria-label="View public site">
-              <ExternalLink size={18} />
+              <ExternalLink size={18} aria-hidden />
             </Link>
             <Link href="/dashboard/notifications" className="rounded-md p-2 hover:bg-canvas" aria-label="Notifications">
-              <Bell size={18} />
+              <Bell size={18} aria-hidden />
             </Link>
             <button
               className="rounded-md p-2 hover:bg-canvas"
               aria-label="Toggle color theme"
               onClick={() => start(() => toggleTheme(theme === "dark" ? "light" : "dark"))}
             >
-              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              {theme === "dark" ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}
             </button>
             <Link href="/dashboard/settings/security" className="hidden rounded-md border border-line px-3 py-1.5 text-xs sm:block">
               {email}
             </Link>
             <form action={endDemoSession}>
               <button className="rounded-md p-2 hover:bg-canvas" aria-label="Sign out" disabled={pending}>
-                <LogOut size={18} />
+                <LogOut size={18} aria-hidden />
               </button>
             </form>
           </header>

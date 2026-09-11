@@ -6,6 +6,7 @@
   --forest-hover: #0f2f21;
   --emerald: #2e7d5b;
   --gold: #c6a15b;
+  --gold-ink: #6a4b12;
   --ivory: #f7f5ef;
   --white: #ffffff;
   --soft-gray: #a7ada8;
@@ -73,6 +74,7 @@ html[data-theme="dark"] {
   --color-forest-hover: var(--forest-hover);
   --color-emerald: var(--emerald);
   --color-gold: var(--gold);
+  --color-gold-ink: var(--gold-ink);
   --color-ivory: var(--ivory);
   --color-soft-gray: var(--soft-gray);
   --color-canvas: var(--canvas);
@@ -140,6 +142,31 @@ kbd {
   outline-offset: 3px;
 }
 
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -5rem;
+  z-index: 100;
+  border-radius: 0.375rem;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0.5rem 0.75rem;
+  text-decoration: underline;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
 .font-display { font-family: var(--font-fraunces), Georgia, serif; }
 .font-mono { font-family: var(--font-ibm-plex-mono), ui-monospace, monospace; }
 
@@ -171,6 +198,20 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .lift, .lift:hover { transition: none; transform: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --muted: #3f4742;
+    --soft-gray: #d5dbd6;
+    --line: #1f2923;
+    --gold-ink: #4e360c;
+  }
 }
 
 @media print {

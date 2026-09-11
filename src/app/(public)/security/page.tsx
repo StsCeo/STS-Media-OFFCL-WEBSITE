@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui";
 import { IvoryShell, PageKicker, PageLede, PageTitle } from "@/components/public/page-hero";
 
@@ -36,7 +37,7 @@ export default function PublicSecurityPage() {
       <PageKicker>Trust</PageKicker>
       <PageTitle>How this site is built to behave.</PageTitle>
       <PageLede>
-        These are engineering practices, not legal advice. Policies in /legal are placeholders pending professional review.
+        These are engineering practices, not legal advice. Privacy, cookies, and terms in /legal are placeholders pending professional review.
       </PageLede>
       <div className="mt-10 space-y-4">
         {practices.map((item) => (
@@ -46,16 +47,34 @@ export default function PublicSecurityPage() {
           </article>
         ))}
       </div>
+      <section className="mt-8 rounded-xl border border-line bg-white p-5">
+        <h2 className="font-medium">Report a vulnerability</h2>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          If you found a security issue, use the disclosure form. Do not send exploits, credentials, or other people’s data. Coordinated disclosure is documented at /security/vulnerabilities and in{" "}
+          <a className="underline" href="/.well-known/security.txt">
+            /.well-known/security.txt
+          </a>
+          .
+        </p>
+        <Button href="/security/vulnerabilities" className="mt-4">
+          Open the disclosure form
+        </Button>
+      </section>
       <p className="mt-8 text-sm text-muted">
-        Security contact: hello@stsmedia.co · machine-readable policy at{" "}
-        <a className="underline" href="/.well-known/security.txt">
-          /.well-known/security.txt
-        </a>
+        Security contact: hello@stsmedia.co ·{" "}
+        <Link className="underline" href="/security/acknowledgments">
+          Acknowledgments
+        </Link>
         .
       </p>
-      <Button href="/contact" className="mt-6" variant="secondary">
-        Ask a question
-      </Button>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Button href="/rights" variant="secondary">
+          Your rights
+        </Button>
+        <Button href="/accessibility" variant="secondary">
+          Accessibility
+        </Button>
+      </div>
     </IvoryShell>
   );
 }
