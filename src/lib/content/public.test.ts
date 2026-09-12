@@ -10,5 +10,7 @@ describe("public content", () => {
   it("has usable FAQ copy", () => {
     expect(faqs.length).toBeGreaterThan(5);
     expect(faqs.every((item) => item.q && item.a)).toBe(true);
+    const portal = faqs.find((item) => item.q === "Is there a client portal?");
+    expect(portal?.a).toMatch(/do not receive a login/i);
   });
 });

@@ -65,7 +65,7 @@ export const faqs = [
   },
   {
     q: "What is the Command Center?",
-    a: "A private workspace for the owner: leads, projects, finance, content, and brand settings. It is not the public website, and it is not live until authentication is connected.",
+    a: "A private workspace for the owner: leads, projects, finance, content, and brand settings. It is not the public website. Clients never sign in there.",
   },
   {
     q: "Can I preview different color schemes?",
@@ -73,7 +73,7 @@ export const faqs = [
   },
   {
     q: "Is there a client portal?",
-    a: "The portal is designed and shown as a preview. Client logins, files, and invoices are not live until Auth and storage are connected.",
+    a: "No. Clients do not receive a login. You reach STS Media through the contact form or email. The Command Center is a private owner sign-in only.",
   },
   {
     q: "How do you handle my data?",

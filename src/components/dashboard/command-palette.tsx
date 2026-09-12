@@ -23,7 +23,6 @@ export function CommandPalette() {
       { href: "/security", label: "Security practices", group: "Public site" },
       { href: "/security/vulnerabilities", label: "Report a vulnerability", group: "Public site" },
       { href: "/resources", label: "Resources", group: "Public site" },
-      { href: "/portal", label: "Client portal preview", group: "Public site" },
     ];
     const q = query.toLowerCase();
     return all.filter((item) => item.label.toLowerCase().includes(q));

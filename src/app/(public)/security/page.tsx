@@ -27,7 +27,7 @@ const practices = [
   },
   {
     title: "What is not live yet",
-    body: "The labeled demo workspace is not a production credential. Client portal logins, object storage, and inbox sync wait on Auth and Phase 2 integrations.",
+    body: "The labeled demo workspace is not a production credential. There is no client login. Object storage and inbox sync wait on Auth and Phase 2 integrations.",
   },
 ];
 

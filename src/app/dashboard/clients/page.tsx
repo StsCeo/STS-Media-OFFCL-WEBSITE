@@ -7,7 +7,7 @@ export default function ClientsPage() {
   const clients = getWorkspace().clients;
   return (
     <div>
-      <PageHeader title="Clients" description="Client records are workspace-scoped. Portal access stays off until Phase 3." />
+      <PageHeader title="Clients" description="These are your client records. Clients do not receive a login. You manage the work here; they reach you by email or the contact form." />
       <div className="grid gap-4 md:grid-cols-2">
         {clients.map((client) => (
           <Card key={client.id}>
@@ -21,7 +21,6 @@ export default function ClientsPage() {
             <p className="mt-3 text-sm">{client.contactName}</p>
             <p className="text-sm">{client.email}</p>
             <p className="mt-3 text-xs text-muted">{client.notes}</p>
-            <p className="mt-2 text-xs">Client portal: {client.portalEnabled ? "enabled" : "prepared, not enabled"}</p>
           </Card>
         ))}
       </div>

@@ -22,7 +22,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/accessibility",
     "/rights",
     "/resources",
-    "/portal",
     "/legal/privacy",
     "/legal/terms",
     ...resources.map((item) => `/resources/${item.slug}`),

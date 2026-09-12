@@ -35,8 +35,6 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
           <Link href="/legal/cookies" className="underline">Cookies</Link>
           {" · "}
           <Link href="/legal/accessibility" className="underline">Accessibility statement</Link>
-          {" · "}
-          <Link href="/legal/client-portal" className="underline">Client portal</Link>
         </p>
       </div>
     </div>

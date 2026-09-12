@@ -69,7 +69,7 @@ export const userRights = {
     },
     {
       title: "Portability",
-      body: "Where we hold a contact record or, later, a client-portal file list, we can export what we have in a common format such as CSV or PDF.",
+      body: "Where we hold a contact record, we can export what we have in a common format such as CSV or PDF.",
     },
     {
       title: "Appeal or complain",
@@ -123,9 +123,9 @@ How to make a request
 ${userRights.howTo}
 
 ${REVIEW_DISCLAIMER}`,
-  terms: `These terms will govern use of stsmedia.co, quoted projects, and — when it is live — the Command Center and client portal.
+  terms: `These terms will govern use of stsmedia.co, quoted projects, and — when it is live — the owner Command Center.
 
-Until they are reviewed: the public site is informational; project work is scoped in a written agreement after discovery; demo access is not a production credential; we do not publish invented results or prices.
+Until they are reviewed: the public site is informational; project work is scoped in a written agreement after discovery; demo access is not a production credential; we do not publish invented results or prices. Clients do not receive a login.
 
 ${REVIEW_DISCLAIMER}`,
   cookies: `Essential cookies
@@ -153,9 +153,9 @@ ${accessibility.knownLimits.map((line) => `• ${line}`).join("\n")}
 Request an accommodation: hello@stsmedia.co. The operational statement also lives at /accessibility.
 
 ${REVIEW_DISCLAIMER}`,
-  "client-portal": `The client portal is a design preview. Client logins, files, and invoices are not live until authentication and storage are connected.
+  "client-portal": `STS Media does not operate a client login or client portal.
 
-When it is live, clients should see only their own projects, files they are allowed to download, and invoice amounts that distinguish unpaid from collected.
+Clients and prospects reach the owner through the public contact form or email. Project files, invoices, and approvals stay in the private Command Center, which is an owner sign-in only.
 
 ${REVIEW_DISCLAIMER}`,
 };

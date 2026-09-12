@@ -134,7 +134,7 @@ export function createSeedWorkspace(): WorkspaceState {
       legal("terms", "Terms of Service", "The terms that govern use of stsmedia.co and related services.", legalBodies.terms),
       legal("cookies", "Cookie notice", "How cookies and similar technologies are used on this website.", legalBodies.cookies),
       legal("accessibility", "Accessibility statement", "STS Media’s commitment to an accessible public website and command center.", legalBodies.accessibility),
-      legal("client-portal", "Client portal terms", "Future terms for clients who access project files, invoices, and approvals.", legalBodies["client-portal"]),
+      legal("client-portal", "How clients work with STS Media", "Clients do not receive a login. Work is handled by the owner through email, calls, and the contact form.", legalBodies["client-portal"]),
     ],
     contacts: [],
     clients: [

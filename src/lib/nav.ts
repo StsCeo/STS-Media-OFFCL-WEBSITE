@@ -65,7 +65,6 @@ export const publicFooterAudience = [
   { href: "/for/creators", label: "For creators" },
   { href: "/resources", label: "Resources" },
   { href: "/lookbook", label: "Color lookbook" },
-  { href: "/portal", label: "Client portal preview" },
 ];
 
 export const publicFooterTrust = [

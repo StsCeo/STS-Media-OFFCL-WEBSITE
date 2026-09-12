@@ -24,7 +24,6 @@ This repository started as an empty README-only project. Phase 1 is implemented 
 
 ### Phase 3
 
-- Client portal
 - Team approval workflows
 - Social publishing
 - AI-assisted briefings and forecasting

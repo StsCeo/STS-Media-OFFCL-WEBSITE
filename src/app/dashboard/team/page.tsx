@@ -3,13 +3,13 @@ import { getWorkspace } from "@/lib/data/store";
 
 export const metadata = { title: "Team" };
 
-const roles = ["Owner", "Admin", "COO", "Executive assistant", "Content strategist", "Scriptwriter", "Reviewer", "Contractor", "Accountant/view-only", "Client"];
+const roles = ["Owner", "Admin", "COO", "Executive assistant", "Content strategist", "Scriptwriter", "Reviewer", "Contractor", "Accountant/view-only"];
 
 export default function TeamPage() {
   const team = getWorkspace().team;
   return (
     <div>
-      <PageHeader title="Team" description="Invite-only. Least privilege. MFA can be required by role. Client identities are isolated." />
+      <PageHeader title="Team" description="One owner login for now. Additional seats stay invite-only if you add them later. There is no client login." />
       <Card className="mb-4">
         <h2 className="font-semibold">Roles prepared</h2>
         <div className="mt-3 flex flex-wrap gap-2">

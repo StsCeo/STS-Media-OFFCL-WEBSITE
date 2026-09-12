@@ -91,9 +91,12 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
   const aal = data.user.factors?.length ? "aal2-unknown" : "aal1";
   const mfaVerified = aal !== "aal1" && (data.user.app_metadata?.mfa_verified === true || false);
   const role = (data.user.app_metadata?.role as Role) || "contractor";
+  if (role === "client") {
+    return { status: "unauthenticated", user: null };
+  }
 
   return {
-    status: mfaVerified || role === "client" ? "authenticated" : "needs_mfa",
+    status: mfaVerified ? "authenticated" : "needs_mfa",
     user: {
       id: data.user.id,
       email: data.user.email ?? "",

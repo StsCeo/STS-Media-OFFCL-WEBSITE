@@ -47,8 +47,8 @@ export default function CreatorsPage() {
           <p className="mt-3 text-sm leading-6 text-soft-gray">
             Follower counts, view spikes, and revenue screenshots stay off the site until they are yours to publish. Empty is better than inflated.
           </p>
-          <Button href="/portal" variant="gold" className="mt-6">
-            Preview the client portal
+          <Button href="/contact?for=creators" variant="gold" className="mt-6">
+            Start a collaboration
           </Button>
         </div>
       </section>
