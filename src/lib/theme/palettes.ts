@@ -4,7 +4,8 @@ export type PaletteId =
   | "warm-atelier"
   | "coastal-clarity"
   | "ember"
-  | "signal-paper";
+  | "signal-paper"
+  | "charcoal-blue-light";
 
 export interface Palette {
   id: PaletteId;
@@ -153,6 +154,27 @@ export const PALETTES: Palette[] = [
       muted: "#5C635E",
       line: "#D8DCD7",
       focus: "#3D9A68",
+    },
+  },
+  {
+    id: "charcoal-blue-light",
+    name: "Charcoal Blue Light",
+    tagline: "Slate charcoal on cool paper. Blue without going navy-night.",
+    suitedFor: "Daylight pages: a quiet charcoal-blue header on pale blue-gray paper, for owners who want cool and readable.",
+    tokens: {
+      obsidian: "#171C24",
+      forest: "#2C3D52",
+      forestHover: "#223044",
+      emerald: "#4A6785",
+      gold: "#A7B4C4",
+      ivory: "#F2F4F7",
+      softGray: "#9AA5B2",
+      canvas: "#E8ECF1",
+      card: "#FFFFFF",
+      ink: "#1A222C",
+      muted: "#5B6673",
+      line: "#D3DAE3",
+      focus: "#6B8AA8",
     },
   },
 ];

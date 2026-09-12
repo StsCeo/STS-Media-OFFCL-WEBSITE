@@ -12,15 +12,15 @@ export default function LookbookPage() {
   return (
     <IvoryShell wide>
       <PageKicker>Color systems</PageKicker>
-      <PageTitle>Six original palettes. Status colors never ride on brand hue.</PageTitle>
+      <PageTitle>{PALETTES.length} original palettes. Status colors never ride on brand hue.</PageTitle>
       <PageLede>
-        Preview a scheme on the public site for an hour, or save one in Brand Settings. Error, warning, and info tokens stay fixed so finance never depends on a decorative color.
+        Preview a scheme on the public site for an hour, or save one in Brand Settings. Each card shows the dark header and the light paper field. Error, warning, and info tokens stay fixed so finance never depends on a decorative color.
       </PageLede>
       <div className="mt-12 grid gap-6 lg:grid-cols-2">
         {PALETTES.map((palette) => {
           const t = palette.tokens;
           return (
-            <article key={palette.id} className="overflow-hidden rounded-xl border border-line bg-white shadow-[var(--shadow-card)]">
+            <article key={palette.id} id={palette.id} className="overflow-hidden rounded-xl border border-line bg-white shadow-[var(--shadow-card)]">
               <div className="p-5" style={{ background: t.obsidian, color: t.ivory }}>
                 <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: t.gold }}>
                   Scars to Stars Media
@@ -34,12 +34,21 @@ export default function LookbookPage() {
                     View Our Work
                   </span>
                 </div>
-                <div className="mt-6 rounded-lg p-4" style={{ background: t.ivory, color: t.ink }}>
-                  <p className="text-[10px] uppercase tracking-[0.16em]" style={{ color: t.forest }}>
-                    Mission
-                  </p>
-                  <p className="mt-2 text-sm leading-6">{palette.tagline}</p>
-                </div>
+              </div>
+              <div className="p-5" style={{ background: t.ivory, color: t.ink }}>
+                <p className="text-[10px] uppercase tracking-[0.16em]" style={{ color: t.forest }}>
+                  Light field
+                </p>
+                <p className="mt-2 font-display text-xl leading-snug">{palette.name}</p>
+                <p className="mt-2 text-sm leading-6" style={{ color: t.muted }}>
+                  {palette.tagline}
+                </p>
+                <span
+                  className="mt-4 inline-flex h-9 items-center rounded-md px-3 text-xs text-white"
+                  style={{ background: t.forest }}
+                >
+                  Start a Project
+                </span>
               </div>
               <div className="flex h-3">
                 {[t.obsidian, t.forest, t.emerald, t.gold, t.ivory].map((color) => (

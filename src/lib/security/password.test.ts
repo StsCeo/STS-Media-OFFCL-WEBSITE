@@ -16,6 +16,7 @@ describe("password policy", () => {
 describe("palettes", () => {
   it("falls back to forest-gold", () => {
     expect(getPalette("nope").id).toBe("forest-gold");
-    expect(PALETTES).toHaveLength(6);
+    expect(PALETTES).toHaveLength(7);
+    expect(getPalette("charcoal-blue-light").name).toBe("Charcoal Blue Light");
   });
 });

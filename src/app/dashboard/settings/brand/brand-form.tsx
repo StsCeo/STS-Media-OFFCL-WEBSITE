@@ -19,7 +19,7 @@ export function BrandForm({ brand }: { brand: BrandSettings }) {
         <Card>
           <h2 className="font-semibold">Color systems</h2>
           <p className="mt-1 text-sm text-muted">
-            Six original palettes. Status colors (error, warning, info) stay constant so finance never depends on brand hue alone.
+            Original palettes. Status colors (error, warning, info) stay constant so finance never depends on brand hue alone.
           </p>
           <input type="hidden" name="paletteId" value={paletteId} />
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">

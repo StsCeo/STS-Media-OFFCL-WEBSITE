@@ -5,7 +5,7 @@ export const metadata = { title: "Settings" };
 
 const links = [
   ["/dashboard/settings/brand", "Brand & color systems", "Mission, statements, palettes, accent, social links"],
-  ["/lookbook", "Public lookbook", "Preview all six palettes on the public site"],
+  ["/lookbook", "Public lookbook", "Preview every palette on the public site"],
   ["/dashboard/settings/security", "Security", "Sessions, MFA, password, audit log"],
   ["/security/vulnerabilities", "Vulnerability disclosure", "How researchers should report issues"],
   ["/accessibility", "Accessibility", "WCAG 2.2 AA aim, keyboard, accommodations"],

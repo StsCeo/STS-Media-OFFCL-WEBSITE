@@ -69,7 +69,7 @@ export const faqs = [
   },
   {
     q: "Can I preview different color schemes?",
-    a: "Yes. The lookbook shows six original palettes. Brand Settings can save one. Preview cookies last an hour and do not change the saved brand until you save.",
+    a: "Yes. The lookbook shows original palettes, including Charcoal Blue Light. Brand Settings can save one. Preview cookies last an hour and do not change the saved brand until you save.",
   },
   {
     q: "Is there a client portal?",
