@@ -76,7 +76,7 @@ export default function HomePage() {
               ["No invented proof", "Quotes and results publish only when they are verified."],
               ["Quoted after discovery", "Pilot prices are not the public rate card."],
               ["Private command center", "Finance and leads stay behind sign-in."],
-              ["Six color systems", "Preview palettes without saving the brand."],
+              ["Color systems", "Preview palettes without saving the brand."],
             ].map(([title, body]) => (
               <article key={title} className="rounded-lg border border-line bg-white p-4">
                 <h3 className="text-sm font-medium">{title}</h3>
