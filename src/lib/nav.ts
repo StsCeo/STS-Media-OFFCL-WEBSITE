@@ -51,6 +51,11 @@ export const publicNav = [
   { href: "/contact", label: "Contact" },
 ];
 
+export const ownersMenu = [
+  { href: "/for/owners", label: "For business owners" },
+  { href: "/login", label: "Owner login" },
+];
+
 export const publicFooterVisit = [
   { href: "/work", label: "Work" },
   { href: "/services", label: "Services" },

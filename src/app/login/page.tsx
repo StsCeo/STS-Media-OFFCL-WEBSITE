@@ -9,7 +9,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const next = isSafeRedirect(String(params.next || "")) ? String(params.next) : "/dashboard";
   return (
-    <AuthShell title="Owner sign-in" description="Private Command Center for Scars to Stars Media. There is no public registration and no client login.">
+    <AuthShell title="Owner sign-in">
       <LoginForm next={next} demoEnabled={isDemoModeEnabled()} supabaseConfigured={isSupabaseConfigured()} />
     </AuthShell>
   );

@@ -22,7 +22,9 @@ export function AuthShell({
         {description ? <p className="mt-2 text-sm text-soft-gray">{description}</p> : null}
         <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">{children}</div>
         <p className="mt-6 text-center text-xs text-soft-gray">
-          Invite-only access. Public registration is disabled. <Link href="/" className="text-gold">Back to stsmedia.co</Link>
+          <Link href="/" className="text-gold">
+            Back to stsmedia.co
+          </Link>
         </p>
       </div>
     </div>

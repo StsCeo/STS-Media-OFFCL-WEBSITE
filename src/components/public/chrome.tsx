@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui";
-import { publicFooterAudience, publicFooterTrust, publicFooterVisit, publicNav } from "@/lib/nav";
+import { ownersMenu, publicFooterAudience, publicFooterTrust, publicFooterVisit, publicNav } from "@/lib/nav";
 
 export function PublicHeader() {
   const pathname = usePathname();
@@ -27,24 +27,15 @@ export function PublicHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Logo invert />
         <nav className="hidden items-center gap-6 text-sm text-soft-gray lg:flex" aria-label="Primary">
-          {publicNav.map((item) => {
-            const current = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="underline-offset-4 transition hover:text-ivory hover:underline"
-                aria-current={current ? "page" : undefined}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+          {publicNav.map((item) =>
+            item.href === "/for/owners" ? (
+              <OwnersDropdown key={item.href} pathname={pathname} />
+            ) : (
+              <NavLink key={item.href} href={item.href} label={item.label} pathname={pathname} />
+            ),
+          )}
         </nav>
         <div className="hidden items-center gap-3 lg:flex">
-          <Button href="/login" variant="gold" size="sm">
-            Command Center
-          </Button>
           <Button href="/contact" size="sm">
             Start a Project
           </Button>
@@ -63,18 +54,93 @@ export function PublicHeader() {
         <div id={menuId} className="border-t border-white/10 px-4 py-4 lg:hidden">
           <nav className="flex flex-col gap-3 text-ivory" aria-label="Mobile">
             {publicNav.map((item) => (
-              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
-                {item.label}
-              </Link>
+              <div key={item.href}>
+                <Link href={item.href} onClick={() => setOpen(false)}>
+                  {item.label}
+                </Link>
+                {item.href === "/for/owners" ? (
+                  <Link className="mt-2 block pl-3 text-sm text-soft-gray" href="/login" onClick={() => setOpen(false)}>
+                    Owner login
+                  </Link>
+                ) : null}
+              </div>
             ))}
             <Button href="/contact">Start a Project</Button>
-            <Button href="/login" variant="gold">
-              Command Center
-            </Button>
           </nav>
         </div>
       ) : null}
     </header>
+  );
+}
+
+function NavLink({ href, label, pathname }: { href: string; label: string; pathname: string }) {
+  const current = pathname === href || pathname.startsWith(`${href}/`);
+  return (
+    <Link
+      href={href}
+      className="underline-offset-4 transition hover:text-ivory hover:underline"
+      aria-current={current ? "page" : undefined}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function OwnersDropdown({ pathname }: { pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  const current = pathname === "/for/owners" || pathname.startsWith("/for/owners/") || pathname === "/login";
+
+  useEffect(() => {
+    function onPointer(event: MouseEvent) {
+      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("mousedown", onPointer);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onPointer);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  return (
+    <div className="relative" ref={wrapRef}>
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 bg-transparent p-0 text-inherit underline-offset-4 transition hover:text-ivory hover:underline"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-controls={menuId}
+        aria-current={current ? "page" : undefined}
+        onClick={() => setOpen((value) => !value)}
+      >
+        Owners
+        <ChevronDown size={14} aria-hidden className={open ? "rotate-180" : ""} />
+      </button>
+      {open ? (
+        <div
+          id={menuId}
+          role="menu"
+          className="absolute left-0 top-full z-50 mt-3 min-w-52 rounded-lg border border-white/10 bg-obsidian p-1 shadow-[var(--shadow-card)]"
+        >
+          {ownersMenu.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              role="menuitem"
+              className="block rounded-md px-3 py-2 text-ivory hover:bg-white/10"
+              onClick={() => setOpen(false)}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

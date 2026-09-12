@@ -512,7 +512,8 @@ html[data-palette="charcoal-sage"] .text-forest {
   color: var(--gold-ink);
 }
 
-html[data-palette="charcoal-sage"] header nav a[aria-current="page"] {
+html[data-palette="charcoal-sage"] header nav a[aria-current="page"],
+html[data-palette="charcoal-sage"] header nav button[aria-current="page"] {
   color: var(--emerald);
 }
 

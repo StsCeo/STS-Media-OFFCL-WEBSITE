@@ -25,32 +25,20 @@ export default function OwnersPage() {
           </article>
         ))}
       </div>
-      <section className="mt-14 grid gap-8 md:grid-cols-[1fr_1fr]">
-        <div className="rounded-xl border border-line bg-white p-6">
-          <h2 className="font-display text-2xl">What to have ready</h2>
-          <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6">
-            {ownerPath.prepare.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-          <p className="mt-4 text-sm">
-            A fuller brief lives in{" "}
-            <Link className="underline" href="/resources/what-to-send-before-a-website">
-              What to send before a website project
-            </Link>
-            .
-          </p>
-        </div>
-        <div className="rounded-xl border border-line bg-forest p-6 text-ivory">
-          <p className="text-xs uppercase tracking-[0.18em] text-gold">Also useful</p>
-          <h2 className="mt-2 font-display text-2xl">The Command Center stays private</h2>
-          <p className="mt-3 text-sm leading-6 text-soft-gray">
-            Leads, invoices, expenses, and brand copy live behind sign-in. The public site never displays pending cash or unpublished work.
-          </p>
-          <Button href="/packages" variant="gold" className="mt-6">
-            View packages
-          </Button>
-        </div>
+      <section className="mt-14 rounded-xl border border-line bg-white p-6">
+        <h2 className="font-display text-2xl">What to have ready</h2>
+        <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6">
+          {ownerPath.prepare.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+        <p className="mt-4 text-sm">
+          A fuller brief lives in{" "}
+          <Link className="underline" href="/resources/what-to-send-before-a-website">
+            What to send before a website project
+          </Link>
+          .
+        </p>
       </section>
     </IvoryShell>
   );

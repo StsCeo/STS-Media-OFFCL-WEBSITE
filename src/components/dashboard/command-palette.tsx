@@ -16,6 +16,7 @@ export function CommandPalette() {
       ...publicNav.map((item) => ({ href: item.href, label: item.label, group: "Public site" })),
       { href: "/dashboard/settings/security", label: "Security", group: "Command Center" },
       { href: "/dashboard/settings/brand", label: "Brand settings", group: "Command Center" },
+      { href: "/login", label: "Owner login", group: "Public site" },
       { href: "/lookbook", label: "Color lookbook", group: "Public site" },
       { href: "/faq", label: "FAQ", group: "Public site" },
       { href: "/accessibility", label: "Accessibility", group: "Public site" },
