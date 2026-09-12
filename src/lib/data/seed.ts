@@ -23,8 +23,8 @@ export function createSeedWorkspace(): WorkspaceState {
       facebook: "",
       tiktok: "",
       calendlyUrl: "",
-      accentColor: "#2E7D5B",
-      paletteId: "forest-gold",
+      accentColor: "#8FBEA5",
+      paletteId: "charcoal-sage",
       logoText: "STS",
     },
     services: [

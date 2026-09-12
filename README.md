@@ -2,7 +2,7 @@
 
 Public website for [stsmedia.co](https://stsmedia.co) and the private **STS Media Command Center**.
 
-This repository started as an empty README-only project. Phase 1 is implemented on Next.js 16, React 19, TypeScript, Tailwind CSS v4, and a Supabase-ready schema. Working demo data is labeled draft/demo. No integration is shown as connected without credentials.
+This repository started as an empty README-only project. Phase 1 is implemented on Next.js 16, React 19, TypeScript, Tailwind CSS v4, and a Supabase-ready schema. The live brand color system is **Charcoal Sage** (charcoal field, sage and white paper, Celsius blue on charts). Working demo data is labeled draft/demo. No integration is shown as connected without credentials.
 
 ## Implementation plan
 

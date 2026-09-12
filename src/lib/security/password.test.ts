@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { passwordScore } from "./password";
+import { createSeedWorkspace } from "../data/seed";
 import { getPalette, PALETTES, paletteCssVars } from "../theme/palettes";
 
 describe("password policy", () => {
@@ -33,6 +34,8 @@ describe("palettes", () => {
     expect(celsius["--obsidian"]).toBe("#003A52");
     expect(celsius["--emerald"]).toBe("#009FEE");
     expect(celsius["--soft-gray"]).toBe("#A2A2A2");
+    expect(createSeedWorkspace().brand.paletteId).toBe("charcoal-sage");
+    expect(createSeedWorkspace().brand.accentColor).toBe("#8FBEA5");
     expect(getPalette("charcoal-sage").name).toBe("Charcoal Sage");
     const sage = paletteCssVars(getPalette("charcoal-sage"));
     expect(sage["--obsidian"]).toBe("#0B0D0C");
