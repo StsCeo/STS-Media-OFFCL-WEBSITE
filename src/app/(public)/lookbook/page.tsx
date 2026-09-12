@@ -23,7 +23,8 @@ export default function LookbookPage() {
           const fieldBg = night ? t.obsidian : t.ivory;
           const fieldInk = night ? t.ivory : t.ink;
           const chip = palette.primary ?? (night ? palette.violet ?? t.forest : t.forest);
-          const chipInk = palette.primary ? t.obsidian : "#ffffff";
+          const chipInk = palette.primaryInk ?? (palette.primary ? t.obsidian : "#ffffff");
+          const secondary = palette.beige ?? t.gold;
           return (
             <article key={palette.id} id={palette.id} className="overflow-hidden rounded-xl border border-line bg-white shadow-[var(--shadow-card)]">
               <div className="p-5" style={{ background: t.obsidian, color: t.ivory }}>
@@ -44,7 +45,7 @@ export default function LookbookPage() {
                   </span>
                   <span
                     className="inline-flex h-9 items-center rounded-md border px-3 text-xs"
-                    style={{ borderColor: night ? `${palette.lavender}99` : `${t.gold}66`, color: night ? t.ivory : t.gold }}
+                    style={{ borderColor: night ? `${palette.lavender}99` : `${secondary}99`, color: night ? t.ivory : secondary }}
                   >
                     View Our Work
                   </span>

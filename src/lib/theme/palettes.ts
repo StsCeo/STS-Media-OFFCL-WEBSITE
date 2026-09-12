@@ -8,7 +8,8 @@ export type PaletteId =
   | "charcoal-blue-light"
   | "midnight-navy"
   | "celsius-creative"
-  | "charcoal-sage";
+  | "charcoal-sage"
+  | "warm-earth";
 
 export type PaletteAtmosphere = "daylight" | "night-luxury";
 
@@ -23,7 +24,12 @@ export interface Palette {
   electric?: string;
   primary?: string;
   primaryHover?: string;
+  primaryInk?: string;
   goldInk?: string;
+  terracotta?: string;
+  beige?: string;
+  tan?: string;
+  cream?: string;
   tokens: {
     obsidian: string;
     forest: string;
@@ -223,6 +229,7 @@ export const PALETTES: Palette[] = [
     electric: "#009FEE",
     primary: "#009FEE",
     primaryHover: "#003A52",
+    primaryInk: "#003A52",
     goldInk: "#006B93",
     tokens: {
       obsidian: "#003A52",
@@ -244,11 +251,12 @@ export const PALETTES: Palette[] = [
     id: "charcoal-sage",
     name: "Charcoal Sage",
     tagline: "Black, charcoal, and white with a light original-forest green — sage, not lime.",
-    suitedFor: "A quiet daylight system: charcoal chrome, white paper, and the STS green lifted, not yellowed.",
+    suitedFor: "Comparison candidate: charcoal chrome, white paper, and the STS green lifted, not yellowed.",
     atmosphere: "daylight",
     electric: "#2E7D5B",
     primary: "#A8C9B6",
     primaryHover: "#163D2B",
+    primaryInk: "#0B0D0C",
     goldInk: "#2E7D5B",
     tokens: {
       obsidian: "#0B0D0C",
@@ -264,6 +272,37 @@ export const PALETTES: Palette[] = [
       muted: "#4E5652",
       line: "#D8E0DA",
       focus: "#6B9F82",
+    },
+  },
+  {
+    id: "warm-earth",
+    name: "Warm Earth",
+    tagline: "Ivory paper, sage, forest, and a little terracotta — calm boutique, not costume.",
+    suitedFor: "A wellness and lifestyle register: warm cream fields, charcoal type, sage actions, terracotta only at the edges.",
+    atmosphere: "daylight",
+    electric: "#315D46",
+    primary: "#4A7A58",
+    primaryHover: "#315D46",
+    primaryInk: "#FFFFFF",
+    goldInk: "#8A4A32",
+    terracotta: "#C87352",
+    beige: "#D9C9B5",
+    tan: "#B9956D",
+    cream: "#FBF8F2",
+    tokens: {
+      obsidian: "#315D46",
+      forest: "#315D46",
+      forestHover: "#274A38",
+      emerald: "#5C8F6B",
+      gold: "#C87352",
+      ivory: "#F5F0E7",
+      softGray: "#D9C9B5",
+      canvas: "#F5F0E7",
+      card: "#FBF8F2",
+      ink: "#202020",
+      muted: "#665B52",
+      line: "#D9C9B5",
+      focus: "#315D46",
     },
   },
 ];
@@ -300,7 +339,11 @@ export function paletteCssVars(palette: Palette, accentOverride?: string) {
     "--lavender": lavender,
     "--violet": violet,
     "--electric": electric,
-    "--cream": t.ivory,
+    "--cream": palette.cream ?? t.ivory,
+    "--terracotta": palette.terracotta ?? t.gold,
+    "--beige": palette.beige ?? t.line,
+    "--tan": palette.tan ?? t.gold,
+    "--sage": t.emerald,
     "--primary": palette.primary ?? (night ? violet : t.forest),
     "--primary-hover": palette.primaryHover ?? (night ? "#5B3DE8" : t.forestHover),
     "--accent": accent,

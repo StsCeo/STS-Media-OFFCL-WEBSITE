@@ -21,7 +21,7 @@ export function PageKicker({ children }: { children: React.ReactNode }) {
 }
 
 export function PageTitle({ children }: { children: React.ReactNode }) {
-  return <h1 className="mt-3 font-display text-4xl leading-tight md:text-5xl">{children}</h1>;
+  return <h1 className="headline-gradient mt-3 font-display text-4xl leading-tight md:text-5xl">{children}</h1>;
 }
 
 export function PageLede({ children }: { children: React.ReactNode }) {

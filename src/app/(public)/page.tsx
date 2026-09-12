@@ -17,7 +17,7 @@ export default function HomePage() {
       <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 pt-16 md:grid-cols-[1.2fr_0.8fr] md:pt-24">
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-gold">Scars to Stars Media</p>
-          <h1 className="mt-4 max-w-xl font-display text-4xl leading-[1.15] text-ivory md:text-6xl">
+          <h1 className="headline-gradient mt-4 max-w-xl font-display text-4xl leading-[1.15] text-ivory md:text-6xl">
             {brand.brandStatement}
           </h1>
           <p className="mt-6 max-w-xl text-base leading-7 text-soft-gray md:text-lg">{brand.mission}</p>
@@ -70,7 +70,7 @@ export default function HomePage() {
       <section className="bg-ivory text-ink">
         <div className="mx-auto max-w-6xl px-4 py-16">
           <p className="text-xs uppercase tracking-[0.18em] text-forest">Mission</p>
-          <blockquote className="mt-4 max-w-3xl font-display text-2xl leading-snug md:text-3xl">{brand.mission}</blockquote>
+          <blockquote className="headline-gradient mt-4 max-w-3xl font-display text-2xl leading-snug md:text-3xl">{brand.mission}</blockquote>
           <div className="mt-10 grid gap-4 md:grid-cols-4">
             {[
               ["No invented proof", "Quotes and results publish only when they are verified."],

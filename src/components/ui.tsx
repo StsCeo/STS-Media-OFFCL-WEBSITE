@@ -22,7 +22,7 @@ const variants = {
 
 export function Button({ href, children, variant = "primary", size = "md", className, type = "button", disabled, onClick }: ButtonProps) {
   const classes = cn(
-    "inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-[background-color,transform,box-shadow,border-color] duration-200 disabled:opacity-50",
     size === "sm" && "h-8 px-3 text-sm",
     size === "md" && "h-10 px-4 text-sm",
     size === "lg" && "h-12 px-6 text-base",
