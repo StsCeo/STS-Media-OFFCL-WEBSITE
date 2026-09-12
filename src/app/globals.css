@@ -392,6 +392,64 @@ html[data-atmosphere="night-luxury"]:not(.dark) {
   }
 }
 
+html[data-palette="celsius-creative"] {
+  --shadow-card: 0 1px 2px rgb(0 58 82 / 0.07), 0 16px 32px rgb(0 159 238 / 0.09);
+}
+
+html[data-palette="celsius-creative"] .public-grain {
+  background-image:
+    radial-gradient(1100px 480px at 10% -14%, color-mix(in srgb, var(--emerald) 26%, transparent), transparent 56%),
+    radial-gradient(820px 400px at 92% 0%, color-mix(in srgb, var(--obsidian) 16%, transparent), transparent 52%);
+}
+
+html[data-palette="celsius-creative"] .gold-rule {
+  background: linear-gradient(90deg, transparent, var(--emerald), transparent);
+}
+
+html[data-palette="celsius-creative"] .btn-primary {
+  background-color: var(--primary);
+  color: var(--obsidian);
+}
+
+html[data-palette="celsius-creative"] .btn-primary:hover {
+  background-color: var(--primary-hover);
+  color: #fff;
+}
+
+html[data-palette="celsius-creative"] .btn-secondary {
+  background-color: #fff;
+  color: var(--obsidian);
+  border: 1px solid var(--obsidian);
+}
+
+html[data-palette="celsius-creative"] header .btn-secondary,
+html[data-palette="celsius-creative"] header a.text-gold,
+html[data-palette="celsius-creative"] header button.text-gold {
+  background: transparent;
+  color: #fff;
+  border-color: color-mix(in srgb, var(--emerald) 70%, #fff);
+}
+
+html[data-palette="celsius-creative"] .bg-ivory a.text-gold,
+html[data-palette="celsius-creative"] .bg-ivory button.text-gold {
+  color: var(--obsidian);
+  border-color: var(--emerald);
+}
+
+html[data-palette="celsius-creative"] .bg-forest {
+  background-color: var(--obsidian);
+  background-image: radial-gradient(900px 280px at 88% 0%, color-mix(in srgb, var(--emerald) 32%, transparent), transparent 68%);
+  color: var(--ivory);
+}
+
+html[data-palette="celsius-creative"] header nav a[aria-current="page"] {
+  color: var(--emerald);
+}
+
+html[data-palette="celsius-creative"] a.text-forest {
+  color: var(--gold-ink);
+}
+
 .device-frame {
   border: 1px solid var(--line);
   background: var(--surface);

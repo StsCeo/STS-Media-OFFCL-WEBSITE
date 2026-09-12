@@ -22,7 +22,8 @@ export default function LookbookPage() {
           const night = paletteAtmosphere(palette) === "night-luxury";
           const fieldBg = night ? t.obsidian : t.ivory;
           const fieldInk = night ? t.ivory : t.ink;
-          const primary = night ? palette.violet ?? t.forest : t.forest;
+          const chip = palette.primary ?? (night ? palette.violet ?? t.forest : t.forest);
+          const chipInk = palette.primary ? t.obsidian : "#ffffff";
           return (
             <article key={palette.id} id={palette.id} className="overflow-hidden rounded-xl border border-line bg-white shadow-[var(--shadow-card)]">
               <div className="p-5" style={{ background: t.obsidian, color: t.ivory }}>
@@ -32,11 +33,11 @@ export default function LookbookPage() {
                 <h2 className="mt-3 font-display text-2xl leading-snug">We turn overlooked potential into visible growth.</h2>
                 <div className="mt-5 flex gap-2">
                   <span
-                    className="inline-flex h-9 items-center rounded-md px-3 text-xs text-white"
+                    className="inline-flex h-9 items-center rounded-md px-3 text-xs"
                     style={
                       night
-                        ? { backgroundImage: `linear-gradient(135deg, ${palette.violet}, ${palette.electric})` }
-                        : { background: t.forest }
+                        ? { backgroundImage: `linear-gradient(135deg, ${palette.violet}, ${palette.electric})`, color: "#fff" }
+                        : { background: chip, color: chipInk }
                     }
                   >
                     Start a Project
@@ -58,19 +59,19 @@ export default function LookbookPage() {
                   {palette.tagline}
                 </p>
                 <span
-                  className="mt-4 inline-flex h-9 items-center rounded-md px-3 text-xs text-white"
+                  className="mt-4 inline-flex h-9 items-center rounded-md px-3 text-xs"
                   style={
                     night
-                      ? { backgroundImage: `linear-gradient(135deg, ${palette.violet}, ${palette.electric})` }
-                      : { background: t.forest }
+                      ? { backgroundImage: `linear-gradient(135deg, ${palette.violet}, ${palette.electric})`, color: "#fff" }
+                      : { background: chip, color: chipInk }
                   }
                 >
                   Start a Project
                 </span>
               </div>
               <div className="flex h-3">
-                {[t.obsidian, primary, t.emerald, t.gold, t.ivory].map((color) => (
-                  <span key={color} className="flex-1" style={{ background: color }} />
+                {[t.obsidian, chip, t.emerald, t.gold, t.ivory].map((color, index) => (
+                  <span key={`${color}-${index}`} className="flex-1" style={{ background: color }} />
                 ))}
               </div>
               <div className="p-5">

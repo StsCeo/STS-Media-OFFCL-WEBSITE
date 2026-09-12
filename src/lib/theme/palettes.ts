@@ -6,7 +6,8 @@ export type PaletteId =
   | "ember"
   | "signal-paper"
   | "charcoal-blue-light"
-  | "midnight-navy";
+  | "midnight-navy"
+  | "celsius-creative";
 
 export type PaletteAtmosphere = "daylight" | "night-luxury";
 
@@ -19,6 +20,9 @@ export interface Palette {
   lavender?: string;
   violet?: string;
   electric?: string;
+  primary?: string;
+  primaryHover?: string;
+  goldInk?: string;
   tokens: {
     obsidian: string;
     forest: string;
@@ -209,6 +213,32 @@ export const PALETTES: Palette[] = [
       focus: "#C9B8FF",
     },
   },
+  {
+    id: "celsius-creative",
+    name: "Celsius Creative",
+    tagline: "Official Celsius Marketing cyan, navy, and cool paper — agency-bright, not night-club.",
+    suitedFor: "A marketing-studio daylight look: navy chrome, cyan calls to action, white field.",
+    atmosphere: "daylight",
+    electric: "#009FEE",
+    primary: "#009FEE",
+    primaryHover: "#003A52",
+    goldInk: "#006B93",
+    tokens: {
+      obsidian: "#003A52",
+      forest: "#003A52",
+      forestHover: "#002A3C",
+      emerald: "#009FEE",
+      gold: "#5CC8F5",
+      ivory: "#F5FAFC",
+      softGray: "#A2A2A2",
+      canvas: "#EEF5F8",
+      card: "#FFFFFF",
+      ink: "#003A52",
+      muted: "#3D5560",
+      line: "#D2E3EA",
+      focus: "#009FEE",
+    },
+  },
 ];
 
 export function getPalette(id: string | null | undefined): Palette {
@@ -244,14 +274,14 @@ export function paletteCssVars(palette: Palette, accentOverride?: string) {
     "--violet": violet,
     "--electric": electric,
     "--cream": t.ivory,
-    "--primary": night ? violet : t.forest,
-    "--primary-hover": night ? "#5B3DE8" : t.forestHover,
+    "--primary": palette.primary ?? (night ? violet : t.forest),
+    "--primary-hover": palette.primaryHover ?? (night ? "#5B3DE8" : t.forestHover),
     "--accent": accent,
     "--brand-accent": accent,
     "--background": night ? t.obsidian : t.ivory,
     "--foreground": t.ink,
     "--surface": t.card,
     "--border": t.line,
-    ...(night ? { "--gold-ink": t.gold } : {}),
+    ...(night ? { "--gold-ink": t.gold } : palette.goldInk ? { "--gold-ink": palette.goldInk } : {}),
   } as Record<string, string>;
 }
