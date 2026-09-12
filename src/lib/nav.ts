@@ -6,7 +6,7 @@ import {
   FolderKanban,
   CalendarDays,
   CheckSquare,
-  Wallet,
+  ArrowLeftRight,
   Receipt,
   CircleDollarSign,
   LineChart,
@@ -14,33 +14,92 @@ import {
   Images,
   Files,
   Plug,
-  Shield,
   FileBarChart,
   Bell,
   Settings,
+  FileText,
+  StickyNote,
+  Landmark,
+  History,
+  Scale,
+  type LucideIcon,
 } from "lucide-react";
 
-export const dashboardNav = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/dashboard/inbox", label: "Inbox", icon: Inbox },
-  { href: "/dashboard/leads", label: "Leads", icon: Users },
-  { href: "/dashboard/clients", label: "Clients", icon: Briefcase },
-  { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
-  { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/dashboard/finance", label: "Finance", icon: Wallet },
-  { href: "/dashboard/expenses", label: "Expenses", icon: Receipt },
-  { href: "/dashboard/revenue", label: "Revenue", icon: CircleDollarSign },
-  { href: "/dashboard/analytics", label: "Analytics", icon: LineChart },
-  { href: "/dashboard/content", label: "Content Studio", icon: Clapperboard },
-  { href: "/dashboard/portfolio", label: "Portfolio Manager", icon: Images },
-  { href: "/dashboard/files", label: "Files", icon: Files },
-  { href: "/dashboard/integrations", label: "Integrations", icon: Plug },
-  { href: "/dashboard/team", label: "Team", icon: Shield },
-  { href: "/dashboard/reports", label: "Reports", icon: FileBarChart },
-  { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+export type DashboardNavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+export type DashboardNavGroup = {
+  id: string;
+  label: string;
+  items: DashboardNavItem[];
+};
+
+export const dashboardNavGroups: DashboardNavGroup[] = [
+  {
+    id: "overview",
+    label: "Overview",
+    items: [
+      { href: "/dashboard", label: "Command Center", icon: LayoutDashboard },
+      { href: "/dashboard/inbox", label: "Inbox", icon: Inbox },
+    ],
+  },
+  {
+    id: "sales",
+    label: "Sales",
+    items: [
+      { href: "/dashboard/leads", label: "Leads", icon: Users },
+      { href: "/dashboard/clients", label: "Clients", icon: Briefcase },
+    ],
+  },
+  {
+    id: "delivery",
+    label: "Delivery",
+    items: [
+      { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
+      { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
+      { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDays },
+    ],
+  },
+  {
+    id: "money",
+    label: "Money",
+    items: [
+      { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight },
+      { href: "/dashboard/revenue", label: "Income", icon: CircleDollarSign },
+      { href: "/dashboard/expenses", label: "Expenses", icon: Receipt },
+      { href: "/dashboard/finance", label: "Finance", icon: Landmark },
+      { href: "/dashboard/files", label: "Receipts & files", icon: Files },
+    ],
+  },
+  {
+    id: "business",
+    label: "Business",
+    items: [
+      { href: "/dashboard/documents", label: "Documents", icon: FileText },
+      { href: "/dashboard/notes", label: "Notes", icon: StickyNote },
+      { href: "/dashboard/reports", label: "Reports", icon: FileBarChart },
+      { href: "/dashboard/taxes", label: "Taxes", icon: Scale },
+      { href: "/dashboard/activity", label: "Activity", icon: History },
+      { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    ],
+  },
+  {
+    id: "studio",
+    label: "Studio",
+    items: [
+      { href: "/dashboard/content", label: "Content Studio", icon: Clapperboard },
+      { href: "/dashboard/portfolio", label: "Portfolio", icon: Images },
+      { href: "/dashboard/analytics", label: "Analytics", icon: LineChart },
+      { href: "/dashboard/integrations", label: "Integrations", icon: Plug },
+      { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
+    ],
+  },
 ];
+
+export const dashboardNav = dashboardNavGroups.flatMap((group) => group.items);
 
 export const publicNav = [
   { href: "/work", label: "Work" },

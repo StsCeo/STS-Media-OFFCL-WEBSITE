@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { DEMO_COOKIE, isDemoModeEnabled, isSupabaseConfigured } from "@/lib/config";
+import { DEFAULT_OWNER_EMAIL, isAllowedOwnerEmail } from "@/lib/auth/owner";
 import type { Role } from "@/lib/types";
 
 export type AuthStatus =
@@ -55,7 +56,7 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
         status: "demo",
         user: {
           id: "user-owner",
-          email: "owner@stsmedia.co",
+          email: DEFAULT_OWNER_EMAIL,
           role: "owner",
           mfaVerified: true,
           emailVerified: true,
@@ -68,7 +69,7 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
         status: "needs_mfa",
         user: {
           id: "user-owner",
-          email: "owner@stsmedia.co",
+          email: DEFAULT_OWNER_EMAIL,
           role: "owner",
           mfaVerified: false,
           emailVerified: true,
@@ -88,19 +89,20 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
   const { data } = await supabase.auth.getUser();
   if (!data.user) return { status: "unauthenticated", user: null };
 
-  const aal = data.user.factors?.length ? "aal2-unknown" : "aal1";
-  const mfaVerified = aal !== "aal1" && (data.user.app_metadata?.mfa_verified === true || false);
-  const role = (data.user.app_metadata?.role as Role) || "contractor";
-  if (role === "client") {
+  const email = data.user.email ?? "";
+  if (!isAllowedOwnerEmail(email)) {
     return { status: "unauthenticated", user: null };
   }
+
+  const aal = data.user.factors?.length ? "aal2-unknown" : "aal1";
+  const mfaVerified = aal !== "aal1" && (data.user.app_metadata?.mfa_verified === true || false);
 
   return {
     status: mfaVerified ? "authenticated" : "needs_mfa",
     user: {
       id: data.user.id,
-      email: data.user.email ?? "",
-      role,
+      email,
+      role: "owner",
       mfaVerified,
       emailVerified: Boolean(data.user.email_confirmed_at),
       source: "supabase",
@@ -110,6 +112,7 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
 
 export function canAccessDashboard(user: SessionUser | null) {
   if (!user) return false;
-  if (user.role === "client") return false;
+  if (user.role !== "owner") return false;
+  if (!isAllowedOwnerEmail(user.email)) return false;
   return user.mfaVerified || user.source === "demo";
 }

@@ -8,13 +8,35 @@ import { getWorkspace, mutateWorkspace, stampAudit } from "@/lib/data/store";
 import { clientKey, rateLimit } from "@/lib/security/rate-limit";
 import { allowedFile, assertSameOrigin } from "@/lib/security/origin";
 import { getPalette } from "@/lib/theme/palettes";
-import type { Expense, Lead, Project, RevenueEntry } from "@/lib/types";
+import type {
+  BusinessProfile,
+  ClientRecord,
+  Expense,
+  Lead,
+  OsDocument,
+  OsTransaction,
+  OwnerNote,
+  Project,
+  RevenueEntry,
+  TaskItem,
+  TaxChecklistItem,
+} from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
-import { createSupabaseServer } from "@/lib/auth/session";
+import { canAccessDashboard, createSupabaseServer, getSession } from "@/lib/auth/session";
+import { GENERIC_AUTH_ERROR, isAllowedOwnerEmail, normalizeEmail } from "@/lib/auth/owner";
+import { parseDollarsToCents } from "@/lib/money";
 
 function isSafePath(path: string) {
   return isSafeRedirect(path);
+}
+
+async function requireOwnerWrite() {
+  const session = await getSession();
+  if (!canAccessDashboard(session.user)) {
+    throw new Error("Unauthorized");
+  }
+  return session;
 }
 
 export async function startDemoSession(formData: FormData) {
@@ -48,9 +70,9 @@ export async function requestPasswordReset(formData: FormData) {
   if (!limited.ok) {
     return { error: "Too many requests. Try again later.", locked: true };
   }
-  const email = String(formData.get("email") || "").trim().toLowerCase();
+  const email = normalizeEmail(String(formData.get("email") || ""));
   stampAudit("password_reset_request", email ? "auth" : "auth", "Password reset requested. Existence of the account is not confirmed in the UI.");
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && isAllowedOwnerEmail(email)) {
     const factory = createSupabaseServer();
     if (factory) {
       const supabase = await factory();
@@ -395,10 +417,33 @@ export async function upsertProject(input: Partial<Project> & { id?: string }) {
     if (input.id) {
       const current = state.projects.find((item) => item.id === input.id);
       if (current) Object.assign(current, input);
+      return;
     }
+    state.projects.unshift({
+      id: `proj-${Date.now()}`,
+      name: input.name || "New project",
+      clientId: input.clientId || state.clients[0]?.id || "",
+      packageId: input.packageId ?? null,
+      stage: input.stage || "lead",
+      startDate: input.startDate || new Date().toISOString().slice(0, 10),
+      deadline: input.deadline || new Date().toISOString().slice(0, 10),
+      budget: Number(input.budget || 0),
+      amountInvoiced: Number(input.amountInvoiced || 0),
+      amountCollected: Number(input.amountCollected || 0),
+      directCost: Number(input.directCost || 0),
+      githubRepo: input.githubRepo || "",
+      vercelProject: input.vercelProject || "",
+      productionUrl: input.productionUrl || "",
+      domain: input.domain || "",
+      maintenancePlan: input.maintenancePlan || "",
+      credentialsReference: input.credentialsReference || "Stored outside this system. Record only the location of the vault, never the secret.",
+      notes: input.notes || "",
+      atRisk: Boolean(input.atRisk),
+    });
   });
-  stampAudit("project_upsert", input.id || "project", "Project updated.");
+  stampAudit("project_upsert", input.id || "new", "Project updated.");
   revalidatePath("/dashboard/projects");
+  revalidatePath("/dashboard");
 }
 
 export async function savePortfolio(formData: FormData) {
@@ -458,12 +503,16 @@ export async function signInWithPassword(formData: FormData) {
   const factory = createSupabaseServer();
   if (!factory) return { error: "Supabase is not configured." };
   const supabase = await factory();
-  const email = String(formData.get("email") || "");
+  const email = normalizeEmail(String(formData.get("email") || ""));
   const password = String(formData.get("password") || "");
+  if (!isAllowedOwnerEmail(email)) {
+    stampAudit("login_failed", "auth", "Failed password sign-in. Email existence is not confirmed in the UI.");
+    return { error: GENERIC_AUTH_ERROR };
+  }
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     stampAudit("login_failed", "auth", "Failed password sign-in. Email existence is not confirmed in the UI.");
-    return { error: "We could not sign you in. Check the details or try another method." };
+    return { error: GENERIC_AUTH_ERROR };
   }
   stampAudit("login_success", "auth", "Password sign-in succeeded.");
   const next = String(formData.get("next") || "/dashboard");
@@ -473,9 +522,9 @@ export async function signInWithPassword(formData: FormData) {
 export async function requestOtp(formData: FormData) {
   const limited = rateLimit(clientKey(await headers(), "otp"), 5, 15 * 60 * 1000);
   if (!limited.ok) return { error: "Please wait before requesting another code.", locked: true };
-  const email = String(formData.get("email") || "");
-  if (!isSupabaseConfigured()) {
-    return { sent: true, demo: true };
+  const email = normalizeEmail(String(formData.get("email") || ""));
+  if (!isSupabaseConfigured() || !isAllowedOwnerEmail(email)) {
+    return { sent: true, demo: !isSupabaseConfigured() };
   }
   const factory = createSupabaseServer();
   if (!factory) return { sent: true, demo: true };
@@ -490,8 +539,10 @@ export async function requestOtp(formData: FormData) {
 export async function requestMagicLink(formData: FormData) {
   const limited = rateLimit(clientKey(await headers(), "magic"), 5, 15 * 60 * 1000);
   if (!limited.ok) return { error: "Please wait before requesting another link.", locked: true };
-  const email = String(formData.get("email") || "");
-  if (!isSupabaseConfigured()) return { sent: true, demo: true };
+  const email = normalizeEmail(String(formData.get("email") || ""));
+  if (!isSupabaseConfigured() || !isAllowedOwnerEmail(email)) {
+    return { sent: true, demo: !isSupabaseConfigured() };
+  }
   const factory = createSupabaseServer();
   if (!factory) return { sent: true, demo: true };
   const supabase = await factory();
@@ -504,3 +555,317 @@ export async function requestMagicLink(formData: FormData) {
   });
   return { sent: true };
 }
+
+export async function saveBusinessProfile(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  mutateWorkspace((state) => {
+    const current = state.businessProfile;
+    const next: BusinessProfile = {
+      ...current,
+      legalName: sanitizeText(String(formData.get("legalName") || current.legalName)),
+      dba: sanitizeText(String(formData.get("dba") || current.dba)),
+      entityType: (String(formData.get("entityType") || current.entityType) as BusinessProfile["entityType"]),
+      federalClassification: (String(formData.get("federalClassification") || current.federalClassification) as BusinessProfile["federalClassification"]),
+      formationState: sanitizeText(String(formData.get("formationState") || current.formationState)),
+      accountingMethod: (String(formData.get("accountingMethod") || current.accountingMethod) as BusinessProfile["accountingMethod"]),
+      fiscalYearType: (String(formData.get("fiscalYearType") || current.fiscalYearType) as BusinessProfile["fiscalYearType"]),
+      fiscalYearStartMonth: Number(formData.get("fiscalYearStartMonth") || current.fiscalYearStartMonth) || 1,
+      timezone: String(formData.get("timezone") || current.timezone),
+      currency: String(formData.get("currency") || current.currency),
+      website: String(formData.get("website") || current.website),
+      publicEmail: String(formData.get("publicEmail") || current.publicEmail),
+      ownerEmail: current.ownerEmail,
+      taxReservePercent: Number(formData.get("taxReservePercent") || 0),
+      reservedTaxAmountCents: parseDollarsToCents(String(formData.get("reservedTaxAmount") || "0")),
+      invoiceNumberFormat: sanitizeText(String(formData.get("invoiceNumberFormat") || current.invoiceNumberFormat)),
+      defaultPaymentTerms: sanitizeText(String(formData.get("defaultPaymentTerms") || current.defaultPaymentTerms)),
+      defaultDepositPercent: Number(formData.get("defaultDepositPercent") || 0),
+      sCorpStatus: (String(formData.get("sCorpStatus") || current.sCorpStatus) as BusinessProfile["sCorpStatus"]),
+      sCorpNotes: current.sCorpNotes,
+      einStored: false,
+      notes: sanitizeText(String(formData.get("notes") || current.notes)),
+    };
+    state.businessProfile = next;
+  });
+  stampAudit("business_profile_updated", "business_profile", "Business profile saved. EIN is not stored.");
+  revalidatePath("/dashboard/settings/business");
+  revalidatePath("/dashboard/taxes");
+  revalidatePath("/dashboard");
+}
+
+export async function upsertClient(input: Partial<ClientRecord> & { id?: string }) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  mutateWorkspace((state) => {
+    if (input.id) {
+      const current = state.clients.find((item) => item.id === input.id);
+      if (current) Object.assign(current, input, { portalEnabled: false });
+      return;
+    }
+    state.clients.unshift({
+      id: `client-${Date.now()}`,
+      businessName: input.businessName || "New client",
+      contactName: input.contactName || "Add contact name",
+      email: input.email || "",
+      phone: input.phone || "",
+      industry: input.industry || "",
+      status: input.status || "active",
+      portalEnabled: false,
+      notes: input.notes || "",
+    });
+  });
+  stampAudit("client_upsert", input.id || "new", "Client record saved. Clients do not receive a login.");
+  revalidatePath("/dashboard/clients");
+  revalidatePath("/dashboard");
+}
+
+export async function saveClientForm(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  await upsertClient({
+    id: id || undefined,
+    businessName: sanitizeText(String(formData.get("businessName") || "")),
+    contactName: sanitizeText(String(formData.get("contactName") || "")),
+    email: String(formData.get("email") || ""),
+    phone: sanitizeText(String(formData.get("phone") || "")),
+    industry: sanitizeText(String(formData.get("industry") || "")),
+    status: (String(formData.get("status") || "active") as ClientRecord["status"]),
+    notes: sanitizeText(String(formData.get("notes") || "")),
+  });
+}
+
+export async function upsertTask(input: Partial<TaskItem> & { id?: string }) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  mutateWorkspace((state) => {
+    if (input.id) {
+      const current = state.tasks.find((item) => item.id === input.id);
+      if (current) Object.assign(current, input);
+      return;
+    }
+    state.tasks.unshift({
+      id: `task-${Date.now()}`,
+      title: input.title || "New task",
+      projectId: input.projectId ?? null,
+      clientId: input.clientId ?? null,
+      dueDate: input.dueDate ?? null,
+      status: input.status || "todo",
+      priority: input.priority || "medium",
+      assignee: input.assignee || "Owner",
+      notes: input.notes || "",
+    });
+  });
+  stampAudit("task_upsert", input.id || "new", "Task saved.");
+  revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard");
+}
+
+export async function saveTaskForm(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  const projectId = String(formData.get("projectId") || "");
+  const clientId = String(formData.get("clientId") || "");
+  await upsertTask({
+    id: id || undefined,
+    title: sanitizeText(String(formData.get("title") || "")),
+    projectId: projectId || null,
+    clientId: clientId || null,
+    dueDate: String(formData.get("dueDate") || "") || null,
+    status: (String(formData.get("status") || "todo") as TaskItem["status"]),
+    priority: (String(formData.get("priority") || "medium") as TaskItem["priority"]),
+    assignee: sanitizeText(String(formData.get("assignee") || "Owner")),
+    notes: sanitizeText(String(formData.get("notes") || "")),
+  });
+}
+
+export async function saveProjectForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  await upsertProject({
+    id: id || undefined,
+    name: sanitizeText(String(formData.get("name") || "")),
+    clientId: String(formData.get("clientId") || ""),
+    stage: (String(formData.get("stage") || "lead") as Project["stage"]),
+    startDate: String(formData.get("startDate") || new Date().toISOString().slice(0, 10)),
+    deadline: String(formData.get("deadline") || ""),
+    budget: Number(formData.get("budget") || 0),
+    notes: sanitizeText(String(formData.get("notes") || "")),
+    atRisk: formData.get("atRisk") === "on",
+  });
+}
+
+export async function saveNoteForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  mutateWorkspace((state) => {
+    const payload: OwnerNote = {
+      id: id || `note-${Date.now()}`,
+      title: sanitizeText(String(formData.get("title") || "Untitled note")),
+      body: sanitizeText(String(formData.get("body") || "")),
+      relatedType: (String(formData.get("relatedType") || "none") as OwnerNote["relatedType"]),
+      relatedId: String(formData.get("relatedId") || "") || null,
+      pinned: formData.get("pinned") === "on",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    if (id) {
+      const current = state.notes.find((item) => item.id === id);
+      if (current) Object.assign(current, payload, { createdAt: current.createdAt });
+    } else {
+      state.notes.unshift(payload);
+    }
+  });
+  stampAudit("note_upsert", id || "new", "Note saved.");
+  revalidatePath("/dashboard/notes");
+}
+
+export async function saveDocumentForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const file = formData.get("file");
+  const fileName = file instanceof File && file.size > 0 ? file.name : null;
+  if (file instanceof File && file.size > 0 && !allowedFile(file)) {
+    return { error: "Upload a PDF or image up to 8MB." };
+  }
+  mutateWorkspace((state) => {
+    const item: OsDocument = {
+      id: `doc-${Date.now()}`,
+      name: sanitizeText(String(formData.get("name") || fileName || "Untitled document")),
+      category: (String(formData.get("category") || "other") as OsDocument["category"]),
+      relatedType: (String(formData.get("relatedType") || "none") as OsDocument["relatedType"]),
+      relatedId: String(formData.get("relatedId") || "") || null,
+      notes: sanitizeText(String(formData.get("notes") || "")),
+      storagePath: fileName,
+      createdAt: new Date().toISOString(),
+    };
+    state.osDocuments.unshift(item);
+    if (fileName) {
+      state.files.unshift({
+        id: `f-${Date.now()}`,
+        name: fileName,
+        kind: "internal",
+        relatedTo: item.id,
+        visibility: "private",
+        uploadedAt: item.createdAt,
+      });
+    }
+  });
+  stampAudit("document_created", "documents", "Document metadata saved. Files stay private.");
+  revalidatePath("/dashboard/documents");
+  revalidatePath("/dashboard/files");
+  return { ok: true };
+}
+
+export async function saveOsTransactionForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const kind = String(formData.get("kind") || "adjustment") as OsTransaction["kind"];
+  const dollars = Number(formData.get("amount") || 0);
+  const cents = parseDollarsToCents(dollars);
+  const signed =
+    kind === "expense" || kind === "owner_draw" ? -Math.abs(cents) : kind === "transfer" ? cents : Math.abs(cents);
+  mutateWorkspace((state) => {
+    state.osTransactions.unshift({
+      id: `txn-${Date.now()}`,
+      date: String(formData.get("date") || new Date().toISOString().slice(0, 10)),
+      kind,
+      source: "manual",
+      sourceId: null,
+      description: sanitizeText(String(formData.get("description") || "Manual entry")),
+      amountCents: signed,
+      currency: state.businessProfile.currency,
+      clientId: String(formData.get("clientId") || "") || null,
+      projectId: String(formData.get("projectId") || "") || null,
+      category: sanitizeText(String(formData.get("category") || "")),
+      notes: sanitizeText(String(formData.get("notes") || "")),
+      archived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  });
+  stampAudit("os_transaction_created", "transactions", "Manual transaction posted in integer cents.");
+  revalidatePath("/dashboard/transactions");
+}
+
+export async function archiveOsTransaction(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  mutateWorkspace((state) => {
+    const item = state.osTransactions.find((row) => row.id === id);
+    if (item) item.archived = true;
+  });
+  stampAudit("os_transaction_archived", id, "Manual transaction archived rather than deleted.");
+  revalidatePath("/dashboard/transactions");
+}
+
+export async function saveTaxChecklistItem(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  mutateWorkspace((state) => {
+    if (id) {
+      const current = state.taxChecklist.find((item) => item.id === id);
+      if (current) {
+        current.status = String(formData.get("status") || current.status) as TaxChecklistItem["status"];
+        current.notes = sanitizeText(String(formData.get("notes") || current.notes));
+      }
+      return;
+    }
+    state.taxChecklist.unshift({
+      id: `tax-${Date.now()}`,
+      taxYear: Number(formData.get("taxYear") || new Date().getFullYear()),
+      title: sanitizeText(String(formData.get("title") || "Owner reminder")),
+      notes: sanitizeText(String(formData.get("notes") || "")),
+      dueDate: String(formData.get("dueDate") || "") || null,
+      status: "todo",
+      ownerEntered: true,
+    });
+  });
+  stampAudit("tax_checklist_updated", id || "new", "Tax checklist updated. Not tax advice.");
+  revalidatePath("/dashboard/taxes");
+}
+
+export async function saveDashboardPreferences(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const hidden = String(formData.get("hiddenCards") || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  mutateWorkspace((state) => {
+    state.dashboardPreferences.hiddenCards = hidden;
+  });
+  stampAudit("dashboard_preferences", "overview", "Command Center card visibility updated.");
+  revalidatePath("/dashboard");
+}
+
+export async function createQuickRecord(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const kind = String(formData.get("kind") || "");
+  if (kind === "lead") {
+    await upsertLead({ businessName: "New inquiry (draft)", notes: "Created from Command Center" });
+    return;
+  }
+  if (kind === "client") {
+    await upsertClient({ businessName: "New client (draft)", notes: "Created from Command Center" });
+    return;
+  }
+  if (kind === "project") {
+    await upsertProject({ name: "New project (draft)", notes: "Created from Command Center" });
+    return;
+  }
+  if (kind === "task") {
+    await upsertTask({ title: "New task (draft)", notes: "Created from Command Center" });
+    return;
+  }
+  if (kind === "note") {
+    const data = new FormData();
+    data.set("title", "Quick note");
+    data.set("body", "Created from Command Center");
+    await saveNoteForm(data);
+  }
+}
+

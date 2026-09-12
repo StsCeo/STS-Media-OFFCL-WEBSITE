@@ -1,4 +1,6 @@
--- STS Media Command Center schema
+-- STS Media Command Center schema (legacy org / multi-role draft)
+-- Do not apply this file as the live production model.
+-- Phase 1 owner-only schema is 20260912060000_phase1_owner_os.sql.
 -- Apply with the Supabase CLI: supabase db push
 -- Enable required extensions first.
 

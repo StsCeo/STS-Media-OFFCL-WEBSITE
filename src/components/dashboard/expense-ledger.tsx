@@ -76,7 +76,7 @@ export function ExpenseLedger({ expenses }: { expenses: Expense[] }) {
   return (
     <div className="space-y-4">
       <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
-        Mileage and actual vehicle expenses may require different tax treatment and should not be double-counted. Tax-review and deductibility fields are operational labels, not legal or tax advice.
+        Mileage and actual vehicle expenses may require different tax treatment and should not be double-counted. Treat every expense as a potential business expense—professional review may be required. This ledger is not legal or tax advice.
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <input className={inputClass + " max-w-xs"} placeholder="Search vendor, description…" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} />
@@ -92,7 +92,7 @@ export function ExpenseLedger({ expenses }: { expenses: Expense[] }) {
         <Button size="sm" onClick={() => setEditing(blankExpense())}>Add expense</Button>
         <Button size="sm" variant="secondary" onClick={exportCsv}>Export CSV</Button>
         <Button size="sm" variant="secondary" onClick={() => window.print()}>Print / PDF</Button>
-        <Button size="sm" variant="secondary" href="mailto:accountant@stsmedia.co?subject=STS%20Media%20expense%20report">Email report</Button>
+        <Button size="sm" variant="secondary" href="mailto:info@stsmedia.co?subject=STS%20Media%20expense%20report">Email report</Button>
       </div>
       <p className="text-sm text-muted">
         Showing {filtered.length} records. Total in view: <span className="font-mono">{formatCurrency(yearTotal)}</span>. Saved views: Missing receipts, Drafts needing confirmation.

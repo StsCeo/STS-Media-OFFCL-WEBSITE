@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge, Card, PageHeader } from "@/components/ui";
+import { ProjectEditor } from "@/components/dashboard/project-editor";
 import { getWorkspace } from "@/lib/data/store";
 import { formatCurrency } from "@/lib/utils";
 import { PROJECT_STAGES } from "@/lib/types";
@@ -11,6 +12,10 @@ export default function ProjectsPage() {
   return (
     <div>
       <PageHeader title="Projects" description="Delivery stages, money, and risk. Credentials are stored as a vault location reference only." />
+      <Card id="add" className="mb-6">
+        <h2 className="mb-4 font-semibold">Add project</h2>
+        {clients.length ? <ProjectEditor clients={clients} /> : <p className="text-sm text-muted">Add a client before creating a project.</p>}
+      </Card>
       <div className="flex gap-2 overflow-x-auto pb-3 text-xs">
         {PROJECT_STAGES.map((stage) => (
           <div key={stage} className="rounded-md border border-line px-3 py-2">

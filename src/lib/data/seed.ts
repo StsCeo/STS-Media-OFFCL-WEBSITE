@@ -1,3 +1,5 @@
+import { defaultBusinessProfile } from "./business-defaults";
+import { defaultTaxChecklist } from "../tax";
 import type { WorkspaceState } from "../types";
 import { legalBodies } from "../content/trust";
 
@@ -5,6 +7,34 @@ const now = "2026-09-11T14:00:00.000Z";
 
 export function createSeedWorkspace(): WorkspaceState {
   return {
+    businessProfile: defaultBusinessProfile(),
+    notes: [
+      {
+        id: "note-1",
+        title: "Pilot client content still needed",
+        body: "State Collision Pro photos and service list are still outstanding. Do not invent copy or results.",
+        relatedType: "project",
+        relatedId: "proj-scp",
+        pinned: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ],
+    osDocuments: [
+      {
+        id: "doc-formation",
+        name: "Add Georgia LLC formation documents",
+        category: "formation",
+        relatedType: "none",
+        relatedId: null,
+        notes: "Upload the real articles and operating agreement to private storage. Do not store an EIN here.",
+        storagePath: null,
+        createdAt: now,
+      },
+    ],
+    osTransactions: [],
+    taxChecklist: defaultTaxChecklist(2026),
+    dashboardPreferences: { hiddenCards: [], cardOrder: [] },
     brand: {
       legalName: "Scars to Stars Media",
       shortName: "STS Media",
@@ -458,7 +488,7 @@ export function createSeedWorkspace(): WorkspaceState {
       { id: "a1", at: now, actor: "system", action: "seed_workspace", target: "workspace", detail: "Loaded labeled demo/draft records. Not production books." },
     ],
     team: [
-      { id: "user-owner", name: "Owner", email: "owner@stsmedia.co", role: "owner", status: "active", mfaRequired: true, mfaEnrolled: false },
+      { id: "user-owner", name: "Owner", email: "info@stsmedia.co", role: "owner", status: "active", mfaRequired: true, mfaEnrolled: false },
     ],
     securityEvents: [
       { id: "sec-1", at: now, type: "new_session", actor: "demo", detail: "Demo workspace session started. Not a production login." },

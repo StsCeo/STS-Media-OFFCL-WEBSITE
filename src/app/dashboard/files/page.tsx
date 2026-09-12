@@ -7,7 +7,7 @@ export default function FilesPage() {
   const files = getWorkspace().files;
   return (
     <div>
-      <PageHeader title="Files" description="Private receipts and client files use signed URLs in production. Never store secrets in filenames." />
+      <PageHeader title="Files" description="Private receipts and operating files. Production uses the receipts and documents buckets with signed URLs. Never store secrets in filenames." />
       <div className="grid gap-3">
         {files.map((file) => (
           <Card key={file.id} className="flex items-center justify-between">

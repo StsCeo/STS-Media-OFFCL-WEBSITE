@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { DualLineChart, SimpleBarChart } from "@/components/dashboard/charts";
+import { OverviewCustomize, isOverviewCardVisible } from "@/components/dashboard/overview-customize";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import { FINANCE_DEFINITIONS, computeFinance, expensesByCategory, rangeFromPreset, revenueByService, trendSeries } from "@/lib/finance";
 import { briefing } from "@/lib/insights";
 import { getWorkspace } from "@/lib/data/store";
 import { formatCurrency } from "@/lib/utils";
 import { LEAD_STAGES } from "@/lib/types";
 
-export const metadata = { title: "Overview" };
+export const metadata = { title: "Command Center" };
 
 export default async function OverviewPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
   const params = await searchParams;
@@ -23,6 +25,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   }));
   const traffic = workspace.websiteTraffic.map((row) => ({ label: row.date.slice(5), value: row.visits }));
   const conversions = workspace.contacts.filter((item) => item.status === "new").length;
+  const hidden = workspace.dashboardPreferences.hiddenCards;
+  const show = (id: string) => isOverviewCardVisible(hidden, id);
 
   const kpis = [
     ["Gross revenue", metrics.grossRevenue, FINANCE_DEFINITIONS.grossRevenue],
@@ -47,23 +51,22 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   return (
     <div>
       <PageHeader
-        eyebrow="STS Media Command Center"
-        title="Overview"
-        description="Executive view of the business. Pending payments are not cash. One-time fees are not ARR."
+        eyebrow="STS Media Business OS"
+        title="Command Center"
+        description="Daily operations for the owner. Pending payments are not cash. One-time fees are not ARR."
         actions={
-          <div className="flex flex-wrap gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
             {(["today", "7d", "30d", "quarter", "year"] as const).map((item) => (
               <Link key={item} href={`/dashboard?range=${item}`} className={`rounded-md border px-3 py-1 ${preset === item ? "border-forest bg-forest text-white" : "border-line"}`}>
                 {item === "7d" ? "Last 7 days" : item === "30d" ? "Last 30 days" : item[0].toUpperCase() + item.slice(1)}
               </Link>
             ))}
-            <Link href="/dashboard?range=custom" className="rounded-md border border-line px-3 py-1">
-              Custom
-            </Link>
+            <OverviewCustomize hiddenCards={hidden} />
           </div>
         }
       />
 
+      {show("attention") ? (
       <Card className="mb-6">
         <h2 className="text-lg font-semibold">Today at STS Media</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -82,7 +85,11 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           <Brief title="Content awaiting review" items={today.contentReview.map((c) => c.title)} href="/dashboard/content" />
         </div>
       </Card>
+      ) : null}
 
+      {show("quick-actions") ? <div className="mb-6"><QuickActions /></div> : null}
+
+      {show("kpis") ? (
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map(([label, value, hint]) => (
           <Card key={label} className="p-4">
@@ -92,7 +99,9 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           </Card>
         ))}
       </div>
+      ) : null}
 
+      {show("charts") ? (
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <h2 className="mb-4 font-semibold">Revenue versus expenses</h2>
@@ -149,7 +158,9 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           </ul>
         </Card>
       </div>
+      ) : null}
 
+      {show("insights") ? (
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card>
           <h2 className="font-semibold">Evidence-based recommendations</h2>
@@ -171,6 +182,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           <p className="mt-3 text-sm text-muted">{FINANCE_DEFINITIONS.cashVsAccrual}</p>
         </Card>
       </div>
+      ) : null}
     </div>
   );
 }

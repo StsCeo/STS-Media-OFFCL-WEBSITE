@@ -12,7 +12,10 @@ export function CommandPalette() {
   const labelId = useId();
   const items = useMemo(() => {
     const all = [
-      ...dashboardNav.map((item) => ({ href: item.href, label: item.label, group: "Command Center" })),
+      ...dashboardNav.map((item) => ({ href: item.href, label: item.label, group: "Business OS" })),
+      { href: "/dashboard/export", label: "Export backup", group: "Business OS" },
+      { href: "/dashboard/settings/business", label: "Business profile", group: "Business OS" },
+      { href: "/dashboard/team", label: "Owner account", group: "Business OS" },
       ...publicNav.map((item) => ({ href: item.href, label: item.label, group: "Public site" })),
       { href: "/dashboard/settings/security", label: "Security", group: "Command Center" },
       { href: "/dashboard/settings/brand", label: "Brand settings", group: "Command Center" },

@@ -9,7 +9,7 @@ import { Logo } from "@/components/brand/logo";
 import { CommandPalette } from "@/components/dashboard/command-palette";
 import { InactivityGuard } from "@/components/dashboard/inactivity";
 import { endDemoSession, toggleTheme } from "@/app/actions";
-import { dashboardNav } from "@/lib/nav";
+import { dashboardNavGroups } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 export function DashboardShell({
@@ -57,28 +57,39 @@ export function DashboardShell({
               {collapsed ? <ChevronRight size={16} aria-hidden /> : <ChevronLeft size={16} aria-hidden />}
             </button>
           </div>
-          <nav className="flex-1 overflow-y-auto px-2 pb-4" aria-label="Command Center">
-            {dashboardNav.map((item) => {
-              const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "mb-0.5 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm text-soft-gray hover:bg-white/5 hover:text-ivory",
-                    active && "bg-white/8 text-ivory",
-                    collapsed && "justify-center px-0",
-                  )}
-                  title={item.label}
-                  aria-label={collapsed ? item.label : undefined}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <Icon size={18} aria-hidden />
-                  {collapsed ? null : item.label}
-                </Link>
-              );
-            })}
+          <nav className="flex-1 overflow-y-auto px-2 pb-4" aria-label="Business OS">
+            {dashboardNavGroups.map((group) => (
+              <div key={group.id} className="mb-2">
+                {collapsed ? (
+                  <div className="mx-auto my-2 h-px w-6 bg-white/10" aria-hidden />
+                ) : (
+                  <p className="px-2.5 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-soft-gray/70">
+                    {group.label}
+                  </p>
+                )}
+                {group.items.map((item) => {
+                  const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "mb-0.5 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm text-soft-gray hover:bg-white/5 hover:text-ivory",
+                        active && "bg-white/8 text-ivory",
+                        collapsed && "justify-center px-0",
+                      )}
+                      title={item.label}
+                      aria-label={collapsed ? item.label : undefined}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      <Icon size={18} aria-hidden />
+                      {collapsed ? null : item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </aside>
 
@@ -87,11 +98,16 @@ export function DashboardShell({
             <button className="absolute inset-0 bg-black/50" aria-label="Close menu" onClick={() => setMobileOpen(false)} />
             <aside className="relative h-full w-72 overflow-y-auto bg-obsidian p-4 text-ivory">
               <Logo invert href="/dashboard" />
-              <nav className="mt-6 space-y-1" aria-label="Command Center">
-                {dashboardNav.map((item) => (
-                  <Link key={item.href} href={item.href} className="block rounded-md px-2 py-2 text-sm text-soft-gray hover:bg-white/5" onClick={() => setMobileOpen(false)}>
-                    {item.label}
-                  </Link>
+              <nav className="mt-6 space-y-4" aria-label="Business OS">
+                {dashboardNavGroups.map((group) => (
+                  <div key={group.id}>
+                    <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-soft-gray/70">{group.label}</p>
+                    {group.items.map((item) => (
+                      <Link key={item.href} href={item.href} className="block rounded-md px-2 py-2 text-sm text-soft-gray hover:bg-white/5" onClick={() => setMobileOpen(false)}>
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
                 ))}
               </nav>
             </aside>

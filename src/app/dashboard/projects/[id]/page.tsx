@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Badge, Card, PageHeader } from "@/components/ui";
+import { ProjectEditor } from "@/components/dashboard/project-editor";
 import { getWorkspace } from "@/lib/data/store";
 import { formatCurrency } from "@/lib/utils";
 
@@ -48,6 +49,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <p className="mt-4 text-xs">Credentials reference: {project.credentialsReference}</p>
         </Card>
       </div>
+      <Card className="mt-4">
+        <h2 className="mb-4 font-semibold">Edit project</h2>
+        <ProjectEditor project={project} clients={workspace.clients} />
+      </Card>
     </div>
   );
 }

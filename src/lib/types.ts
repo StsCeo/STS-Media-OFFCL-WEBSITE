@@ -56,6 +56,103 @@ export type EventKind =
 
 export type DatePreset = "today" | "7d" | "30d" | "quarter" | "year" | "custom";
 
+export type EntityType = "llc" | "sole_prop" | "c_corp" | "s_corp" | "nonprofit" | "other";
+export type FederalClassification = "tbd" | "disregarded_entity" | "partnership" | "c_corp" | "s_corp" | "other";
+export type AccountingMethod = "cash" | "accrual";
+export type FiscalYearType = "calendar" | "fiscal";
+export type SCorpStatus = "not_elected" | "elected" | "undecided";
+export type NoteRelatedType = "client" | "project" | "lead" | "none";
+export type OsDocumentCategory = "contract" | "formation" | "tax" | "insurance" | "other";
+export type OsTransactionKind =
+  | "income"
+  | "expense"
+  | "owner_draw"
+  | "owner_contribution"
+  | "transfer"
+  | "adjustment";
+export type OsTransactionSource = "expense_ledger" | "revenue_ledger" | "manual";
+export type TaxChecklistStatus = "todo" | "in_progress" | "done" | "not_applicable";
+
+export interface BusinessProfile {
+  legalName: string;
+  dba: string;
+  entityType: EntityType;
+  federalClassification: FederalClassification;
+  formationState: string;
+  accountingMethod: AccountingMethod;
+  fiscalYearType: FiscalYearType;
+  fiscalYearStartMonth: number;
+  timezone: string;
+  currency: string;
+  website: string;
+  publicEmail: string;
+  ownerEmail: string;
+  taxReservePercent: number;
+  reservedTaxAmountCents: number;
+  invoiceNumberFormat: string;
+  defaultPaymentTerms: string;
+  defaultDepositPercent: number;
+  sCorpStatus: SCorpStatus;
+  sCorpNotes: string;
+  einStored: false;
+  notes: string;
+}
+
+export interface OwnerNote {
+  id: string;
+  title: string;
+  body: string;
+  relatedType: NoteRelatedType;
+  relatedId: string | null;
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OsDocument {
+  id: string;
+  name: string;
+  category: OsDocumentCategory;
+  relatedType: "client" | "project" | "none";
+  relatedId: string | null;
+  notes: string;
+  storagePath: string | null;
+  createdAt: string;
+}
+
+export interface OsTransaction {
+  id: string;
+  date: string;
+  kind: OsTransactionKind;
+  source: OsTransactionSource;
+  sourceId: string | null;
+  description: string;
+  amountCents: number;
+  currency: string;
+  clientId: string | null;
+  projectId: string | null;
+  category: string;
+  notes: string;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaxChecklistItem {
+  id: string;
+  taxYear: number;
+  title: string;
+  notes: string;
+  dueDate: string | null;
+  status: TaxChecklistStatus;
+  ownerEntered: boolean;
+}
+
+export interface DashboardPreferences {
+  hiddenCards: string[];
+  cardOrder: string[];
+}
+
 export interface BrandSettings {
   legalName: string;
   shortName: string;
@@ -510,6 +607,12 @@ export interface DeploymentRecord {
 
 export interface WorkspaceState {
   brand: BrandSettings;
+  businessProfile: BusinessProfile;
+  notes: OwnerNote[];
+  osDocuments: OsDocument[];
+  osTransactions: OsTransaction[];
+  taxChecklist: TaxChecklistItem[];
+  dashboardPreferences: DashboardPreferences;
   services: Service[];
   packages: PackageItem[];
   portfolio: PortfolioItem[];
