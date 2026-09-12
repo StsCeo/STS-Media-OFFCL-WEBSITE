@@ -593,7 +593,9 @@ html[data-palette="warm-earth"] .public-grain .text-gold {
   color: var(--forest);
 }
 
-html[data-palette="warm-earth"] .headline-gradient {
+html[data-palette="warm-earth"] .headline-gradient,
+html[data-palette="warm-earth"] .public-grain h1.headline-gradient,
+html[data-palette="warm-earth"] .public-grain .headline-gradient {
   background-image: linear-gradient(105deg, var(--forest) 0%, var(--sage) 62%, var(--terracotta) 100%);
   -webkit-background-clip: text;
   background-clip: text;
