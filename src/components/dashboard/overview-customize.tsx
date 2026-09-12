@@ -52,7 +52,3 @@ export function OverviewCustomize({ hiddenCards }: { hiddenCards: string[] }) {
     </div>
   );
 }
-
-export function isOverviewCardVisible(hiddenCards: string[], id: string) {
-  return !hiddenCards.includes(id);
-}

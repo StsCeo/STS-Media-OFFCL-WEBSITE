@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { DualLineChart, SimpleBarChart } from "@/components/dashboard/charts";
-import { OverviewCustomize, isOverviewCardVisible } from "@/components/dashboard/overview-customize";
+import { OverviewCustomize } from "@/components/dashboard/overview-customize";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { FINANCE_DEFINITIONS, computeFinance, expensesByCategory, rangeFromPreset, revenueByService, trendSeries } from "@/lib/finance";
 import { briefing } from "@/lib/insights";
@@ -26,7 +26,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const traffic = workspace.websiteTraffic.map((row) => ({ label: row.date.slice(5), value: row.visits }));
   const conversions = workspace.contacts.filter((item) => item.status === "new").length;
   const hidden = workspace.dashboardPreferences.hiddenCards;
-  const show = (id: string) => isOverviewCardVisible(hidden, id);
+  const show = (id: string) => !hidden.includes(id);
 
   const kpis = [
     ["Gross revenue", metrics.grossRevenue, FINANCE_DEFINITIONS.grossRevenue],
