@@ -1,7 +1,7 @@
 import { previewPalette } from "@/app/actions";
 import { Button } from "@/components/ui";
 import { IvoryShell, PageKicker, PageLede, PageTitle } from "@/components/public/page-hero";
-import { PALETTES } from "@/lib/theme/palettes";
+import { PALETTES, paletteAtmosphere } from "@/lib/theme/palettes";
 
 export const metadata = {
   title: "Color lookbook",
@@ -14,11 +14,15 @@ export default function LookbookPage() {
       <PageKicker>Color systems</PageKicker>
       <PageTitle>{PALETTES.length} original palettes. Status colors never ride on brand hue.</PageTitle>
       <PageLede>
-        Preview a scheme on the public site for an hour, or save one in Brand Settings. Each card shows the dark header and the light paper field. Error, warning, and info tokens stay fixed so finance never depends on a decorative color.
+        Preview a scheme on the public site for an hour, or save one in Brand Settings. Each card shows the header register and the page field. Error, warning, and info tokens stay fixed so finance never depends on a decorative color.
       </PageLede>
       <div className="mt-12 grid gap-6 lg:grid-cols-2">
         {PALETTES.map((palette) => {
           const t = palette.tokens;
+          const night = paletteAtmosphere(palette) === "night-luxury";
+          const fieldBg = night ? t.obsidian : t.ivory;
+          const fieldInk = night ? t.ivory : t.ink;
+          const primary = night ? palette.violet ?? t.forest : t.forest;
           return (
             <article key={palette.id} id={palette.id} className="overflow-hidden rounded-xl border border-line bg-white shadow-[var(--shadow-card)]">
               <div className="p-5" style={{ background: t.obsidian, color: t.ivory }}>
@@ -27,17 +31,27 @@ export default function LookbookPage() {
                 </p>
                 <h2 className="mt-3 font-display text-2xl leading-snug">We turn overlooked potential into visible growth.</h2>
                 <div className="mt-5 flex gap-2">
-                  <span className="inline-flex h-9 items-center rounded-md px-3 text-xs text-white" style={{ background: t.forest }}>
+                  <span
+                    className="inline-flex h-9 items-center rounded-md px-3 text-xs text-white"
+                    style={
+                      night
+                        ? { backgroundImage: `linear-gradient(135deg, ${palette.violet}, ${palette.electric})` }
+                        : { background: t.forest }
+                    }
+                  >
                     Start a Project
                   </span>
-                  <span className="inline-flex h-9 items-center rounded-md border px-3 text-xs" style={{ borderColor: `${t.gold}66`, color: t.gold }}>
+                  <span
+                    className="inline-flex h-9 items-center rounded-md border px-3 text-xs"
+                    style={{ borderColor: night ? `${palette.lavender}99` : `${t.gold}66`, color: night ? t.ivory : t.gold }}
+                  >
                     View Our Work
                   </span>
                 </div>
               </div>
-              <div className="p-5" style={{ background: t.ivory, color: t.ink }}>
-                <p className="text-[10px] uppercase tracking-[0.16em]" style={{ color: t.forest }}>
-                  Light field
+              <div className="p-5" style={{ background: fieldBg, color: fieldInk }}>
+                <p className="text-[10px] uppercase tracking-[0.16em]" style={{ color: night ? palette.lavender : t.forest }}>
+                  {night ? "Night field" : "Light field"}
                 </p>
                 <p className="mt-2 font-display text-xl leading-snug">{palette.name}</p>
                 <p className="mt-2 text-sm leading-6" style={{ color: t.muted }}>
@@ -45,13 +59,17 @@ export default function LookbookPage() {
                 </p>
                 <span
                   className="mt-4 inline-flex h-9 items-center rounded-md px-3 text-xs text-white"
-                  style={{ background: t.forest }}
+                  style={
+                    night
+                      ? { backgroundImage: `linear-gradient(135deg, ${palette.violet}, ${palette.electric})` }
+                      : { background: t.forest }
+                  }
                 >
                   Start a Project
                 </span>
               </div>
               <div className="flex h-3">
-                {[t.obsidian, t.forest, t.emerald, t.gold, t.ivory].map((color) => (
+                {[t.obsidian, primary, t.emerald, t.gold, t.ivory].map((color) => (
                   <span key={color} className="flex-1" style={{ background: color }} />
                 ))}
               </div>

@@ -5,13 +5,20 @@ export type PaletteId =
   | "coastal-clarity"
   | "ember"
   | "signal-paper"
-  | "charcoal-blue-light";
+  | "charcoal-blue-light"
+  | "midnight-navy";
+
+export type PaletteAtmosphere = "daylight" | "night-luxury";
 
 export interface Palette {
   id: PaletteId;
   name: string;
   tagline: string;
   suitedFor: string;
+  atmosphere?: PaletteAtmosphere;
+  lavender?: string;
+  violet?: string;
+  electric?: string;
   tokens: {
     obsidian: string;
     forest: string;
@@ -177,15 +184,48 @@ export const PALETTES: Palette[] = [
       focus: "#6B8AA8",
     },
   },
+  {
+    id: "midnight-navy",
+    name: "Midnight Navy",
+    tagline: "Soothing night glass. Cream type, violet light, gold only at the edges.",
+    suitedFor: "A luxurious dark public site and Command Center — navy gradients, spare accents, no costume sparkle.",
+    atmosphere: "night-luxury",
+    lavender: "#C9B8FF",
+    violet: "#6D4AFF",
+    electric: "#3B82F6",
+    tokens: {
+      obsidian: "#0B1020",
+      forest: "#121A2F",
+      forestHover: "#0E1528",
+      emerald: "#3B82F6",
+      gold: "#D7B56D",
+      ivory: "#F7F2E8",
+      softGray: "#D5CDBF",
+      canvas: "#0B1020",
+      card: "#121A2F",
+      ink: "#F7F2E8",
+      muted: "#C9C2B4",
+      line: "#2C3550",
+      focus: "#C9B8FF",
+    },
+  },
 ];
 
 export function getPalette(id: string | null | undefined): Palette {
   return PALETTES.find((item) => item.id === id) ?? PALETTES[0];
 }
 
+export function paletteAtmosphere(palette: Palette): PaletteAtmosphere {
+  return palette.atmosphere ?? "daylight";
+}
+
 export function paletteCssVars(palette: Palette, accentOverride?: string) {
   const accent = accentOverride && /^#[0-9A-Fa-f]{6}$/.test(accentOverride) ? accentOverride : palette.tokens.emerald;
   const t = palette.tokens;
+  const night = paletteAtmosphere(palette) === "night-luxury";
+  const lavender = palette.lavender ?? "#C9B8FF";
+  const violet = palette.violet ?? t.forest;
+  const electric = palette.electric ?? t.focus;
   return {
     "--obsidian": t.obsidian,
     "--forest": t.forest,
@@ -200,13 +240,18 @@ export function paletteCssVars(palette: Palette, accentOverride?: string) {
     "--muted": t.muted,
     "--line": t.line,
     "--focus": t.focus,
-    "--primary": t.forest,
-    "--primary-hover": t.forestHover,
+    "--lavender": lavender,
+    "--violet": violet,
+    "--electric": electric,
+    "--cream": t.ivory,
+    "--primary": night ? violet : t.forest,
+    "--primary-hover": night ? "#5B3DE8" : t.forestHover,
     "--accent": accent,
     "--brand-accent": accent,
-    "--background": t.ivory,
+    "--background": night ? t.obsidian : t.ivory,
     "--foreground": t.ink,
     "--surface": t.card,
     "--border": t.line,
+    ...(night ? { "--gold-ink": t.gold } : {}),
   } as Record<string, string>;
 }

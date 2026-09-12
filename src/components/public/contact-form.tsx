@@ -25,7 +25,7 @@ export function ContactForm({
   const [state, formAction, pending] = useActionState(action, {});
   if (state.ok) {
     return (
-      <div className="rounded-xl border border-emerald/30 bg-white p-8 text-ink" role="status">
+      <div className="rounded-xl border border-success/30 bg-white p-8 text-ink" role="status">
         <h2 className="font-display text-2xl">Message received</h2>
         <p className="mt-3 text-sm text-muted">
           Thank you. We will review this and respond using the contact method you selected. Nothing is auto-sent until the owner reviews it.

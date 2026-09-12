@@ -32,7 +32,7 @@ export function LoginForm({ next, demoEnabled, supabaseConfigured }: { next: str
             role="tab"
             aria-selected={tab === item}
             onClick={() => setTab(item)}
-            className={`rounded-md px-2 py-2 ${tab === item ? "bg-forest text-ivory" : "text-soft-gray"}`}
+            className={`rounded-md px-2 py-2 ${tab === item ? "btn-primary text-white" : "text-soft-gray"}`}
           >
             {item === "password" ? "Password" : item === "code" ? "Email code" : "Magic link"}
           </button>

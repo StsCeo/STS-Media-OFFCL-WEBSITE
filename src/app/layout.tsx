@@ -5,7 +5,7 @@ import { Fraunces, Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
 import { ToastProvider } from "@/components/toast";
 import { getWorkspace } from "@/lib/data/store";
 import { PALETTE_COOKIE } from "@/lib/config";
-import { getPalette, paletteCssVars } from "@/lib/theme/palettes";
+import { getPalette, paletteAtmosphere, paletteCssVars } from "@/lib/theme/palettes";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -41,13 +41,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const previewId = jar.get(PALETTE_COOKIE)?.value;
   const palette = getPalette(previewId || brand.paletteId);
   const vars = paletteCssVars(palette, previewId ? palette.tokens.emerald : brand.accentColor);
+  const atmosphere = paletteAtmosphere(palette);
   return (
     <html
       lang="en"
       data-theme={theme}
       data-palette={palette.id}
+      data-atmosphere={atmosphere}
       data-scroll-behavior="smooth"
-      className={`${plusJakarta.variable} ${fraunces.variable} ${plexMono.variable} ${theme === "dark" ? "dark" : ""} h-full antialiased`}
+      className={`${plusJakarta.variable} ${fraunces.variable} ${plexMono.variable} ${theme === "dark" || atmosphere === "night-luxury" ? "dark" : ""} h-full antialiased`}
       style={vars as CSSProperties}
     >
       <body className="min-h-full flex flex-col font-sans">

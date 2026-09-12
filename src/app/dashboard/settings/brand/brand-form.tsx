@@ -35,7 +35,7 @@ export function BrandForm({ brand }: { brand: BrandSettings }) {
               aria-pressed={paletteId === item.id}
               >
                 <div className="mb-3 flex h-10 overflow-hidden rounded-md">
-                  {[item.tokens.obsidian, item.tokens.forest, item.tokens.emerald, item.tokens.gold, item.tokens.ivory].map((color) => (
+                  {[item.tokens.obsidian, item.violet ?? item.tokens.forest, item.electric ?? item.tokens.emerald, item.tokens.gold, item.tokens.ivory].map((color) => (
                     <span key={color} className="flex-1" style={{ background: color }} />
                   ))}
                 </div>

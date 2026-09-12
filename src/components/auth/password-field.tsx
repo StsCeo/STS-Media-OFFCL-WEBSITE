@@ -37,7 +37,7 @@ export function PasswordField({
           </span>
           <span className="block h-1.5 overflow-hidden rounded-full bg-line">
             <span
-              className={`block h-full ${result.ok ? "bg-emerald" : result.score >= 3 ? "bg-warning" : "bg-danger"}`}
+              className={`block h-full ${result.ok ? "bg-success" : result.score >= 3 ? "bg-warning" : "bg-danger"}`}
               style={{ width }}
             />
           </span>

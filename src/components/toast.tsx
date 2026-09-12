@@ -25,7 +25,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               toast.tone === "error"
                 ? "border-danger/30 bg-card text-danger"
                 : toast.tone === "success"
-                  ? "border-emerald/30 bg-card text-emerald"
+                  ? "border-success/30 bg-card text-success"
                   : "border-line bg-card text-ink"
             }`}
           >

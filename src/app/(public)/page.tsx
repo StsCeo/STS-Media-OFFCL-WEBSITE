@@ -30,7 +30,7 @@ export default function HomePage() {
             </Button>
           </div>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-6 glass-panel">
           <p className="text-xs uppercase tracking-[0.18em] text-gold">How we work</p>
           <ul className="mt-4 space-y-4">
             {process.slice(0, 4).map((step) => (
@@ -48,7 +48,7 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-16">
         <div className="grid gap-4 md:grid-cols-2">
-          <Link href="/for/owners" className="lift rounded-xl border border-white/10 bg-white/5 p-6">
+          <Link href="/for/owners" className="lift glass-panel rounded-xl border border-white/10 bg-white/5 p-6">
             <p className="text-xs uppercase tracking-[0.18em] text-gold">{ownerPath.eyebrow}</p>
             <h2 className="mt-3 font-display text-3xl text-ivory">{ownerPath.title}</h2>
             <p className="mt-3 text-sm leading-6 text-soft-gray">{ownerPath.lede}</p>
@@ -56,7 +56,7 @@ export default function HomePage() {
               Owners path <ArrowRight size={16} />
             </span>
           </Link>
-          <Link href="/for/creators" className="lift rounded-xl border border-white/10 bg-white/5 p-6">
+          <Link href="/for/creators" className="lift glass-panel rounded-xl border border-white/10 bg-white/5 p-6">
             <p className="text-xs uppercase tracking-[0.18em] text-gold">{creatorPath.eyebrow}</p>
             <h2 className="mt-3 font-display text-3xl text-ivory">{creatorPath.title}</h2>
             <p className="mt-3 text-sm leading-6 text-soft-gray">{creatorPath.lede}</p>
@@ -78,7 +78,7 @@ export default function HomePage() {
               ["Private command center", "Finance and leads stay behind sign-in."],
               ["Color systems", "Preview palettes without saving the brand."],
             ].map(([title, body]) => (
-              <article key={title} className="rounded-lg border border-line bg-white p-4">
+              <article key={title} className="glass-panel rounded-lg border border-line bg-white p-4">
                 <h3 className="text-sm font-medium">{title}</h3>
                 <p className="mt-2 text-sm text-muted">{body}</p>
               </article>
@@ -100,7 +100,7 @@ export default function HomePage() {
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             {featured.map((item) => (
-              <Link key={item.id} href={`/work/${item.slug}`} className="lift rounded-xl border border-line bg-white p-6 shadow-[var(--shadow-card)]">
+              <Link key={item.id} href={`/work/${item.slug}`} className="lift glass-panel rounded-xl border border-line bg-white p-6 shadow-[var(--shadow-card)]">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted">{item.industry}</p>
                 <h3 className="mt-2 font-display text-2xl">{item.companyName}</h3>
                 <p className="mt-2 text-sm text-muted">{item.projectTitle}</p>

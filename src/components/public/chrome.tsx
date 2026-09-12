@@ -27,16 +27,19 @@ export function PublicHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Logo invert />
         <nav className="hidden items-center gap-6 text-sm text-soft-gray lg:flex" aria-label="Primary">
-          {publicNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="underline-offset-4 transition hover:text-ivory hover:underline"
-              aria-current={pathname === item.href || pathname.startsWith(`${item.href}/`) ? "page" : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {publicNav.map((item) => {
+            const current = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="underline-offset-4 transition hover:text-ivory hover:underline"
+                aria-current={current ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="hidden items-center gap-3 lg:flex">
           <Button href="/login" variant="gold" size="sm">

@@ -19,8 +19,13 @@
   --danger: #b42318;
   --warning: #b7791f;
   --info: #2563a6;
+  --success: #2e7d5b;
   --lead: #7c5cfc;
   --pending: #a7ada8;
+  --lavender: #c9b8ff;
+  --violet: #6d4aff;
+  --electric: #3b82f6;
+  --cream: #f7f2e8;
   --brand-accent: var(--emerald);
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -86,6 +91,11 @@ html[data-theme="dark"] {
   --color-danger: var(--danger);
   --color-warning: var(--warning);
   --color-info: var(--info);
+  --color-success: var(--success);
+  --color-lavender: var(--lavender);
+  --color-violet: var(--violet);
+  --color-electric: var(--electric);
+  --color-cream: var(--cream);
   --color-lead: var(--lead);
   --color-pending: var(--pending);
   --color-background: var(--background);
@@ -181,12 +191,205 @@ summary:focus-visible {
     radial-gradient(800px 380px at 92% 0%, color-mix(in srgb, var(--gold) 14%, transparent), transparent 52%);
 }
 
+.btn-primary {
+  background-color: var(--primary);
+  color: #fff;
+  box-shadow: none;
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+.btn-secondary {
+  background-color: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--line);
+}
+.btn-secondary:hover {
+  border-color: color-mix(in srgb, var(--emerald) 40%, var(--line));
+}
+
+.glass-panel {
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+}
+
 .lift {
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 .lift:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-card);
+}
+
+html[data-atmosphere="night-luxury"] {
+  color-scheme: dark;
+  --background: var(--obsidian);
+  --foreground: var(--ivory);
+  --surface: var(--card);
+  --shadow-card: 0 18px 50px rgb(8 12 24 / 0.45), 0 0 0 1px color-mix(in srgb, var(--lavender) 16%, transparent);
+  --shadow-glass: 0 16px 40px rgb(8 12 24 / 0.4), 0 0 32px color-mix(in srgb, var(--violet) 14%, transparent);
+  --luxury-wash:
+    radial-gradient(1200px 560px at 8% -18%, color-mix(in srgb, var(--violet) 26%, transparent), transparent 58%),
+    radial-gradient(900px 480px at 92% -8%, color-mix(in srgb, var(--electric) 16%, transparent), transparent 52%),
+    radial-gradient(700px 420px at 50% 120%, color-mix(in srgb, var(--lavender) 8%, transparent), transparent 60%);
+  --star-field: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Ccircle cx='18' cy='34' r='0.8' fill='%23F7F2E8' opacity='0.38'/%3E%3Ccircle cx='72' cy='16' r='0.6' fill='%23C9B8FF' opacity='0.32'/%3E%3Ccircle cx='128' cy='48' r='0.7' fill='%23F7F2E8' opacity='0.28'/%3E%3Ccircle cx='176' cy='22' r='0.5' fill='%23D7B56D' opacity='0.34'/%3E%3Ccircle cx='204' cy='86' r='0.7' fill='%23C9B8FF' opacity='0.26'/%3E%3Ccircle cx='42' cy='98' r='0.5' fill='%23F7F2E8' opacity='0.3'/%3E%3Ccircle cx='96' cy='132' r='0.8' fill='%23F7F2E8' opacity='0.22'/%3E%3Ccircle cx='154' cy='118' r='0.5' fill='%23D7B56D' opacity='0.28'/%3E%3Ccircle cx='28' cy='168' r='0.6' fill='%23C9B8FF' opacity='0.24'/%3E%3Ccircle cx='188' cy='162' r='0.7' fill='%23F7F2E8' opacity='0.3'/%3E%3Ccircle cx='118' cy='196' r='0.5' fill='%23D7B56D' opacity='0.22'/%3E%3Ccircle cx='64' cy='208' r='0.6' fill='%23F7F2E8' opacity='0.26'/%3E%3C/svg%3E");
+}
+
+html[data-atmosphere="night-luxury"] body {
+  background-color: var(--obsidian);
+  background-image: var(--luxury-wash);
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .public-grain {
+  background-color: transparent;
+  background-image:
+    var(--luxury-wash),
+    var(--star-field);
+}
+
+html[data-atmosphere="night-luxury"] .gold-rule {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 70%, var(--lavender) 30%), transparent);
+}
+
+html[data-atmosphere="night-luxury"] .bg-ivory {
+  background-color: var(--obsidian);
+  background-image: var(--luxury-wash), var(--star-field);
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .bg-canvas,
+html[data-atmosphere="night-luxury"] [data-surface="dashboard"] {
+  background-color: var(--obsidian);
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .bg-white,
+html[data-atmosphere="night-luxury"] .bg-card,
+html[data-atmosphere="night-luxury"] .bg-surface,
+html[data-atmosphere="night-luxury"] .glass-panel {
+  background-color: color-mix(in srgb, var(--card) 88%, white 4%);
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--lavender) 8%, transparent), transparent 42%);
+  color: var(--ivory);
+  border-color: color-mix(in srgb, var(--lavender) 26%, var(--gold) 10%);
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(18px);
+}
+
+html[data-atmosphere="night-luxury"] .bg-white\/5,
+html[data-atmosphere="night-luxury"] .glass-panel {
+  background-color: color-mix(in srgb, var(--card) 55%, transparent);
+  border-color: color-mix(in srgb, var(--lavender) 28%, var(--gold) 12%);
+}
+
+html[data-atmosphere="night-luxury"] .bg-forest {
+  background-color: var(--card);
+  background-image:
+    radial-gradient(900px 320px at 50% 0%, color-mix(in srgb, var(--violet) 22%, transparent), transparent 70%),
+    var(--star-field);
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .bg-forest.text-white {
+  background-color: transparent;
+  background-image: linear-gradient(135deg, var(--violet), var(--electric));
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .text-ink,
+html[data-atmosphere="night-luxury"] .text-foreground {
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .text-muted {
+  color: var(--muted);
+}
+
+html[data-atmosphere="night-luxury"] .text-forest {
+  color: var(--lavender);
+}
+
+html[data-atmosphere="night-luxury"] a.text-forest,
+html[data-atmosphere="night-luxury"] a.text-electric {
+  color: var(--electric);
+}
+
+html[data-atmosphere="night-luxury"] .text-gold-ink {
+  color: var(--gold);
+}
+
+html[data-atmosphere="night-luxury"] .border-line,
+html[data-atmosphere="night-luxury"] .border-border {
+  border-color: color-mix(in srgb, var(--lavender) 22%, var(--line));
+}
+
+html[data-atmosphere="night-luxury"] .btn-primary {
+  background-color: transparent;
+  background-image: linear-gradient(135deg, var(--violet) 0%, var(--electric) 100%);
+  color: var(--ivory);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--violet) 38%, transparent);
+  transition: transform 200ms ease, box-shadow 200ms ease, filter 200ms ease;
+}
+
+html[data-atmosphere="night-luxury"] .btn-primary:hover {
+  background-color: transparent;
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--violet) 82%, white 18%), color-mix(in srgb, var(--electric) 78%, white 22%));
+  transform: translateY(-1px);
+  filter: saturate(1.05);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--electric) 36%, transparent),
+    0 0 22px color-mix(in srgb, var(--violet) 32%, transparent);
+}
+
+html[data-atmosphere="night-luxury"] .btn-secondary {
+  background-color: transparent;
+  color: var(--ivory);
+  border: 1px solid color-mix(in srgb, var(--lavender) 62%, var(--gold) 38%);
+}
+
+html[data-atmosphere="night-luxury"] .btn-secondary:hover {
+  border-color: var(--gold);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--gold) 22%, transparent);
+}
+
+html[data-atmosphere="night-luxury"] :is(input, textarea, select).h-10,
+html[data-atmosphere="night-luxury"] :is(input, textarea, select).min-h-28 {
+  background-color: color-mix(in srgb, var(--card) 86%, black 8%);
+  color: var(--ivory);
+  border-color: color-mix(in srgb, var(--lavender) 24%, var(--line));
+}
+
+html[data-atmosphere="night-luxury"] :is(input, textarea, select)::placeholder {
+  color: color-mix(in srgb, var(--muted) 86%, var(--ivory) 14%);
+}
+
+html[data-atmosphere="night-luxury"] footer a:hover {
+  color: var(--electric);
+}
+
+html[data-atmosphere="night-luxury"] header nav a[aria-current="page"] {
+  color: var(--lavender);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--lavender) 35%, transparent);
+}
+
+html[data-atmosphere="night-luxury"] [data-surface="dashboard"] nav a[aria-current="page"] {
+  background: color-mix(in srgb, var(--violet) 22%, transparent);
+  color: var(--ivory);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lavender) 28%, transparent);
+}
+
+html[data-atmosphere="night-luxury"][data-theme="light"],
+html[data-atmosphere="night-luxury"]:not(.dark) {
+  color-scheme: dark;
+}
+
+@media (prefers-contrast: more) {
+  html[data-atmosphere="night-luxury"] {
+    --muted: #e6ddd0;
+    --soft-gray: #efe6d8;
+    --line: #8b7dff;
+    --gold-ink: #f0d090;
+  }
 }
 
 .device-frame {
@@ -197,7 +400,8 @@ summary:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .lift, .lift:hover { transition: none; transform: none; }
+  .lift, .lift:hover,
+  .btn-primary, .btn-primary:hover { transition: none; transform: none; filter: none; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

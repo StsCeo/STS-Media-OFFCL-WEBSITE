@@ -13,8 +13,8 @@ type ButtonProps = {
 };
 
 const variants = {
-  primary: "bg-primary text-white hover:bg-primary-hover",
-  secondary: "border border-line bg-surface text-foreground hover:border-emerald/40",
+  primary: "btn-primary text-white",
+  secondary: "btn-secondary",
   ghost: "text-foreground hover:bg-canvas",
   danger: "bg-danger text-white hover:opacity-90",
   gold: "bg-transparent text-gold border border-gold/40 hover:bg-gold/10",
@@ -52,7 +52,7 @@ export function Badge({
 }) {
   const tones = {
     neutral: "bg-canvas text-muted border-line",
-    success: "bg-emerald/10 text-emerald border-emerald/20",
+    success: "bg-success/10 text-success border-success/20",
     warning: "bg-warning/10 text-warning border-warning/20",
     danger: "bg-danger/10 text-danger border-danger/20",
     info: "bg-info/10 text-info border-info/20",
