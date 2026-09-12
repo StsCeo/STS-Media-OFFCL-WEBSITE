@@ -30,6 +30,14 @@ export interface Palette {
   beige?: string;
   tan?: string;
   cream?: string;
+  charts?: {
+    revenue: string;
+    profit: string;
+    traffic: string;
+    leads: string;
+    expenses: string;
+    pending?: string;
+  };
   tokens: {
     obsidian: string;
     forest: string;
@@ -250,14 +258,22 @@ export const PALETTES: Palette[] = [
   {
     id: "charcoal-sage",
     name: "Charcoal Sage",
-    tagline: "Black, charcoal, and white with a light original-forest green — sage, not lime.",
-    suitedFor: "Comparison candidate: charcoal chrome, white paper, and the STS green lifted, not yellowed.",
+    tagline: "Charcoal field, sage and white paper, Celsius blue only on charts.",
+    suitedFor: "The combined pick: charcoal chrome, light forest-sage actions on white, and #009FEE reserved for graphs.",
     atmosphere: "daylight",
-    electric: "#2E7D5B",
+    electric: "#009FEE",
     primary: "#A8C9B6",
     primaryHover: "#163D2B",
     primaryInk: "#0B0D0C",
     goldInk: "#2E7D5B",
+    charts: {
+      revenue: "#009FEE",
+      profit: "#5CC8F5",
+      traffic: "#003A52",
+      leads: "#4BA3D9",
+      expenses: "#0077C2",
+      pending: "#A2A2A2",
+    },
     tokens: {
       obsidian: "#0B0D0C",
       forest: "#1C1F1D",
@@ -353,5 +369,15 @@ export function paletteCssVars(palette: Palette, accentOverride?: string) {
     "--surface": t.card,
     "--border": t.line,
     ...(night ? { "--gold-ink": t.gold } : palette.goldInk ? { "--gold-ink": palette.goldInk } : {}),
+    ...(palette.charts
+      ? {
+          "--chart-revenue": palette.charts.revenue,
+          "--chart-profit": palette.charts.profit,
+          "--chart-traffic": palette.charts.traffic,
+          "--chart-leads": palette.charts.leads,
+          "--chart-expenses": palette.charts.expenses,
+          "--chart-pending": palette.charts.pending ?? "#A2A2A2",
+        }
+      : {}),
   } as Record<string, string>;
 }

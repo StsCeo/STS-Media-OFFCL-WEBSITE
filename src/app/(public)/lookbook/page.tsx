@@ -71,7 +71,10 @@ export default function LookbookPage() {
                 </span>
               </div>
               <div className="flex h-3">
-                {[t.obsidian, chip, t.emerald, t.gold, t.ivory].map((color, index) => (
+                {(palette.charts && palette.electric
+                  ? [t.obsidian, chip, palette.electric, t.emerald, t.ivory]
+                  : [t.obsidian, chip, t.emerald, t.gold, t.ivory]
+                ).map((color, index) => (
                   <span key={`${color}-${index}`} className="flex-1" style={{ background: color }} />
                 ))}
               </div>

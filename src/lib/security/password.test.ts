@@ -39,6 +39,9 @@ describe("palettes", () => {
     expect(sage["--primary"]).toBe("#A8C9B6");
     expect(sage["--ivory"]).toBe("#FFFFFF");
     expect(sage["--gold-ink"]).toBe("#2E7D5B");
+    expect(sage["--electric"]).toBe("#009FEE");
+    expect(sage["--chart-revenue"]).toBe("#009FEE");
+    expect(sage["--chart-traffic"]).toBe("#003A52");
     expect(getPalette("warm-earth").name).toBe("Warm Earth");
     const earth = paletteCssVars(getPalette("warm-earth"));
     expect(earth["--ivory"]).toBe("#F5F0E7");
