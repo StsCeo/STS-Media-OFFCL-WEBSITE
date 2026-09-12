@@ -7,7 +7,8 @@ export type PaletteId =
   | "signal-paper"
   | "charcoal-blue-light"
   | "midnight-navy"
-  | "celsius-creative";
+  | "celsius-creative"
+  | "charcoal-sage";
 
 export type PaletteAtmosphere = "daylight" | "night-luxury";
 
@@ -237,6 +238,32 @@ export const PALETTES: Palette[] = [
       muted: "#3D5560",
       line: "#D2E3EA",
       focus: "#009FEE",
+    },
+  },
+  {
+    id: "charcoal-sage",
+    name: "Charcoal Sage",
+    tagline: "Black, charcoal, and white with a light original-forest green — sage, not lime.",
+    suitedFor: "A quiet daylight system: charcoal chrome, white paper, and the STS green lifted, not yellowed.",
+    atmosphere: "daylight",
+    electric: "#2E7D5B",
+    primary: "#A8C9B6",
+    primaryHover: "#163D2B",
+    goldInk: "#2E7D5B",
+    tokens: {
+      obsidian: "#0B0D0C",
+      forest: "#1C1F1D",
+      forestHover: "#121514",
+      emerald: "#8FBEA5",
+      gold: "#B5D4C4",
+      ivory: "#FFFFFF",
+      softGray: "#A7ADA8",
+      canvas: "#F3F6F4",
+      card: "#FFFFFF",
+      ink: "#141816",
+      muted: "#4E5652",
+      line: "#D8E0DA",
+      focus: "#6B9F82",
     },
   },
 ];

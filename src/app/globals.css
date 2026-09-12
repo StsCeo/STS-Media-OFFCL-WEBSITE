@@ -450,6 +450,68 @@ html[data-palette="celsius-creative"] a.text-forest {
   color: var(--gold-ink);
 }
 
+html[data-palette="charcoal-sage"] {
+  --shadow-card: 0 1px 2px rgb(11 13 12 / 0.06), 0 14px 28px rgb(46 125 91 / 0.08);
+}
+
+html[data-palette="charcoal-sage"] .public-grain {
+  background-image:
+    radial-gradient(1100px 480px at 8% -12%, color-mix(in srgb, var(--emerald) 22%, transparent), transparent 56%),
+    radial-gradient(800px 380px at 92% 0%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 52%);
+}
+
+html[data-palette="charcoal-sage"] .gold-rule {
+  background: linear-gradient(90deg, transparent, var(--emerald), transparent);
+}
+
+html[data-palette="charcoal-sage"] .btn-primary {
+  background-color: var(--primary);
+  color: var(--obsidian);
+}
+
+html[data-palette="charcoal-sage"] .btn-primary:hover {
+  background-color: var(--primary-hover);
+  color: #fff;
+}
+
+html[data-palette="charcoal-sage"] .btn-secondary {
+  background-color: #fff;
+  color: var(--obsidian);
+  border: 1px solid var(--obsidian);
+}
+
+html[data-palette="charcoal-sage"] header .btn-secondary,
+html[data-palette="charcoal-sage"] header a.text-gold,
+html[data-palette="charcoal-sage"] header button.text-gold {
+  background: transparent;
+  color: #fff;
+  border-color: color-mix(in srgb, var(--emerald) 65%, #fff);
+}
+
+html[data-palette="charcoal-sage"] .bg-ivory a.text-gold,
+html[data-palette="charcoal-sage"] .bg-ivory button.text-gold {
+  color: var(--obsidian);
+  border-color: var(--gold-ink);
+}
+
+html[data-palette="charcoal-sage"] .bg-forest {
+  background-color: var(--obsidian);
+  background-image: radial-gradient(900px 280px at 88% 0%, color-mix(in srgb, var(--emerald) 28%, transparent), transparent 68%);
+  color: var(--ivory);
+}
+
+html[data-palette="charcoal-sage"] .text-forest {
+  color: var(--gold-ink);
+}
+
+html[data-palette="charcoal-sage"] header nav a[aria-current="page"] {
+  color: var(--emerald);
+}
+
+html[data-palette="charcoal-sage"] a.text-forest {
+  color: var(--gold-ink);
+}
+
 .device-frame {
   border: 1px solid var(--line);
   background: var(--surface);
