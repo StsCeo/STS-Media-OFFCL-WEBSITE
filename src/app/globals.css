@@ -209,8 +209,8 @@ summary:focus-visible {
 }
 
 .glass-panel {
-  background: color-mix(in srgb, var(--card) 70%, transparent);
-  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid rgb(255 255 255 / 0.12);
 }
 
 .lift {
