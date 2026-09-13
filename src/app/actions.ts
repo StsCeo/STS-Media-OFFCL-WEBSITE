@@ -23,7 +23,8 @@ import type {
 } from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
-import { canAccessDashboard, createSupabaseServer, getSession } from "@/lib/auth/session";
+import { clearCurrentAuth, createSupabaseServer, requireOwnerWrite } from "@/lib/auth/session";
+import { demoSessionCookieOptions, getDemoSessionSecret, signDemoSession } from "@/lib/auth/demo-session";
 import { GENERIC_AUTH_ERROR, isAllowedOwnerEmail, normalizeEmail } from "@/lib/auth/owner";
 import { parseDollarsToCents } from "@/lib/money";
 
@@ -31,37 +32,28 @@ function isSafePath(path: string) {
   return isSafeRedirect(path);
 }
 
-async function requireOwnerWrite() {
-  const session = await getSession();
-  if (!canAccessDashboard(session.user)) {
-    throw new Error("Unauthorized");
-  }
-  return session;
-}
-
 export async function startDemoSession(formData: FormData) {
   await assertSameOrigin();
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeEnabled() || !getDemoSessionSecret()) {
     redirect("/login");
   }
   const next = String(formData.get("next") || "/dashboard");
-  const mode = String(formData.get("mode") || "owner");
+  const mode = String(formData.get("mode") || "owner") === "needs_mfa" ? "needs_mfa" : "owner";
+  const token = await signDemoSession(mode);
   const jar = await cookies();
-  jar.set(DEMO_COOKIE, mode === "needs_mfa" ? "needs_mfa" : "owner", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 8,
-  });
+  jar.set(DEMO_COOKIE, token, demoSessionCookieOptions());
   stampAudit("demo_login", "session", "Demo workspace session started. Not a production credential.");
   redirect(isSafePath(next) ? next : "/dashboard");
 }
 
 export async function endDemoSession() {
-  const jar = await cookies();
-  jar.delete(DEMO_COOKIE);
+  await clearCurrentAuth();
   redirect("/sign-out?done=1");
+}
+
+export async function expireIdleSession() {
+  await clearCurrentAuth();
+  redirect("/session-expired");
 }
 
 export async function requestPasswordReset(formData: FormData) {
@@ -198,6 +190,7 @@ export async function reportVulnerability(formData: FormData) {
 
 export async function saveBrand(formData: FormData) {
   await assertSameOrigin();
+  await requireOwnerWrite();
   mutateWorkspace((state) => {
     state.brand.mission = sanitizeText(String(formData.get("mission") || state.brand.mission));
     state.brand.brandStatement = sanitizeText(String(formData.get("brandStatement") || state.brand.brandStatement));
@@ -259,6 +252,8 @@ export async function saveCookieConsent() {
 }
 
 export async function saveLegalPage(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   const id = String(formData.get("id"));
   const body = sanitizeText(String(formData.get("body") || ""));
   mutateWorkspace((state) => {
@@ -270,6 +265,8 @@ export async function saveLegalPage(formData: FormData) {
 }
 
 export async function upsertExpense(input: Partial<Expense> & { id?: string }) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   mutateWorkspace((state) => {
     if (input.id) {
       const current = state.expenses.find((item) => item.id === input.id);
@@ -325,6 +322,8 @@ export async function upsertExpense(input: Partial<Expense> & { id?: string }) {
 }
 
 export async function archiveExpenses(ids: string[]) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   mutateWorkspace((state) => {
     state.expenses.forEach((item) => {
       if (ids.includes(item.id)) item.archived = true;
@@ -335,6 +334,8 @@ export async function archiveExpenses(ids: string[]) {
 }
 
 export async function deleteExpenses(ids: string[]) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   mutateWorkspace((state) => {
     state.expenses = state.expenses.filter((item) => !ids.includes(item.id));
   });
@@ -343,12 +344,16 @@ export async function deleteExpenses(ids: string[]) {
 }
 
 export async function duplicateExpense(id: string) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   const source = getWorkspace().expenses.find((item) => item.id === id);
   if (!source) return;
   await upsertExpense({ ...source, id: undefined, description: `${source.description} (copy)` });
 }
 
 export async function upsertRevenue(input: Partial<RevenueEntry> & { id?: string }) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   mutateWorkspace((state) => {
     if (input.id) {
       const current = state.revenue.find((item) => item.id === input.id);
@@ -381,6 +386,8 @@ export async function upsertRevenue(input: Partial<RevenueEntry> & { id?: string
 }
 
 export async function upsertLead(input: Partial<Lead> & { id?: string }) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   mutateWorkspace((state) => {
     if (input.id) {
       const current = state.leads.find((item) => item.id === input.id);
@@ -413,6 +420,8 @@ export async function upsertLead(input: Partial<Lead> & { id?: string }) {
 }
 
 export async function upsertProject(input: Partial<Project> & { id?: string }) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   mutateWorkspace((state) => {
     if (input.id) {
       const current = state.projects.find((item) => item.id === input.id);
@@ -447,6 +456,8 @@ export async function upsertProject(input: Partial<Project> & { id?: string }) {
 }
 
 export async function savePortfolio(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   const id = String(formData.get("id"));
   mutateWorkspace((state) => {
     const item = state.portfolio.find((entry) => entry.id === id);
@@ -466,6 +477,8 @@ export async function savePortfolio(formData: FormData) {
 }
 
 export async function saveTestimonial(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   mutateWorkspace((state) => {
     const quote = sanitizeText(String(formData.get("quote") || ""));
     if (!quote) return;
@@ -621,6 +634,8 @@ export async function upsertClient(input: Partial<ClientRecord> & { id?: string 
 }
 
 export async function saveClientForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   const id = String(formData.get("id") || "");
   await upsertClient({
     id: id || undefined,
@@ -661,6 +676,8 @@ export async function upsertTask(input: Partial<TaskItem> & { id?: string }) {
 }
 
 export async function saveTaskForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   const id = String(formData.get("id") || "");
   const projectId = String(formData.get("projectId") || "");
   const clientId = String(formData.get("clientId") || "");

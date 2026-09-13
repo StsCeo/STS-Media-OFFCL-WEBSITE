@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { DEMO_COOKIE, isDemoModeEnabled } from "@/lib/config";
+import { verifyDemoSession } from "@/lib/auth/demo-session";
 import { updateSupabaseSession } from "@/lib/supabase/proxy";
 
 const PROTECTED = ["/dashboard"];
@@ -12,10 +13,12 @@ export async function proxy(request: NextRequest) {
   const isProtected = PROTECTED.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   if (!isProtected) return response;
 
-  const demo = request.cookies.get(DEMO_COOKIE)?.value;
-  if (isDemoModeEnabled() && demo === "owner") return response;
-  if (isDemoModeEnabled() && demo === "needs_mfa" && pathname.startsWith("/mfa")) return response;
-  if (isDemoModeEnabled() && demo === "needs_mfa") {
+  const demo = isDemoModeEnabled()
+    ? await verifyDemoSession(request.cookies.get(DEMO_COOKIE)?.value)
+    : null;
+  if (demo?.mode === "owner") return response;
+  if (demo?.mode === "needs_mfa" && pathname.startsWith("/mfa")) return response;
+  if (demo?.mode === "needs_mfa") {
     const url = request.nextUrl.clone();
     url.pathname = MFA_PATH;
     url.searchParams.set("next", pathname);

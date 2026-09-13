@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { DEMO_COOKIE, isDemoModeEnabled, isSupabaseConfigured } from "@/lib/config";
 import { DEFAULT_OWNER_EMAIL, isAllowedOwnerEmail } from "@/lib/auth/owner";
+import { demoSessionCookieOptions, verifyDemoSession } from "@/lib/auth/demo-session";
 import type { Role } from "@/lib/types";
 
 export type AuthStatus =
@@ -50,8 +51,8 @@ export function createSupabaseServer() {
 export async function getSession(): Promise<{ status: AuthStatus; user: SessionUser | null }> {
   if (isDemoModeEnabled()) {
     const jar = await cookies();
-    const demo = jar.get(DEMO_COOKIE)?.value;
-    if (demo === "owner") {
+    const demo = await verifyDemoSession(jar.get(DEMO_COOKIE)?.value);
+    if (demo?.mode === "owner") {
       return {
         status: "demo",
         user: {
@@ -64,7 +65,7 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
         },
       };
     }
-    if (demo === "needs_mfa") {
+    if (demo?.mode === "needs_mfa") {
       return {
         status: "needs_mfa",
         user: {
@@ -115,4 +116,34 @@ export function canAccessDashboard(user: SessionUser | null) {
   if (user.role !== "owner") return false;
   if (!isAllowedOwnerEmail(user.email)) return false;
   return user.mfaVerified || user.source === "demo";
+}
+
+export async function requireOwnerWrite() {
+  const session = await getSession();
+  if (!canAccessDashboard(session.user)) {
+    throw new Error("Unauthorized");
+  }
+  return session;
+}
+
+export async function clearCurrentAuth() {
+  const jar = await cookies();
+  const cookie = demoSessionCookieOptions(0);
+  jar.set(DEMO_COOKIE, "", cookie);
+  jar.delete({
+    name: DEMO_COOKIE,
+    path: cookie.path,
+    secure: cookie.secure,
+    sameSite: cookie.sameSite,
+  });
+
+  if (!isSupabaseConfigured()) return;
+  const factory = createSupabaseServer();
+  if (!factory) return;
+  try {
+    const supabase = await factory();
+    await supabase.auth.signOut();
+  } catch {
+    // Demo cookie is already cleared; continue even if Supabase sign-out fails.
+  }
 }

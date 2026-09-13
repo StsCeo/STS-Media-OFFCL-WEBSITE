@@ -38,7 +38,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Sign in to the Command Center with **Explore demo workspace** while `NEXT_PUBLIC_ENABLE_DEMO_MODE=true`. Disable that flag in production. There is no default production password and no hidden auth bypass.
+Sign in to the Command Center with **Explore demo workspace** while `NEXT_PUBLIC_ENABLE_DEMO_MODE=true` and `DEMO_SESSION_SECRET` is set (32+ characters). Disable demo mode in production. There is no default production password and no hidden auth bypass.
 
 ```bash
 npm run lint
@@ -86,7 +86,7 @@ npm run build
 ## Security notes
 
 - No secrets in source, logs, or ordinary localStorage
-- HTTP-only demo cookie for local exploration only
+- Signed HTTP-only demo cookie for local exploration only (`DEMO_SESSION_SECRET` stays server-side)
 - Rate limits on login, OTP, and contact
 - Generic auth errors
 - Legal pages are placeholders for professional review
