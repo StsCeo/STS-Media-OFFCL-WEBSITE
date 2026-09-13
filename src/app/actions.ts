@@ -252,6 +252,7 @@ export async function saveCookieConsent() {
 }
 
 export async function saveLegalPage(formData: FormData) {
+  await assertSameOrigin();
   await requireOwnerWrite();
   const id = String(formData.get("id"));
   const body = sanitizeText(String(formData.get("body") || ""));
@@ -264,6 +265,7 @@ export async function saveLegalPage(formData: FormData) {
 }
 
 export async function upsertExpense(input: Partial<Expense> & { id?: string }) {
+  await assertSameOrigin();
   await requireOwnerWrite();
   mutateWorkspace((state) => {
     if (input.id) {
@@ -320,6 +322,8 @@ export async function upsertExpense(input: Partial<Expense> & { id?: string }) {
 }
 
 export async function archiveExpenses(ids: string[]) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   mutateWorkspace((state) => {
     state.expenses.forEach((item) => {
       if (ids.includes(item.id)) item.archived = true;
@@ -330,6 +334,8 @@ export async function archiveExpenses(ids: string[]) {
 }
 
 export async function deleteExpenses(ids: string[]) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   mutateWorkspace((state) => {
     state.expenses = state.expenses.filter((item) => !ids.includes(item.id));
   });
@@ -338,12 +344,15 @@ export async function deleteExpenses(ids: string[]) {
 }
 
 export async function duplicateExpense(id: string) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   const source = getWorkspace().expenses.find((item) => item.id === id);
   if (!source) return;
   await upsertExpense({ ...source, id: undefined, description: `${source.description} (copy)` });
 }
 
 export async function upsertRevenue(input: Partial<RevenueEntry> & { id?: string }) {
+  await assertSameOrigin();
   await requireOwnerWrite();
   mutateWorkspace((state) => {
     if (input.id) {
@@ -377,6 +386,7 @@ export async function upsertRevenue(input: Partial<RevenueEntry> & { id?: string
 }
 
 export async function upsertLead(input: Partial<Lead> & { id?: string }) {
+  await assertSameOrigin();
   await requireOwnerWrite();
   mutateWorkspace((state) => {
     if (input.id) {
@@ -410,6 +420,7 @@ export async function upsertLead(input: Partial<Lead> & { id?: string }) {
 }
 
 export async function upsertProject(input: Partial<Project> & { id?: string }) {
+  await assertSameOrigin();
   await requireOwnerWrite();
   mutateWorkspace((state) => {
     if (input.id) {
@@ -445,6 +456,7 @@ export async function upsertProject(input: Partial<Project> & { id?: string }) {
 }
 
 export async function savePortfolio(formData: FormData) {
+  await assertSameOrigin();
   await requireOwnerWrite();
   const id = String(formData.get("id"));
   mutateWorkspace((state) => {
@@ -465,6 +477,7 @@ export async function savePortfolio(formData: FormData) {
 }
 
 export async function saveTestimonial(formData: FormData) {
+  await assertSameOrigin();
   await requireOwnerWrite();
   mutateWorkspace((state) => {
     const quote = sanitizeText(String(formData.get("quote") || ""));
@@ -621,6 +634,8 @@ export async function upsertClient(input: Partial<ClientRecord> & { id?: string 
 }
 
 export async function saveClientForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   const id = String(formData.get("id") || "");
   await upsertClient({
     id: id || undefined,
@@ -661,6 +676,8 @@ export async function upsertTask(input: Partial<TaskItem> & { id?: string }) {
 }
 
 export async function saveTaskForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
   const id = String(formData.get("id") || "");
   const projectId = String(formData.get("projectId") || "");
   const clientId = String(formData.get("clientId") || "");

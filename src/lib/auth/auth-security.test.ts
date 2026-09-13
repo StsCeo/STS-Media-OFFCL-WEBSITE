@@ -7,6 +7,8 @@ import { clearCurrentAuth, canAccessDashboard, getSession } from "@/lib/auth/ses
 import { getWorkspace, resetWorkspace } from "@/lib/data/store";
 import { proxy } from "@/proxy";
 import {
+  archiveExpenses,
+  deleteExpenses,
   endDemoSession,
   expireIdleSession,
   saveBrand,
@@ -205,6 +207,51 @@ describe("protected owner writes", () => {
     formData.set("mission", "Owner-updated mission");
     await saveBrand(formData);
     expect(getWorkspace().brand.mission).toBe("Owner-updated mission");
+  });
+
+  it("rejects unauthenticated archive and delete of expenses and leaves the ledger unchanged", async () => {
+    const before = JSON.stringify(getWorkspace().expenses);
+    const targetId = getWorkspace().expenses[0]?.id;
+    expect(targetId).toBeTruthy();
+
+    await expect(archiveExpenses([targetId])).rejects.toThrow("Unauthorized");
+    expect(JSON.stringify(getWorkspace().expenses)).toBe(before);
+    expect(getWorkspace().expenses.find((item) => item.id === targetId)?.archived).not.toBe(true);
+
+    await expect(deleteExpenses([targetId])).rejects.toThrow("Unauthorized");
+    expect(JSON.stringify(getWorkspace().expenses)).toBe(before);
+    expect(getWorkspace().expenses.some((item) => item.id === targetId)).toBe(true);
+  });
+
+  it("allows an authenticated owner to archive and delete expenses", async () => {
+    cookieStore.set(DEMO_COOKIE, await signDemoSession("owner", { secret: TEST_SECRET }));
+    const archiveId = "exp-ga-registration";
+    const deleteId = "exp-ai-aug";
+    const startingCount = getWorkspace().expenses.length;
+
+    await archiveExpenses([archiveId]);
+    expect(getWorkspace().expenses.find((item) => item.id === archiveId)?.archived).toBe(true);
+    expect(getWorkspace().expenses.length).toBe(startingCount);
+
+    await deleteExpenses([deleteId]);
+    expect(getWorkspace().expenses.some((item) => item.id === deleteId)).toBe(false);
+    expect(getWorkspace().expenses.length).toBe(startingCount - 1);
+    expect(getWorkspace().expenses.find((item) => item.id === archiveId)?.archived).toBe(true);
+  });
+
+  it("requires origin and owner checks on every private workspace mutation", () => {
+    const source = readFileSync("src/app/actions.ts", "utf8");
+    const publicMutations = new Set(["submitContact", "reportVulnerability"]);
+    const missing: string[] = [];
+    for (const part of source.split(/export async function /).slice(1)) {
+      const name = part.match(/^([A-Za-z0-9_]+)/)?.[1];
+      if (!name || publicMutations.has(name) || !part.includes("mutateWorkspace")) continue;
+      const header = part.slice(0, 500);
+      if (!header.includes("await assertSameOrigin()") || !header.includes("await requireOwnerWrite()")) {
+        missing.push(name);
+      }
+    }
+    expect(missing).toEqual([]);
   });
 });
 
