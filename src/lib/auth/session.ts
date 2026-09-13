@@ -128,8 +128,14 @@ export async function requireOwnerWrite() {
 
 export async function clearCurrentAuth() {
   const jar = await cookies();
-  jar.set(DEMO_COOKIE, "", { ...demoSessionCookieOptions(0), maxAge: 0 });
-  jar.delete(DEMO_COOKIE);
+  const cookie = demoSessionCookieOptions(0);
+  jar.set(DEMO_COOKIE, "", cookie);
+  jar.delete({
+    name: DEMO_COOKIE,
+    path: cookie.path,
+    secure: cookie.secure,
+    sameSite: cookie.sameSite,
+  });
 
   if (!isSupabaseConfigured()) return;
   const factory = createSupabaseServer();

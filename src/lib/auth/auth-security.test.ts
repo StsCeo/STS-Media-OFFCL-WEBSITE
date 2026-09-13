@@ -65,7 +65,7 @@ vi.mock("next/cache", () => ({
 vi.mock("@supabase/ssr", () => ({
   createServerClient: vi.fn(() => ({
     auth: {
-      signOut: (...args: unknown[]) => supabaseSignOut(...args),
+      signOut: () => supabaseSignOut(),
       getUser: async () => ({ data: { user: null }, error: null }),
     },
   })),
@@ -185,11 +185,15 @@ describe("protected owner writes", () => {
     const leads = getWorkspace().leads.length;
     const formData = new FormData();
     formData.set("name", "Ada Lovelace");
+    formData.set("businessName", "Analytical Engines");
     formData.set("email", "ada@example.com");
+    formData.set("phone", "");
     formData.set("service", "Website");
+    formData.set("budget", "");
     formData.set("preferredContact", "email");
     formData.set("message", "Need a new marketing site for the shop.");
     formData.set("consent", "on");
+    formData.set("companyWebsite", "");
     const result = await submitContact(formData);
     expect(result).toEqual({ ok: true });
     expect(getWorkspace().leads.length).toBe(leads + 1);
