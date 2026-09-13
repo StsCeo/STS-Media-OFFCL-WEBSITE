@@ -1,0 +1,249 @@
+import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+import { DEMO_COOKIE } from "@/lib/config";
+import { signDemoSession } from "@/lib/auth/demo-session";
+import { clearCurrentAuth, canAccessDashboard, getSession } from "@/lib/auth/session";
+import { getWorkspace, resetWorkspace } from "@/lib/data/store";
+import { proxy } from "@/proxy";
+import {
+  endDemoSession,
+  expireIdleSession,
+  saveBrand,
+  saveLegalPage,
+  savePortfolio,
+  saveTestimonial,
+  startDemoSession,
+  submitContact,
+  upsertExpense,
+  upsertLead,
+  upsertProject,
+  upsertRevenue,
+} from "@/app/actions";
+
+const TEST_SECRET = "vitest-demo-session-secret-key-32ch";
+const { cookieStore, supabaseSignOut } = vi.hoisted(() => ({
+  cookieStore: new Map<string, string>(),
+  supabaseSignOut: vi.fn(async () => ({ error: null })),
+}));
+
+function cookieJar() {
+  return {
+    get(name: string) {
+      const value = cookieStore.get(name);
+      return value === undefined ? undefined : { name, value };
+    },
+    set(name: string, value: string) {
+      if (!value) cookieStore.delete(name);
+      else cookieStore.set(name, value);
+    },
+    delete(nameOrOptions: string | { name: string }) {
+      const name = typeof nameOrOptions === "string" ? nameOrOptions : nameOrOptions.name;
+      cookieStore.delete(name);
+    },
+    getAll() {
+      return [...cookieStore.entries()].map(([name, value]) => ({ name, value }));
+    },
+  };
+}
+
+vi.mock("next/headers", () => ({
+  cookies: async () => cookieJar(),
+  headers: async () => new Headers({ origin: "http://localhost:3000", host: "localhost:3000" }),
+}));
+
+vi.mock("next/navigation", () => ({
+  redirect: (url: string) => {
+    throw new Error(`NEXT_REDIRECT:${url}`);
+  },
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
+vi.mock("@supabase/ssr", () => ({
+  createServerClient: vi.fn(() => ({
+    auth: {
+      signOut: (...args: unknown[]) => supabaseSignOut(...args),
+      getUser: async () => ({ data: { user: null }, error: null }),
+    },
+  })),
+}));
+
+function dashboardRequest(cookieHeader?: string) {
+  return new NextRequest("http://localhost:3000/dashboard", {
+    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+  });
+}
+
+async function expectRedirect(promise: Promise<unknown>, to: string) {
+  await expect(promise).rejects.toThrow(`NEXT_REDIRECT:${to}`);
+}
+
+beforeEach(() => {
+  cookieStore.clear();
+  supabaseSignOut.mockClear();
+  resetWorkspace();
+  vi.stubEnv("NEXT_PUBLIC_ENABLE_DEMO_MODE", "true");
+  vi.stubEnv("DEMO_SESSION_SECRET", TEST_SECRET);
+  vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe("demo session cookies", () => {
+  it("rejects a forged owner cookie from getSession and the dashboard proxy", async () => {
+    cookieStore.set(DEMO_COOKIE, "owner");
+    const session = await getSession();
+    expect(session.user).toBeNull();
+    expect(canAccessDashboard(session.user)).toBe(false);
+
+    const response = await proxy(dashboardRequest(`${DEMO_COOKIE}=owner`));
+    expect(response.headers.get("location")).toContain("/login");
+  });
+
+  it("rejects an expired signed cookie", async () => {
+    const token = await signDemoSession("owner", {
+      secret: TEST_SECRET,
+      now: Date.now() - 9 * 60 * 60 * 1000,
+      maxAgeMs: 8 * 60 * 60 * 1000,
+    });
+    cookieStore.set(DEMO_COOKIE, token);
+    expect((await getSession()).user).toBeNull();
+
+    const response = await proxy(dashboardRequest(`${DEMO_COOKIE}=${token}`));
+    expect(response.headers.get("location")).toContain("/login");
+  });
+
+  it("never writes an unsigned demo cookie and fails closed without a secret", async () => {
+    const formData = new FormData();
+    formData.set("next", "/dashboard");
+    await expectRedirect(startDemoSession(formData), "/dashboard");
+    const issued = cookieStore.get(DEMO_COOKIE);
+    expect(issued).toBeTruthy();
+    expect(issued).not.toBe("owner");
+    expect((await getSession()).user?.source).toBe("demo");
+
+    cookieStore.clear();
+    vi.stubEnv("DEMO_SESSION_SECRET", "");
+    await expectRedirect(startDemoSession(formData), "/login");
+    expect(cookieStore.has(DEMO_COOKIE)).toBe(false);
+  });
+});
+
+describe("protected owner writes", () => {
+  it("rejects the QA-listed mutations without owner authorization", async () => {
+    const mission = getWorkspace().brand.mission;
+    const leads = getWorkspace().leads.length;
+    const expenses = getWorkspace().expenses.length;
+    const revenue = getWorkspace().revenue.length;
+    const projects = getWorkspace().projects.length;
+    const legalBody = getWorkspace().legal[0]?.body;
+    const testimonials = getWorkspace().testimonials.length;
+
+    const brand = new FormData();
+    brand.set("mission", "Forged brand takeover");
+    await expect(saveBrand(brand)).rejects.toThrow("Unauthorized");
+    expect(getWorkspace().brand.mission).toBe(mission);
+
+    const legal = new FormData();
+    legal.set("id", getWorkspace().legal[0]?.id || "privacy");
+    legal.set("body", "Forged legal copy");
+    await expect(saveLegalPage(legal)).rejects.toThrow("Unauthorized");
+    expect(getWorkspace().legal[0]?.body).toBe(legalBody);
+
+    const portfolio = new FormData();
+    portfolio.set("id", getWorkspace().portfolio[0]?.id || "missing");
+    portfolio.set("companyName", "Forged Co");
+    await expect(savePortfolio(portfolio)).rejects.toThrow("Unauthorized");
+
+    const testimonial = new FormData();
+    testimonial.set("quote", "Forged quote for the homepage");
+    testimonial.set("authorName", "Intruder");
+    await expect(saveTestimonial(testimonial)).rejects.toThrow("Unauthorized");
+    expect(getWorkspace().testimonials.length).toBe(testimonials);
+
+    await expect(upsertExpense({ vendor: "Forged vendor", pretaxAmount: 1 })).rejects.toThrow("Unauthorized");
+    expect(getWorkspace().expenses.length).toBe(expenses);
+
+    await expect(upsertLead({ businessName: "Forged lead" })).rejects.toThrow("Unauthorized");
+    expect(getWorkspace().leads.length).toBe(leads);
+
+    await expect(upsertProject({ name: "Forged project" })).rejects.toThrow("Unauthorized");
+    expect(getWorkspace().projects.length).toBe(projects);
+
+    await expect(upsertRevenue({ description: "Forged revenue", amount: 1 })).rejects.toThrow("Unauthorized");
+    expect(getWorkspace().revenue.length).toBe(revenue);
+  });
+
+  it("still accepts public contact form submissions without an owner session", async () => {
+    const leads = getWorkspace().leads.length;
+    const formData = new FormData();
+    formData.set("name", "Ada Lovelace");
+    formData.set("email", "ada@example.com");
+    formData.set("service", "Website");
+    formData.set("preferredContact", "email");
+    formData.set("message", "Need a new marketing site for the shop.");
+    formData.set("consent", "on");
+    const result = await submitContact(formData);
+    expect(result).toEqual({ ok: true });
+    expect(getWorkspace().leads.length).toBe(leads + 1);
+  });
+
+  it("allows an authenticated demo owner to save brand settings", async () => {
+    cookieStore.set(DEMO_COOKIE, await signDemoSession("owner", { secret: TEST_SECRET }));
+    const formData = new FormData();
+    formData.set("mission", "Owner-updated mission");
+    await saveBrand(formData);
+    expect(getWorkspace().brand.mission).toBe("Owner-updated mission");
+  });
+});
+
+describe("sign-out and idle expiration", () => {
+  it("clears authentication on sign-out so /dashboard requires login", async () => {
+    cookieStore.set(DEMO_COOKIE, await signDemoSession("owner", { secret: TEST_SECRET }));
+    expect((await getSession()).user?.source).toBe("demo");
+
+    await expectRedirect(endDemoSession(), "/sign-out?done=1");
+    expect(cookieStore.has(DEMO_COOKIE)).toBe(false);
+    expect((await getSession()).user).toBeNull();
+
+    const response = await proxy(dashboardRequest());
+    expect(response.headers.get("location")).toContain("/login");
+  });
+
+  it("signs out of Supabase when it is configured", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "test-anon-key");
+    await clearCurrentAuth();
+    expect(supabaseSignOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("terminates the session on idle expiration so /dashboard cannot be re-entered", async () => {
+    cookieStore.set(DEMO_COOKIE, await signDemoSession("owner", { secret: TEST_SECRET }));
+    expect(canAccessDashboard((await getSession()).user)).toBe(true);
+
+    await expectRedirect(expireIdleSession(), "/session-expired");
+    expect(cookieStore.has(DEMO_COOKIE)).toBe(false);
+    expect((await getSession()).user).toBeNull();
+    expect(canAccessDashboard((await getSession()).user)).toBe(false);
+
+    const response = await proxy(dashboardRequest());
+    expect(response.headers.get("location")).toContain("/login");
+  });
+
+  it("wires sign-out and idle expiration to server-side session termination", () => {
+    const signOutPage = readFileSync("src/app/sign-out/page.tsx", "utf8");
+    expect(signOutPage).toContain("endDemoSession");
+    expect(signOutPage).not.toContain('action="/sign-out?done=1"');
+
+    const inactivity = readFileSync("src/components/dashboard/inactivity.tsx", "utf8");
+    expect(inactivity).toContain("expireIdleSession");
+    expect(inactivity).not.toContain('router.push("/session-expired")');
+  });
+});

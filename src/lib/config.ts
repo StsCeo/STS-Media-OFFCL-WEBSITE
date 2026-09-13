@@ -9,6 +9,10 @@ export const PALETTE_COOKIE = "sts_palette_preview";
 export const CONSENT_COOKIE = "sts_cookie_consent";
 export const LAST_ACTIVE_COOKIE = "sts_last_active";
 
+export const DEMO_SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
+export const IDLE_SESSION_MS = 15 * 60 * 1000;
+export const IDLE_WARNING_MS = 13 * 60 * 1000;
+
 export const OWNER_ROLES = ["owner", "admin"] as const;
 export const MFA_REQUIRED_ROLES = ["owner", "admin"] as const;
 

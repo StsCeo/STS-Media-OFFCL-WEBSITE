@@ -1,15 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { endDemoSession } from "@/app/actions";
+import { endDemoSession, expireIdleSession } from "@/app/actions";
 import { Button } from "@/components/ui";
-
-const LIMIT_MS = 15 * 60 * 1000;
-const WARN_MS = 13 * 60 * 1000;
+import { IDLE_SESSION_MS, IDLE_WARNING_MS } from "@/lib/config";
 
 export function InactivityGuard() {
-  const router = useRouter();
   const expire = useRef<number | null>(null);
   const warn = useRef<number | null>(null);
   const [showWarn, setShowWarn] = useState(false);
@@ -22,8 +18,10 @@ export function InactivityGuard() {
     function arm() {
       clear();
       setShowWarn(false);
-      warn.current = window.setTimeout(() => setShowWarn(true), WARN_MS);
-      expire.current = window.setTimeout(() => router.push("/session-expired"), LIMIT_MS);
+      warn.current = window.setTimeout(() => setShowWarn(true), IDLE_WARNING_MS);
+      expire.current = window.setTimeout(() => {
+        void expireIdleSession();
+      }, IDLE_SESSION_MS);
     }
     arm();
     const events = ["pointerdown", "keydown"];
@@ -32,7 +30,7 @@ export function InactivityGuard() {
       clear();
       events.forEach((name) => window.removeEventListener(name, arm));
     };
-  }, [router]);
+  }, []);
 
   if (!showWarn) return null;
   return (
