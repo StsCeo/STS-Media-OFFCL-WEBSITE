@@ -1,0 +1,198 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDown, Menu, X } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
+import { Button } from "@/components/ui";
+import { ownersMenu, publicFooterAudience, publicFooterTrust, publicFooterVisit, publicNav } from "@/lib/nav";
+
+export function PublicHeader() {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-obsidian/85 backdrop-blur">
+      <div className="gold-rule" aria-hidden="true" />
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+        <Logo invert />
+        <nav className="hidden items-center gap-6 text-sm text-soft-gray lg:flex" aria-label="Primary">
+          {publicNav.map((item) =>
+            item.href === "/for/owners" ? (
+              <OwnersDropdown key={item.href} pathname={pathname} />
+            ) : (
+              <NavLink key={item.href} href={item.href} label={item.label} pathname={pathname} />
+            ),
+          )}
+        </nav>
+        <div className="hidden items-center gap-3 lg:flex">
+          <Button href="/contact" size="sm">
+            Start a Project
+          </Button>
+        </div>
+        <button
+          className="rounded-md p-2 text-ivory lg:hidden"
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+          aria-controls={menuId}
+          aria-label={open ? "Close menu" : "Open menu"}
+        >
+          {open ? <X aria-hidden /> : <Menu aria-hidden />}
+        </button>
+      </div>
+      {open ? (
+        <div id={menuId} className="border-t border-white/10 px-4 py-4 lg:hidden">
+          <nav className="flex flex-col gap-3 text-ivory" aria-label="Mobile">
+            {publicNav.map((item) => (
+              <div key={item.href}>
+                <Link href={item.href} onClick={() => setOpen(false)}>
+                  {item.label}
+                </Link>
+                {item.href === "/for/owners" ? (
+                  <Link className="mt-2 block pl-3 text-sm text-soft-gray" href="/login" onClick={() => setOpen(false)}>
+                    Owner login
+                  </Link>
+                ) : null}
+              </div>
+            ))}
+            <Button href="/contact">Start a Project</Button>
+          </nav>
+        </div>
+      ) : null}
+    </header>
+  );
+}
+
+function NavLink({ href, label, pathname }: { href: string; label: string; pathname: string }) {
+  const current = pathname === href || pathname.startsWith(`${href}/`);
+  return (
+    <Link
+      href={href}
+      className="underline-offset-4 transition hover:text-ivory hover:underline"
+      aria-current={current ? "page" : undefined}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function OwnersDropdown({ pathname }: { pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  const current = pathname === "/for/owners" || pathname.startsWith("/for/owners/") || pathname === "/login";
+
+  useEffect(() => {
+    function onPointer(event: MouseEvent) {
+      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("mousedown", onPointer);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onPointer);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  return (
+    <div className="relative" ref={wrapRef}>
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 bg-transparent p-0 text-inherit underline-offset-4 transition hover:text-ivory hover:underline"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-controls={menuId}
+        aria-current={current ? "page" : undefined}
+        onClick={() => setOpen((value) => !value)}
+      >
+        Owners
+        <ChevronDown size={14} aria-hidden className={open ? "rotate-180" : ""} />
+      </button>
+      {open ? (
+        <div
+          id={menuId}
+          role="menu"
+          className="absolute left-0 top-full z-50 mt-3 min-w-52 rounded-lg border border-white/10 bg-obsidian p-1 shadow-[var(--shadow-card)]"
+        >
+          {ownersMenu.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              role="menuitem"
+              className="block rounded-md px-3 py-2 text-ivory hover:bg-white/10"
+              onClick={() => setOpen(false)}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function PublicFooter({ email, statement }: { email: string; statement: string }) {
+  return (
+    <footer className="border-t border-white/10 bg-obsidian text-soft-gray">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:grid-cols-4">
+        <div className="md:col-span-2">
+          <Logo invert />
+          <p className="mt-4 max-w-md text-sm leading-6">{statement}</p>
+          <p className="mt-3 text-xs">Built for business owners and creators who already did the hard part.</p>
+        </div>
+        <nav aria-label="Visit">
+          <p className="text-xs uppercase tracking-[0.18em] text-gold">Visit</p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {publicFooterVisit.map((item) => (
+              <li key={item.href}>
+                <Link className="underline-offset-4 hover:text-ivory hover:underline" href={item.href}>
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <nav aria-label="Trust">
+          <p className="text-xs uppercase tracking-[0.18em] text-gold">Trust</p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {publicFooterAudience.map((item) => (
+              <li key={item.href}>
+                <Link className="underline-offset-4 hover:text-ivory hover:underline" href={item.href}>
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+            {publicFooterTrust.map((item) => (
+              <li key={item.href}>
+                <Link className="underline-offset-4 hover:text-ivory hover:underline" href={item.href}>
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <a className="underline-offset-4 hover:text-ivory hover:underline" href={`mailto:${email}`}>
+                {email}
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      <div className="border-t border-white/10 px-4 py-4 text-center text-xs">
+        © {new Date().getFullYear()} Scars to Stars Media. stsmedia.co
+      </div>
+    </footer>
+  );
+}

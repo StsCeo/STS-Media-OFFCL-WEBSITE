@@ -1,0 +1,743 @@
+@import "tailwindcss";
+
+:root {
+  --obsidian: #0b0d0c;
+  --forest: #163d2b;
+  --forest-hover: #0f2f21;
+  --emerald: #2e7d5b;
+  --gold: #c6a15b;
+  --gold-ink: #6a4b12;
+  --ivory: #f7f5ef;
+  --white: #ffffff;
+  --soft-gray: #a7ada8;
+  --canvas: #f3f4f2;
+  --card: #ffffff;
+  --ink: #252825;
+  --muted: #6b716d;
+  --line: #dfe3df;
+  --focus: #52a77d;
+  --danger: #b42318;
+  --warning: #b7791f;
+  --info: #2563a6;
+  --success: #2e7d5b;
+  --lead: #7c5cfc;
+  --pending: #a7ada8;
+  --lavender: #c9b8ff;
+  --violet: #6d4aff;
+  --electric: #3b82f6;
+  --cream: #f7f2e8;
+  --terracotta: #c87352;
+  --beige: #d9c9b5;
+  --tan: #b9956d;
+  --sage: #5c8f6b;
+  --brand-accent: var(--emerald);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 28px;
+  --shadow-card: 0 1px 2px rgb(11 13 12 / 0.06), 0 12px 28px rgb(11 13 12 / 0.05);
+  --chart-revenue: #2e7d5b;
+  --chart-profit: #c6a15b;
+  --chart-traffic: #2563a6;
+  --chart-leads: #7c5cfc;
+  --chart-expenses: #b42318;
+  --chart-pending: #a7ada8;
+  --background: var(--ivory);
+  --foreground: var(--ink);
+  --surface: var(--white);
+  --border: var(--line);
+  --primary: var(--forest);
+  --primary-hover: var(--forest-hover);
+  --accent: var(--brand-accent);
+}
+
+[data-surface="dashboard"] {
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --surface: var(--card);
+  --border: var(--line);
+  --primary: var(--forest);
+}
+
+html.dark,
+html[data-theme="dark"] {
+  --background: #0b0d0c;
+  --foreground: #f7f5ef;
+  --surface: #171a18;
+  --border: #343936;
+  --ink: #f7f5ef;
+  --muted: #a7ada8;
+  --card: #171a18;
+  --canvas: #0b0d0c;
+  --line: #343936;
+  --primary: var(--focus);
+  --primary-hover: var(--emerald);
+  --accent: var(--focus);
+  --brand-accent: var(--focus);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.28);
+}
+
+@theme inline {
+  --color-obsidian: var(--obsidian);
+  --color-forest: var(--forest);
+  --color-forest-hover: var(--forest-hover);
+  --color-emerald: var(--emerald);
+  --color-gold: var(--gold);
+  --color-gold-ink: var(--gold-ink);
+  --color-ivory: var(--ivory);
+  --color-soft-gray: var(--soft-gray);
+  --color-canvas: var(--canvas);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-focus: var(--focus);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-lavender: var(--lavender);
+  --color-violet: var(--violet);
+  --color-electric: var(--electric);
+  --color-cream: var(--cream);
+  --color-terracotta: var(--terracotta);
+  --color-beige: var(--beige);
+  --color-tan: var(--tan);
+  --color-sage: var(--sage);
+  --color-lead: var(--lead);
+  --color-pending: var(--pending);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent: var(--accent);
+  --color-chart-revenue: var(--chart-revenue);
+  --color-chart-profit: var(--chart-profit);
+  --color-chart-traffic: var(--chart-traffic);
+  --color-chart-leads: var(--chart-leads);
+  --color-chart-expenses: var(--chart-expenses);
+  --color-chart-pending: var(--chart-pending);
+  --font-sans: var(--font-plus-jakarta);
+  --font-display: var(--font-fraunces);
+  --font-mono: var(--font-ibm-plex-mono);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
+* { border-color: var(--border); }
+
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+html.dark,
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-plus-jakarta), system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--gold) 38%, transparent);
+}
+
+kbd {
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -5rem;
+  z-index: 100;
+  border-radius: 0.375rem;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0.5rem 0.75rem;
+  text-decoration: underline;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.font-display { font-family: var(--font-fraunces), Georgia, serif; }
+.font-mono { font-family: var(--font-ibm-plex-mono), ui-monospace, monospace; }
+
+.gold-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+.public-grain {
+  background-image:
+    radial-gradient(1100px 480px at 8% -12%, color-mix(in srgb, var(--emerald) 28%, transparent), transparent 55%),
+    radial-gradient(800px 380px at 92% 0%, color-mix(in srgb, var(--gold) 14%, transparent), transparent 52%);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: #fff;
+  box-shadow: none;
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+.btn-secondary {
+  background-color: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--line);
+}
+.btn-secondary:hover {
+  border-color: color-mix(in srgb, var(--emerald) 40%, var(--line));
+}
+
+.glass-panel {
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid rgb(255 255 255 / 0.12);
+}
+
+.lift {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+
+html[data-atmosphere="night-luxury"] {
+  color-scheme: dark;
+  --background: var(--obsidian);
+  --foreground: var(--ivory);
+  --surface: var(--card);
+  --shadow-card: 0 18px 50px rgb(8 12 24 / 0.45), 0 0 0 1px color-mix(in srgb, var(--lavender) 16%, transparent);
+  --shadow-glass: 0 16px 40px rgb(8 12 24 / 0.4), 0 0 32px color-mix(in srgb, var(--violet) 14%, transparent);
+  --luxury-wash:
+    radial-gradient(1200px 560px at 8% -18%, color-mix(in srgb, var(--violet) 26%, transparent), transparent 58%),
+    radial-gradient(900px 480px at 92% -8%, color-mix(in srgb, var(--electric) 16%, transparent), transparent 52%),
+    radial-gradient(700px 420px at 50% 120%, color-mix(in srgb, var(--lavender) 8%, transparent), transparent 60%);
+  --star-field: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Ccircle cx='18' cy='34' r='0.8' fill='%23F7F2E8' opacity='0.38'/%3E%3Ccircle cx='72' cy='16' r='0.6' fill='%23C9B8FF' opacity='0.32'/%3E%3Ccircle cx='128' cy='48' r='0.7' fill='%23F7F2E8' opacity='0.28'/%3E%3Ccircle cx='176' cy='22' r='0.5' fill='%23D7B56D' opacity='0.34'/%3E%3Ccircle cx='204' cy='86' r='0.7' fill='%23C9B8FF' opacity='0.26'/%3E%3Ccircle cx='42' cy='98' r='0.5' fill='%23F7F2E8' opacity='0.3'/%3E%3Ccircle cx='96' cy='132' r='0.8' fill='%23F7F2E8' opacity='0.22'/%3E%3Ccircle cx='154' cy='118' r='0.5' fill='%23D7B56D' opacity='0.28'/%3E%3Ccircle cx='28' cy='168' r='0.6' fill='%23C9B8FF' opacity='0.24'/%3E%3Ccircle cx='188' cy='162' r='0.7' fill='%23F7F2E8' opacity='0.3'/%3E%3Ccircle cx='118' cy='196' r='0.5' fill='%23D7B56D' opacity='0.22'/%3E%3Ccircle cx='64' cy='208' r='0.6' fill='%23F7F2E8' opacity='0.26'/%3E%3C/svg%3E");
+}
+
+html[data-atmosphere="night-luxury"] body {
+  background-color: var(--obsidian);
+  background-image: var(--luxury-wash);
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .public-grain {
+  background-color: transparent;
+  background-image:
+    var(--luxury-wash),
+    var(--star-field);
+}
+
+html[data-atmosphere="night-luxury"] .gold-rule {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 70%, var(--lavender) 30%), transparent);
+}
+
+html[data-atmosphere="night-luxury"] .bg-ivory {
+  background-color: var(--obsidian);
+  background-image: var(--luxury-wash), var(--star-field);
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .bg-canvas,
+html[data-atmosphere="night-luxury"] [data-surface="dashboard"] {
+  background-color: var(--obsidian);
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .bg-white,
+html[data-atmosphere="night-luxury"] .bg-card,
+html[data-atmosphere="night-luxury"] .bg-surface,
+html[data-atmosphere="night-luxury"] .glass-panel {
+  background-color: color-mix(in srgb, var(--card) 88%, white 4%);
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--lavender) 8%, transparent), transparent 42%);
+  color: var(--ivory);
+  border-color: color-mix(in srgb, var(--lavender) 26%, var(--gold) 10%);
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(18px);
+}
+
+html[data-atmosphere="night-luxury"] .bg-white\/5,
+html[data-atmosphere="night-luxury"] .glass-panel {
+  background-color: color-mix(in srgb, var(--card) 55%, transparent);
+  border-color: color-mix(in srgb, var(--lavender) 28%, var(--gold) 12%);
+}
+
+html[data-atmosphere="night-luxury"] .bg-forest {
+  background-color: var(--card);
+  background-image:
+    radial-gradient(900px 320px at 50% 0%, color-mix(in srgb, var(--violet) 22%, transparent), transparent 70%),
+    var(--star-field);
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .bg-forest.text-white {
+  background-color: transparent;
+  background-image: linear-gradient(135deg, var(--violet), var(--electric));
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .text-ink,
+html[data-atmosphere="night-luxury"] .text-foreground {
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .text-muted {
+  color: var(--muted);
+}
+
+html[data-atmosphere="night-luxury"] .text-forest {
+  color: var(--lavender);
+}
+
+html[data-atmosphere="night-luxury"] a.text-forest,
+html[data-atmosphere="night-luxury"] a.text-electric {
+  color: var(--electric);
+}
+
+html[data-atmosphere="night-luxury"] .text-gold-ink {
+  color: var(--gold);
+}
+
+html[data-atmosphere="night-luxury"] .border-line,
+html[data-atmosphere="night-luxury"] .border-border {
+  border-color: color-mix(in srgb, var(--lavender) 22%, var(--line));
+}
+
+html[data-atmosphere="night-luxury"] .btn-primary {
+  background-color: transparent;
+  background-image: linear-gradient(135deg, var(--violet) 0%, var(--electric) 100%);
+  color: var(--ivory);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--violet) 38%, transparent);
+  transition: transform 200ms ease, box-shadow 200ms ease, filter 200ms ease;
+}
+
+html[data-atmosphere="night-luxury"] .btn-primary:hover {
+  background-color: transparent;
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--violet) 82%, white 18%), color-mix(in srgb, var(--electric) 78%, white 22%));
+  transform: translateY(-1px);
+  filter: saturate(1.05);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--electric) 36%, transparent),
+    0 0 22px color-mix(in srgb, var(--violet) 32%, transparent);
+}
+
+html[data-atmosphere="night-luxury"] .btn-secondary {
+  background-color: transparent;
+  color: var(--ivory);
+  border: 1px solid color-mix(in srgb, var(--lavender) 62%, var(--gold) 38%);
+}
+
+html[data-atmosphere="night-luxury"] .btn-secondary:hover {
+  border-color: var(--gold);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--gold) 22%, transparent);
+}
+
+html[data-atmosphere="night-luxury"] :is(input, textarea, select).h-10,
+html[data-atmosphere="night-luxury"] :is(input, textarea, select).min-h-28 {
+  background-color: color-mix(in srgb, var(--card) 86%, black 8%);
+  color: var(--ivory);
+  border-color: color-mix(in srgb, var(--lavender) 24%, var(--line));
+}
+
+html[data-atmosphere="night-luxury"] :is(input, textarea, select)::placeholder {
+  color: color-mix(in srgb, var(--muted) 86%, var(--ivory) 14%);
+}
+
+html[data-atmosphere="night-luxury"] footer a:hover {
+  color: var(--electric);
+}
+
+html[data-atmosphere="night-luxury"] header nav a[aria-current="page"] {
+  color: var(--lavender);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--lavender) 35%, transparent);
+}
+
+html[data-atmosphere="night-luxury"] [data-surface="dashboard"] nav a[aria-current="page"] {
+  background: color-mix(in srgb, var(--violet) 22%, transparent);
+  color: var(--ivory);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lavender) 28%, transparent);
+}
+
+html[data-atmosphere="night-luxury"][data-theme="light"],
+html[data-atmosphere="night-luxury"]:not(.dark) {
+  color-scheme: dark;
+}
+
+@media (prefers-contrast: more) {
+  html[data-atmosphere="night-luxury"] {
+    --muted: #e6ddd0;
+    --soft-gray: #efe6d8;
+    --line: #8b7dff;
+    --gold-ink: #f0d090;
+  }
+}
+
+html[data-palette="celsius-creative"] {
+  --shadow-card: 0 1px 2px rgb(0 58 82 / 0.07), 0 16px 32px rgb(0 159 238 / 0.09);
+}
+
+html[data-palette="celsius-creative"] .public-grain {
+  background-image:
+    radial-gradient(1100px 480px at 10% -14%, color-mix(in srgb, var(--emerald) 26%, transparent), transparent 56%),
+    radial-gradient(820px 400px at 92% 0%, color-mix(in srgb, var(--obsidian) 16%, transparent), transparent 52%);
+}
+
+html[data-palette="celsius-creative"] .gold-rule {
+  background: linear-gradient(90deg, transparent, var(--emerald), transparent);
+}
+
+html[data-palette="celsius-creative"] .btn-primary {
+  background-color: var(--primary);
+  color: var(--obsidian);
+}
+
+html[data-palette="celsius-creative"] .btn-primary:hover {
+  background-color: var(--primary-hover);
+  color: #fff;
+}
+
+html[data-palette="celsius-creative"] .btn-secondary {
+  background-color: #fff;
+  color: var(--obsidian);
+  border: 1px solid var(--obsidian);
+}
+
+html[data-palette="celsius-creative"] header .btn-secondary,
+html[data-palette="celsius-creative"] header a.text-gold,
+html[data-palette="celsius-creative"] header button.text-gold {
+  background: transparent;
+  color: #fff;
+  border-color: color-mix(in srgb, var(--emerald) 70%, #fff);
+}
+
+html[data-palette="celsius-creative"] .bg-ivory a.text-gold,
+html[data-palette="celsius-creative"] .bg-ivory button.text-gold {
+  color: var(--obsidian);
+  border-color: var(--emerald);
+}
+
+html[data-palette="celsius-creative"] .bg-forest {
+  background-color: var(--obsidian);
+  background-image: radial-gradient(900px 280px at 88% 0%, color-mix(in srgb, var(--emerald) 32%, transparent), transparent 68%);
+  color: var(--ivory);
+}
+
+html[data-palette="celsius-creative"] header nav a[aria-current="page"] {
+  color: var(--emerald);
+}
+
+html[data-palette="celsius-creative"] a.text-forest {
+  color: var(--gold-ink);
+}
+
+html[data-palette="charcoal-sage"] {
+  --shadow-card: 0 1px 2px rgb(11 13 12 / 0.06), 0 14px 28px rgb(46 125 91 / 0.08);
+}
+
+html[data-palette="charcoal-sage"] .public-grain {
+  background-image:
+    radial-gradient(1100px 480px at 8% -12%, color-mix(in srgb, var(--emerald) 22%, transparent), transparent 56%),
+    radial-gradient(800px 380px at 92% 0%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 52%);
+}
+
+html[data-palette="charcoal-sage"] .gold-rule {
+  background: linear-gradient(90deg, transparent, var(--emerald), transparent);
+}
+
+html[data-palette="charcoal-sage"] .btn-primary {
+  background-color: var(--primary);
+  color: var(--obsidian);
+}
+
+html[data-palette="charcoal-sage"] .btn-primary:hover {
+  background-color: var(--primary-hover);
+  color: #fff;
+}
+
+html[data-palette="charcoal-sage"] .btn-secondary {
+  background-color: #fff;
+  color: var(--obsidian);
+  border: 1px solid var(--obsidian);
+}
+
+html[data-palette="charcoal-sage"] header .btn-secondary,
+html[data-palette="charcoal-sage"] header a.text-gold,
+html[data-palette="charcoal-sage"] header button.text-gold {
+  background: transparent;
+  color: #fff;
+  border-color: color-mix(in srgb, var(--emerald) 65%, #fff);
+}
+
+html[data-palette="charcoal-sage"] .bg-ivory a.text-gold,
+html[data-palette="charcoal-sage"] .bg-ivory button.text-gold {
+  color: var(--obsidian);
+  border-color: var(--gold-ink);
+}
+
+html[data-palette="charcoal-sage"] .bg-forest {
+  background-color: var(--obsidian);
+  background-image: radial-gradient(900px 280px at 88% 0%, color-mix(in srgb, var(--emerald) 28%, transparent), transparent 68%);
+  color: var(--ivory);
+}
+
+html[data-palette="charcoal-sage"] .text-forest {
+  color: var(--gold-ink);
+}
+
+html[data-palette="charcoal-sage"] header nav a[aria-current="page"],
+html[data-palette="charcoal-sage"] header nav button[aria-current="page"] {
+  color: var(--emerald);
+}
+
+html[data-palette="charcoal-sage"] a.text-forest {
+  color: var(--gold-ink);
+}
+
+html[data-palette="warm-earth"] {
+  --shadow-card: 0 1px 2px rgb(102 91 82 / 0.08), 0 18px 40px rgb(49 93 70 / 0.08);
+  --linen:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.80 0 0 0 0 0.72 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+html[data-palette="warm-earth"] body {
+  background-color: var(--ivory);
+  background-image: var(--linen);
+  color: var(--ink);
+}
+
+html[data-palette="warm-earth"] [data-surface="public"] {
+  background-color: var(--ivory);
+  color: var(--ink);
+}
+
+html[data-palette="warm-earth"] header {
+  background: color-mix(in srgb, var(--cream) 90%, #fff);
+  border-bottom: 1px solid var(--beige);
+  color: var(--ink);
+}
+
+html[data-palette="warm-earth"] header .gold-rule {
+  background: linear-gradient(90deg, transparent, var(--terracotta), var(--sage), transparent);
+}
+
+html[data-palette="warm-earth"] header .text-ivory,
+html[data-palette="warm-earth"] header .text-soft-gray,
+html[data-palette="warm-earth"] header nav,
+html[data-palette="warm-earth"] header nav a,
+html[data-palette="warm-earth"] header button:not(.btn-primary) {
+  color: var(--ink);
+}
+
+html[data-palette="warm-earth"] header nav a:hover {
+  color: var(--forest);
+}
+
+html[data-palette="warm-earth"] header nav a[aria-current="page"] {
+  color: var(--sage);
+}
+
+html[data-palette="warm-earth"] header span.border-gold {
+  background: var(--forest);
+  color: var(--cream);
+  border-color: var(--tan);
+}
+
+html[data-palette="warm-earth"] .public-grain {
+  position: relative;
+  background-color: var(--ivory);
+  background-image:
+    radial-gradient(900px 420px at 8% -10%, color-mix(in srgb, var(--sage) 16%, transparent), transparent 58%),
+    radial-gradient(700px 380px at 92% 0%, color-mix(in srgb, var(--terracotta) 10%, transparent), transparent 52%),
+    var(--linen);
+  color: var(--ink);
+}
+
+html[data-palette="warm-earth"] .public-grain .text-ivory,
+html[data-palette="warm-earth"] .public-grain h1,
+html[data-palette="warm-earth"] .public-grain h2 {
+  color: var(--ink);
+}
+
+html[data-palette="warm-earth"] .public-grain .text-soft-gray {
+  color: var(--muted);
+}
+
+html[data-palette="warm-earth"] .public-grain .text-gold {
+  color: var(--forest);
+}
+
+html[data-palette="warm-earth"] .headline-gradient,
+html[data-palette="warm-earth"] .public-grain h1.headline-gradient,
+html[data-palette="warm-earth"] .public-grain .headline-gradient {
+  background-image: linear-gradient(105deg, var(--forest) 0%, var(--sage) 62%, var(--terracotta) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+html[data-palette="warm-earth"] .btn-primary {
+  background-color: var(--primary);
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgb(49 93 70 / 0.16);
+  transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+html[data-palette="warm-earth"] .btn-primary:hover {
+  background-color: var(--primary-hover);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgb(49 93 70 / 0.2);
+}
+
+html[data-palette="warm-earth"] .btn-secondary {
+  background-color: transparent;
+  color: var(--forest);
+  border: 1px solid var(--tan);
+  border-radius: 12px;
+}
+
+html[data-palette="warm-earth"] .btn-secondary:hover {
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--terracotta) 25%, transparent);
+}
+
+html[data-palette="warm-earth"] header a.text-gold,
+html[data-palette="warm-earth"] header button.text-gold {
+  color: var(--forest);
+  border-color: var(--tan);
+}
+
+html[data-palette="warm-earth"] .bg-ivory {
+  background-color: var(--ivory);
+  background-image: var(--linen);
+  color: var(--ink);
+}
+
+html[data-palette="warm-earth"] .bg-white,
+html[data-palette="warm-earth"] .bg-card,
+html[data-palette="warm-earth"] .glass-panel {
+  background-color: var(--cream);
+  background-image: none;
+  color: var(--ink);
+  border-color: var(--beige);
+  box-shadow: var(--shadow-card);
+  border-radius: 18px;
+}
+
+html[data-palette="warm-earth"] .bg-forest {
+  background-color: var(--forest);
+  background-image: radial-gradient(800px 260px at 90% 0%, color-mix(in srgb, var(--sage) 28%, transparent), transparent 70%);
+  color: var(--cream);
+}
+
+html[data-palette="warm-earth"] .text-forest {
+  color: var(--forest);
+}
+
+html[data-palette="warm-earth"] a.text-forest,
+html[data-palette="warm-earth"] a.text-gold {
+  color: var(--forest);
+}
+
+html[data-palette="warm-earth"] .text-gold-ink {
+  color: var(--gold-ink);
+}
+
+html[data-palette="warm-earth"] footer {
+  background: var(--forest);
+  color: color-mix(in srgb, var(--cream) 88%, var(--beige));
+  border-color: color-mix(in srgb, var(--sage) 40%, var(--forest));
+}
+
+html[data-palette="warm-earth"] footer .text-gold,
+html[data-palette="warm-earth"] footer .text-soft-gray {
+  color: var(--beige);
+}
+
+html[data-palette="warm-earth"] footer a:hover {
+  color: var(--cream);
+}
+
+html[data-palette="warm-earth"] footer span.border-gold {
+  background: var(--cream);
+  color: var(--forest);
+  border-color: var(--tan);
+}
+
+html[data-palette="warm-earth"] :is(input, textarea, select).h-10,
+html[data-palette="warm-earth"] :is(input, textarea, select).min-h-28 {
+  background-color: #fff;
+  color: var(--ink);
+  border-color: var(--beige);
+  border-radius: 12px;
+}
+
+html[data-palette="warm-earth"] [data-surface="dashboard"] {
+  background: var(--ivory);
+  color: var(--ink);
+}
+
+html[data-palette="warm-earth"] [data-surface="dashboard"] nav a[aria-current="page"] {
+  background: color-mix(in srgb, var(--sage) 22%, transparent);
+  color: var(--cream);
+}
+
+.device-frame {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .lift, .lift:hover,
+  .btn-primary, .btn-primary:hover { transition: none; transform: none; filter: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --muted: #3f4742;
+    --soft-gray: #d5dbd6;
+    --line: #1f2923;
+    --gold-ink: #4e360c;
+  }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; color: black; }
+}
