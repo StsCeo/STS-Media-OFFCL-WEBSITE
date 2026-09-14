@@ -1,11 +1,14 @@
 import { ExpenseLedger } from "@/components/dashboard/expense-ledger";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { getWorkspace } from "@/lib/data/store";
+import { parseExpenseLedgerView } from "@/lib/expenses";
 import { formatCurrency } from "@/lib/utils";
 
 export const metadata = { title: "Expenses" };
 
-export default function ExpensesPage() {
+export default async function ExpensesPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+  const params = await searchParams;
+  const initialView = parseExpenseLedgerView(params.view);
   const workspace = getWorkspace();
   const live = workspace.expenses.filter((item) => !item.archived);
   const annualDrafts = live.filter((item) => item.billingFrequency === "yearly" && item.confirmationStatus === "draft");
@@ -37,7 +40,7 @@ export default function ExpensesPage() {
           <Badge key={item.id} tone="warning">{item.description}: {formatCurrency(item.totalAmount)}</Badge>
         ))}
       </div>
-      <ExpenseLedger expenses={workspace.expenses} />
+      <ExpenseLedger key={initialView} expenses={workspace.expenses} initialView={initialView} />
       <Card className="mt-6">
         <h2 className="font-semibold">Recurring templates</h2>
         <ul className="mt-3 space-y-2 text-sm">

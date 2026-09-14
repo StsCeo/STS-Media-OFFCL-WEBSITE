@@ -1,12 +1,12 @@
-import { AuthShell } from "@/components/auth/shell";
-import { Button } from "@/components/ui";
+import { AuthFlowUnavailable } from "@/components/auth/unavailable";
+import { describeAuthFlowState } from "@/lib/auth/phase1-flows";
+import { isProductionEnv, isSupabaseConfigured } from "@/lib/config";
 
 export default function PasswordChangedPage() {
-  return (
-    <AuthShell title="Password changed" description="A confirmation email is sent when Auth is connected. Other sessions are revoked.">
-      <p className="text-sm text-soft-gray">If you did not make this change, report it from the security page after signing in, or contact the owner.</p>
-      <Button href="/login" className="mt-6 w-full">Sign in</Button>
-      <Button href="/dashboard/settings/security" variant="secondary" className="mt-3 w-full">Report unauthorized change</Button>
-    </AuthShell>
-  );
+  const state = describeAuthFlowState({
+    backendConfigured: isSupabaseConfigured(),
+    hasServerVerifiedSession: false,
+    production: isProductionEnv(),
+  });
+  return <AuthFlowUnavailable title="Password change" state={{ ...state, message: "This page does not report a password change unless a server-verified reset completed." }} />;
 }

@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { siteUrl } from "@/lib/config";
+export { allowedFile } from "./files";
 
 export async function assertSameOrigin() {
   const headerList = await headers();
@@ -32,8 +33,3 @@ function safeHost(value: string) {
   }
 }
 
-export function allowedFile(file: File) {
-  const okType = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type);
-  const okName = /\.(pdf|jpe?g|png|webp|gif)$/i.test(file.name);
-  return okType && okName && file.size > 0 && file.size <= 8 * 1024 * 1024;
-}

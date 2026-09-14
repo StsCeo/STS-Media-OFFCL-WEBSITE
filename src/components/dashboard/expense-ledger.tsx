@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { archiveExpenses, deleteExpenses, duplicateExpense, upsertExpense } from "@/app/actions";
+import { archiveExpenses, deleteExpenses, duplicateExpense, upsertExpense, uploadExpenseReceipt } from "@/app/actions";
 import { Badge, Button, Card, inputClass } from "@/components/ui";
+import { expensesForLedgerView, parseExpenseLedgerView, type ExpenseLedgerView } from "@/lib/expenses";
+import { uploadFileError } from "@/lib/security/files";
 import { EXPENSE_CATEGORIES, type Expense } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 
@@ -26,24 +28,28 @@ const columns: { key: keyof Expense; label: string }[] = [
   { key: "taxYear", label: "Tax year" },
 ];
 
-export function ExpenseLedger({ expenses }: { expenses: Expense[] }) {
+export function ExpenseLedger({
+  expenses,
+  initialView = "all",
+}: {
+  expenses: Expense[];
+  initialView?: ExpenseLedgerView | string;
+}) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState<keyof Expense>("transactionDate");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
   const [selected, setSelected] = useState<string[]>([]);
   const [page, setPage] = useState(1);
-  const [view, setView] = useState<"all" | "missing" | "draft">("all");
+  const [view, setView] = useState<ExpenseLedgerView>(parseExpenseLedgerView(initialView));
   const [editing, setEditing] = useState<Expense | null>(null);
   const [receipt, setReceipt] = useState<Expense | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const pageSize = 10;
 
   const filtered = useMemo(() => {
-    return expenses
-      .filter((item) => !item.archived)
-      .filter((item) => (view === "missing" ? item.receiptStatus === "missing" : true))
-      .filter((item) => (view === "draft" ? item.confirmationStatus === "draft" : true))
+    return expensesForLedgerView(expenses, view)
       .filter((item) => (category ? item.category === category : true))
       .filter((item) => `${item.vendor} ${item.description} ${item.category}`.toLowerCase().includes(query.toLowerCase()))
       .sort((a, b) => {
@@ -73,6 +79,19 @@ export function ExpenseLedger({ expenses }: { expenses: Expense[] }) {
     a.click();
   }
 
+  function openReceipt(row: Expense) {
+    setReceiptError(null);
+    setReceipt(row);
+  }
+
+  const rowActions = (row: Expense) => (
+    <div className="flex flex-wrap gap-2">
+      <Button size="sm" type="button" onClick={() => setEditing(row)}>Edit</Button>
+      <Button size="sm" type="button" variant="secondary" onClick={() => start(() => duplicateExpense(row.id))}>Duplicate</Button>
+      <Button size="sm" type="button" variant="secondary" onClick={() => openReceipt(row)}>Receipt</Button>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
@@ -86,16 +105,16 @@ export function ExpenseLedger({ expenses }: { expenses: Expense[] }) {
             <option key={item}>{item}</option>
           ))}
         </select>
-        <Button size="sm" variant={view === "all" ? "primary" : "secondary"} onClick={() => setView("all")}>All</Button>
-        <Button size="sm" variant={view === "missing" ? "primary" : "secondary"} onClick={() => setView("missing")}>Missing receipts</Button>
-        <Button size="sm" variant={view === "draft" ? "primary" : "secondary"} onClick={() => setView("draft")}>Drafts to confirm</Button>
+        <Button size="sm" variant={view === "all" ? "primary" : "secondary"} onClick={() => { setView("all"); setPage(1); }}>All</Button>
+        <Button size="sm" variant={view === "missing" ? "primary" : "secondary"} onClick={() => { setView("missing"); setPage(1); }}>Missing receipts</Button>
+        <Button size="sm" variant={view === "draft" ? "primary" : "secondary"} onClick={() => { setView("draft"); setPage(1); }}>Drafts to confirm</Button>
         <Button size="sm" onClick={() => setEditing(blankExpense())}>Add expense</Button>
         <Button size="sm" variant="secondary" onClick={exportCsv}>Export CSV</Button>
         <Button size="sm" variant="secondary" onClick={() => window.print()}>Print / PDF</Button>
         <Button size="sm" variant="secondary" href="mailto:info@stsmedia.co?subject=STS%20Media%20expense%20report">Email report</Button>
       </div>
       <p className="text-sm text-muted">
-        Showing {filtered.length} records. Total in view: <span className="font-mono">{formatCurrency(yearTotal)}</span>. Saved views: Missing receipts, Drafts needing confirmation.
+        Showing {filtered.length} records{view === "missing" ? " without receipts" : ""}. Total in view: <span className="font-mono">{formatCurrency(yearTotal)}</span>. Saved views: Missing receipts, Drafts needing confirmation.
       </p>
       {selected.length ? (
         <div className="flex gap-2">
@@ -106,14 +125,14 @@ export function ExpenseLedger({ expenses }: { expenses: Expense[] }) {
         </div>
       ) : null}
 
-      <div className="hidden overflow-x-auto rounded-lg border border-line md:block">
-        <table className="min-w-[1400px] w-full text-left text-sm">
+      <div className="hidden overflow-x-auto rounded-lg border border-line lg:block">
+        <table className="w-full text-left text-sm">
           <caption className="sr-only">Expense ledger</caption>
           <thead className="bg-canvas text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="p-2" scope="col"><input type="checkbox" aria-label="Select all expenses" onChange={(e) => setSelected(e.target.checked ? rows.map((r) => r.id) : [])} /></th>
               {columns.map((col) => (
-                <th key={col.key} className="p-2" scope="col">
+                <th key={col.key} className="whitespace-nowrap p-2" scope="col">
                   <button type="button" onClick={() => { setSort(col.key); setDir(dir === "asc" ? "desc" : "asc"); }}>{col.label}</button>
                 </th>
               ))}
@@ -125,27 +144,21 @@ export function ExpenseLedger({ expenses }: { expenses: Expense[] }) {
               <tr key={row.id} className="border-t border-line">
                 <td className="p-2"><input type="checkbox" aria-label={`Select ${row.vendor}`} checked={selected.includes(row.id)} onChange={(e) => setSelected((cur) => e.target.checked ? [...cur, row.id] : cur.filter((id) => id !== row.id))} /></td>
                 {columns.map((col) => (
-                  <td key={col.key} className="p-2 align-top">
+                  <td key={col.key} className="whitespace-nowrap p-2 align-top">
                     {col.key === "confirmationStatus" && row.confirmationStatus === "draft" ? <Badge tone="warning">Draft</Badge> : null}
                     {col.key === "receiptStatus" && row.receiptStatus === "missing" ? <Badge tone="danger">Missing</Badge> : null}
                     {["pretaxAmount", "salesTax", "totalAmount"].includes(col.key) ? formatCurrency(Number(row[col.key])) : String(row[col.key] ?? "")}
                     {row.demoLabel && col.key === "vendor" ? <div><Badge tone="demo">Demo / draft</Badge></div> : null}
                   </td>
                 ))}
-                <td className="p-2">
-                  <div className="flex flex-col gap-1">
-                    <button type="button" className="text-forest underline" onClick={() => setEditing(row)}>Edit</button>
-                    <button type="button" className="underline" onClick={() => start(() => duplicateExpense(row.id))}>Duplicate</button>
-                    <button type="button" className="underline" onClick={() => setReceipt(row)}>Receipt</button>
-                  </div>
-                </td>
+                <td className="p-2">{rowActions(row)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="space-y-3 md:hidden">
+      <div className="space-y-3 lg:hidden">
         {rows.map((row) => (
           <Card key={row.id}>
             <div className="flex items-start justify-between gap-2">
@@ -160,15 +173,15 @@ export function ExpenseLedger({ expenses }: { expenses: Expense[] }) {
               {row.confirmationStatus === "draft" ? <Badge tone="warning">Draft</Badge> : null}
               {row.receiptStatus === "missing" ? <Badge tone="danger">Missing receipt</Badge> : null}
             </div>
-            <Button size="sm" className="mt-3" onClick={() => setEditing(row)}>Edit</Button>
+            <div className="mt-3">{rowActions(row)}</div>
           </Card>
         ))}
       </div>
 
       <div className="flex items-center justify-between text-sm">
-        <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
+        <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
         <span>Page {page} of {totalPages}</span>
-        <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>Next</button>
+        <button type="button" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>Next</button>
       </div>
 
       {editing ? (
@@ -244,11 +257,57 @@ export function ExpenseLedger({ expenses }: { expenses: Expense[] }) {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
           <Card className="w-full max-w-xl">
             <h2 className="font-semibold">Receipt · {receipt.vendor}</h2>
-            <p className="mt-2 text-sm text-muted">{receipt.receiptName ? receipt.receiptName : "No file attached. Upload is stored privately when Supabase Storage is connected. Do not put secrets in the filename."}</p>
-            <input type="file" accept="image/*,application/pdf" className="mt-4 text-sm" />
-            <div className="mt-4 flex gap-2">
-              <Button onClick={() => setReceipt(null)}>Close</Button>
-            </div>
+            <p className="mt-2 text-sm text-muted">
+              {receipt.receiptName
+                ? `Attached privately: ${receipt.receiptName}`
+                : "No file attached. Receipts stay private. Do not put secrets in the filename."}
+            </p>
+            <form
+              className="mt-4 space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const data = new FormData(event.currentTarget);
+                const file = data.get("file");
+                const localError = uploadFileError(file instanceof File ? file : null);
+                if (localError) {
+                  setReceiptError(localError);
+                  return;
+                }
+                start(async () => {
+                  const result = await uploadExpenseReceipt(data);
+                  if (result?.error) {
+                    setReceiptError(result.error);
+                    return;
+                  }
+                  setReceiptError(null);
+                  setReceipt(null);
+                });
+              }}
+            >
+              <input type="hidden" name="expenseId" value={receipt.id} />
+              <label className="grid gap-1 text-sm">
+                <span>Receipt file</span>
+                <input
+                  name="file"
+                  type="file"
+                  required
+                  accept="application/pdf,image/jpeg,image/png,image/webp,image/gif,.pdf,.jpg,.jpeg,.png,.webp,.gif"
+                  className="text-sm"
+                  onChange={() => setReceiptError(null)}
+                />
+              </label>
+              {receiptError ? (
+                <p className="text-sm text-danger" role="alert">
+                  {receiptError}
+                </p>
+              ) : (
+                <p className="text-xs text-muted">PDF or image, 8MB max. Stored privately when object storage is connected. Uploads fail closed if storage is unavailable.</p>
+              )}
+              <div className="flex gap-2">
+                <Button type="submit" disabled={pending}>Upload receipt</Button>
+                <Button type="button" variant="secondary" onClick={() => { setReceipt(null); setReceiptError(null); }}>Close</Button>
+              </div>
+            </form>
           </Card>
         </div>
       ) : null}
