@@ -22,7 +22,7 @@ function resolveAsset(preferred: string, fallback: string) {
 export const mediaInventory = {
   hero: {
     preferred: "/media/hero/studio-still.webp",
-    fallback: "/media/placeholders/hero-composition.svg",
+    fallback: "/media/placeholders/hero-composition.png",
     width: 1600,
     height: 1800,
     alt: "Editorial composition for the STS Media studio — replace with an approved still",
@@ -31,7 +31,7 @@ export const mediaInventory = {
   },
   scpDesktop: {
     preferred: "/media/work/state-collision-pro/desktop.webp",
-    fallback: "/media/placeholders/scp-desktop.svg",
+    fallback: "/media/placeholders/scp-desktop.png",
     width: 1600,
     height: 1000,
     alt: "State Collision Pro website on desktop — production screenshot pending",
@@ -40,7 +40,7 @@ export const mediaInventory = {
   },
   scpMobile: {
     preferred: "/media/work/state-collision-pro/mobile.webp",
-    fallback: "/media/placeholders/scp-mobile.svg",
+    fallback: "/media/placeholders/scp-mobile.png",
     width: 750,
     height: 1624,
     alt: "State Collision Pro website on mobile — production screenshot pending",
@@ -49,7 +49,7 @@ export const mediaInventory = {
   },
   owners: {
     preferred: "/media/audience/business-owners.webp",
-    fallback: "/media/placeholders/audience-owners.svg",
+    fallback: "/media/placeholders/audience-owners.png",
     width: 1400,
     height: 1600,
     alt: "Visual for business owners — replace with an approved original photograph",
@@ -58,7 +58,7 @@ export const mediaInventory = {
   },
   creators: {
     preferred: "/media/audience/creators.webp",
-    fallback: "/media/placeholders/audience-creators.svg",
+    fallback: "/media/placeholders/audience-creators.png",
     width: 1400,
     height: 1600,
     alt: "Visual for creators — replace with an approved original photograph",
@@ -83,7 +83,7 @@ export function resolveMedia(key: keyof typeof mediaInventory): PublicMedia {
 
 export function workDesktopMedia(slug: string, companyName: string): PublicMedia {
   const preferred = `/media/work/${slug}/desktop.webp`;
-  const fallback = "/media/placeholders/scp-desktop.svg";
+  const fallback = "/media/placeholders/scp-desktop.png";
   const src = resolveAsset(preferred, fallback);
   return {
     src,
@@ -98,7 +98,7 @@ export function workDesktopMedia(slug: string, companyName: string): PublicMedia
 
 export function workMobileMedia(slug: string, companyName: string): PublicMedia {
   const preferred = `/media/work/${slug}/mobile.webp`;
-  const fallback = "/media/placeholders/scp-mobile.svg";
+  const fallback = "/media/placeholders/scp-mobile.png";
   const src = resolveAsset(preferred, fallback);
   return {
     src,

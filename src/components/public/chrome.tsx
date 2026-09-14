@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui";
@@ -81,55 +82,59 @@ export function PublicHeader() {
           {open ? <X aria-hidden /> : <Menu aria-hidden />}
         </button>
       </div>
-      {open ? (
-        <div
-          ref={panelRef}
-          id={menuId}
-          className="public-mobile-nav lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Menu"
-        >
-          <button
-            ref={closeRef}
-            className="absolute right-4 top-4 rounded-md p-2 text-[#F3EFE7]"
-            onClick={() => setOpen(false)}
-            aria-label="Close menu"
-          >
-            <X aria-hidden />
-          </button>
-          <nav className="flex flex-1 flex-col justify-center gap-1" aria-label="Mobile">
-            {publicNav.map((item) => (
-              <div key={item.href}>
-                <Link
-                  href={item.href}
-                  className="public-display block py-2 text-4xl text-[#F3EFE7]"
-                  onClick={() => setOpen(false)}
-                >
-                  {item.label}
-                </Link>
-                {item.href === "/for/owners"
-                  ? ownersMenu
-                      .filter((entry) => entry.href !== "/for/owners")
-                      .map((entry) => (
-                        <Link
-                          key={entry.href}
-                          className="block py-1 pl-1 text-sm uppercase tracking-[0.18em] text-[#B8BDBA]"
-                          href={entry.href}
-                          onClick={() => setOpen(false)}
-                        >
-                          {entry.label}
-                        </Link>
-                      ))
-                  : null}
-              </div>
-            ))}
-          </nav>
-          <Button href="/contact" size="lg" className="mt-6 w-full">
-            Start a Project
-          </Button>
-        </div>
-      ) : null}
+      {open
+        ? createPortal(
+            <div
+              ref={panelRef}
+              id={menuId}
+              data-surface="public"
+              className="fixed inset-0 z-[60] flex h-dvh min-h-dvh w-screen flex-col bg-[#0B0D0C] px-5 pb-6 pt-[5.5rem] lg:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menu"
+            >
+              <button
+                ref={closeRef}
+                className="absolute right-4 top-4 rounded-md p-2 text-[#F3EFE7]"
+                onClick={() => setOpen(false)}
+                aria-label="Close menu"
+              >
+                <X aria-hidden />
+              </button>
+              <nav className="flex flex-1 flex-col justify-center gap-1" aria-label="Mobile">
+                {publicNav.map((item) => (
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      className="public-display block py-2 text-4xl text-[#F3EFE7]"
+                      onClick={() => setOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                    {item.href === "/for/owners"
+                      ? ownersMenu
+                          .filter((entry) => entry.href !== "/for/owners")
+                          .map((entry) => (
+                            <Link
+                              key={entry.href}
+                              className="block py-1 pl-1 text-sm uppercase tracking-[0.18em] text-[#B8BDBA]"
+                              href={entry.href}
+                              onClick={() => setOpen(false)}
+                            >
+                              {entry.label}
+                            </Link>
+                          ))
+                      : null}
+                  </div>
+                ))}
+              </nav>
+              <Button href="/contact" size="lg" className="mt-6 w-full">
+                Start a Project
+              </Button>
+            </div>,
+            document.body,
+          )
+        : null}
     </header>
   );
 }

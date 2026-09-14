@@ -21,10 +21,12 @@ Additional case studies can follow `public/media/work/[slug]/desktop.webp` and `
 
 ## Placeholders currently in use
 
-- `placeholders/hero-composition.svg`
-- `placeholders/scp-desktop.svg`
-- `placeholders/scp-mobile.svg`
-- `placeholders/audience-owners.svg`
-- `placeholders/audience-creators.svg`
+Labeled PNG stand-ins (generated from the SVG sources beside them) until production files exist:
+
+- `placeholders/hero-composition.png`
+- `placeholders/scp-desktop.png`
+- `placeholders/scp-mobile.png`
+- `placeholders/audience-owners.png`
+- `placeholders/audience-creators.png`
 
 No approved State Collision Pro screenshots were in the repository at redesign time. Seed copy still marks desktop/mobile/before/after captures as outstanding.
