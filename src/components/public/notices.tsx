@@ -22,13 +22,9 @@ export function PalettePreviewBar({ name }: { name: string }) {
 export function CookieBanner({ visible }: { visible: boolean }) {
   if (!visible) return null;
   return (
-    <div
-      className="no-print fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-3xl rounded-lg border border-line bg-card p-4 shadow-[var(--shadow-card)]"
-      role="region"
-      aria-label="Cookie notice"
-    >
-      <p className="text-sm text-ink">
-        This site uses essential cookies for security, sign-in, and remembering appearance. Analytics and marketing cookies are not enabled. See the{" "}
+    <div className="public-cookie no-print" role="region" aria-label="Cookie notice">
+      <p className="text-xs leading-5 text-[#1B1E1C]">
+        Essential cookies only — security, sign-in, and appearance. No analytics or marketing cookies. See the{" "}
         <Link className="underline" href="/legal/cookies">
           cookie notice
         </Link>{" "}

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1600" viewBox="0 0 1400 1600" role="img" aria-labelledby="title desc">
+  <title id="title">Creators visual placeholder</title>
+  <desc id="desc">Replace with an approved original photograph at public/media/audience/creators.webp, 1400 by 1600.</desc>
+  <rect width="1400" height="1600" fill="#0B0D0C"/>
+  <rect x="520" y="0" width="880" height="1600" fill="#F3EFE7"/>
+  <rect x="0" y="1180" width="1400" height="18" fill="#C7FF3D"/>
+  <text x="72" y="140" fill="#C7FF3D" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20" letter-spacing="6">CREATORS</text>
+  <text x="72" y="360" fill="#F3EFE7" font-family="Georgia, serif" font-size="80">Pages that</text>
+  <text x="72" y="456" fill="#F3EFE7" font-family="Georgia, serif" font-size="80">can be</text>
+  <text x="72" y="552" fill="#F3EFE7" font-family="Georgia, serif" font-size="80">checked.</text>
+  <text x="560" y="180" fill="#0B0D0C" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22">creators.webp</text>
+  <text x="560" y="224" fill="#1B1E1C" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20">1400 × 1600 · original photo</text>
+  <text x="560" y="290" fill="#6f766f" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20">No fake follower counts or borrowed metrics.</text>
+  <rect x="560" y="380" width="280" height="360" fill="#1B1E1C"/>
+  <rect x="870" y="520" width="280" height="360" fill="#91A38F"/>
+</svg>

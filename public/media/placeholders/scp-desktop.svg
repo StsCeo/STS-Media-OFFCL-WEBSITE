@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Desktop website screenshot placeholder</title>
+  <desc id="desc">Replace with a production website screenshot at public/media/work/[slug]/desktop.webp, 1600 by 1000.</desc>
+  <rect width="1600" height="1000" fill="#1B1E1C"/>
+  <rect x="48" y="36" width="1504" height="928" rx="18" fill="#0B0D0C" stroke="#B8BDBA" stroke-width="2"/>
+  <rect x="48" y="36" width="1504" height="64" rx="18" fill="#161918"/>
+  <rect x="48" y="82" width="1504" height="18" fill="#161918"/>
+  <circle cx="92" cy="68" r="8" fill="#91A38F"/>
+  <circle cx="122" cy="68" r="8" fill="#B8BDBA"/>
+  <circle cx="152" cy="68" r="8" fill="#C7FF3D"/>
+  <rect x="220" y="52" width="980" height="32" rx="16" fill="#0B0D0C" stroke="#3a3f3c"/>
+  <text x="244" y="74" fill="#B8BDBA" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16">production screenshot pending</text>
+  <text x="96" y="220" fill="#C7FF3D" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" letter-spacing="6">REPLACEABLE · DESKTOP 1600×1000</text>
+  <text x="96" y="330" fill="#F3EFE7" font-family="Georgia, serif" font-size="72">Website screenshot</text>
+  <text x="96" y="410" fill="#F3EFE7" font-family="Georgia, serif" font-size="72">goes here.</text>
+  <text x="96" y="490" fill="#91A38F" font-family="ui-sans-serif, system-ui, sans-serif" font-size="28">desktop.webp · object-fit: contain · no stretch</text>
+  <rect x="96" y="560" width="420" height="240" fill="#F3EFE7"/>
+  <rect x="540" y="560" width="420" height="240" fill="#1B1E1C" stroke="#B8BDBA"/>
+  <rect x="984" y="560" width="468" height="240" fill="#C7FF3D"/>
+  <text x="1020" y="690" fill="#0B0D0C" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22">Keep UI readable.</text>
+</svg>

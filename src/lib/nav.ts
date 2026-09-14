@@ -115,29 +115,48 @@ export const ownersMenu = [
   { href: "/login", label: "Owner login" },
 ];
 
-export const publicFooterVisit = [
-  { href: "/work", label: "Work" },
-  { href: "/services", label: "Services" },
-  { href: "/packages", label: "Packages" },
-  { href: "/about", label: "About" },
-  { href: "/process", label: "Process" },
-  { href: "/contact", label: "Book a call" },
-];
-
-export const publicFooterAudience = [
-  { href: "/for/owners", label: "For owners" },
-  { href: "/for/creators", label: "For creators" },
-  { href: "/resources", label: "Resources" },
-  { href: "/lookbook", label: "Color lookbook" },
-];
-
-export const publicFooterTrust = [
-  { href: "/faq", label: "FAQ" },
-  { href: "/accessibility", label: "Accessibility" },
-  { href: "/rights", label: "Your rights" },
-  { href: "/security", label: "Security" },
-  { href: "/security/vulnerabilities", label: "Report a vulnerability" },
-  { href: "/legal/privacy", label: "Privacy" },
-  { href: "/legal/terms", label: "Terms" },
-  { href: "/legal/cookies", label: "Cookies" },
+export const publicFooterGroups = [
+  {
+    label: "Work",
+    links: [
+      { href: "/work", label: "Selected work" },
+      { href: "/work/state-collision-pro", label: "State Collision Pro" },
+      { href: "/lookbook", label: "Color lookbook" },
+      { href: "/testimonials", label: "Testimonials" },
+    ],
+  },
+  {
+    label: "Services",
+    links: [
+      { href: "/services", label: "All services" },
+      { href: "/packages", label: "Packages" },
+      { href: "/process", label: "Process" },
+    ],
+  },
+  {
+    label: "Company",
+    links: [
+      { href: "/about", label: "About" },
+      { href: "/for/owners", label: "For owners" },
+      { href: "/for/creators", label: "For creators" },
+      { href: "/resources", label: "Resources" },
+      { href: "/faq", label: "FAQ" },
+      { href: "/contact", label: "Contact" },
+      { href: "/portal", label: "Client access" },
+    ],
+  },
+  {
+    label: "Legal",
+    links: [
+      { href: "/legal/privacy", label: "Privacy" },
+      { href: "/legal/terms", label: "Terms" },
+      { href: "/legal/cookies", label: "Cookies" },
+      { href: "/legal/accessibility", label: "Accessibility statement" },
+      { href: "/accessibility", label: "Accessibility" },
+      { href: "/rights", label: "Your rights" },
+      { href: "/security", label: "Security" },
+      { href: "/security/vulnerabilities", label: "Report a vulnerability" },
+      { href: "/security/acknowledgments", label: "Acknowledgments" },
+    ],
+  },
 ];
