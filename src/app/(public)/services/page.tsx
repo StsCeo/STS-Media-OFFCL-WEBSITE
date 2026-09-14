@@ -1,30 +1,37 @@
 import { Button } from "@/components/ui";
+import { IvoryShell, PageKicker, PageLede, PageTitle } from "@/components/public/page-hero";
 import { getWorkspace } from "@/lib/data/store";
 
 export const metadata = { title: "Services" };
 
+const visuals = ["grid", "split", "stack", "marks", "pin", "orbit"] as const;
+
 export default function ServicesPage() {
   const services = getWorkspace().services.filter((item) => item.active);
   return (
-    <div className="bg-ivory text-ink">
-      <div className="mx-auto max-w-6xl px-4 py-16">
-        <h1 className="font-display text-4xl">Services</h1>
-        <p className="mt-4 max-w-2xl text-muted">
-          Practical digital work for business owners who already know how to serve people, and for creators who need a public story that holds up. The public side should catch up to the work — not the other way around.
-        </p>
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
-          {services.map((service) => (
-            <article key={service.id} className="lift rounded-xl border border-line bg-white p-6">
-              <h2 className="text-lg font-semibold">{service.name}</h2>
-              <p className="mt-2 text-sm text-muted">{service.summary}</p>
-              <p className="mt-3 text-sm">{service.description}</p>
-            </article>
-          ))}
-        </div>
-        <Button href="/contact" className="mt-10">
-          Start a Project
-        </Button>
+    <IvoryShell wide>
+      <PageKicker>Services</PageKicker>
+      <PageTitle>Websites, systems, and support.</PageTitle>
+      <PageLede>Practical digital work for owners and creators. Each tile is a starting point — we quote after discovery.</PageLede>
+      <div className="mt-12 grid gap-4 md:grid-cols-2">
+        {services.map((service, index) => (
+          <article
+            key={service.id}
+            id={service.slug}
+            className="public-card overflow-hidden bg-[#111412] text-[#F3EFE7]"
+          >
+            <div className="service-visual h-32" data-visual={visuals[index % visuals.length]} aria-hidden="true" />
+            <div className="p-6">
+              <h2 className="public-display text-3xl">{service.name}</h2>
+              <p className="mt-3 text-sm text-[#B8BDBA]">{service.summary}</p>
+              <p className="mt-3 text-sm leading-6 text-[#F3EFE7]/80">{service.description}</p>
+            </div>
+          </article>
+        ))}
       </div>
-    </div>
+      <Button href="/contact" className="mt-10">
+        Start a Project
+      </Button>
+    </IvoryShell>
   );
 }

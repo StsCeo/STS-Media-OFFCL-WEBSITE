@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui";
-import { ownersMenu, publicFooterAudience, publicFooterTrust, publicFooterVisit, publicNav } from "@/lib/nav";
+import { ownersMenu, publicFooterGroups, publicNav } from "@/lib/nav";
 
 export function PublicHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const menuId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -21,12 +24,41 @@ export function PublicHeader() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    const panel = panelRef.current;
+
+    function onTab(event: KeyboardEvent) {
+      if (event.key !== "Tab" || !panel) return;
+      const nodes = [...panel.querySelectorAll<HTMLElement>("a, button")].filter((el) => !el.hasAttribute("disabled"));
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    window.addEventListener("keydown", onTab);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onTab);
+    };
+  }, [open]);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-obsidian/85 backdrop-blur">
+    <header className="public-header sticky top-0 z-40">
       <div className="gold-rule" aria-hidden="true" />
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+      <div className="mx-auto flex max-w-[1440px] items-center justify-between px-4 py-4 md:px-8">
         <Logo invert />
-        <nav className="hidden items-center gap-6 text-sm text-soft-gray lg:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-7 text-sm text-[#B8BDBA] lg:flex" aria-label="Primary">
           {publicNav.map((item) =>
             item.href === "/for/owners" ? (
               <OwnersDropdown key={item.href} pathname={pathname} />
@@ -41,7 +73,7 @@ export function PublicHeader() {
           </Button>
         </div>
         <button
-          className="rounded-md p-2 text-ivory lg:hidden"
+          className="rounded-md p-2 text-[#F3EFE7] lg:hidden"
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
           aria-controls={menuId}
@@ -50,25 +82,59 @@ export function PublicHeader() {
           {open ? <X aria-hidden /> : <Menu aria-hidden />}
         </button>
       </div>
-      {open ? (
-        <div id={menuId} className="border-t border-white/10 px-4 py-4 lg:hidden">
-          <nav className="flex flex-col gap-3 text-ivory" aria-label="Mobile">
-            {publicNav.map((item) => (
-              <div key={item.href}>
-                <Link href={item.href} onClick={() => setOpen(false)}>
-                  {item.label}
-                </Link>
-                {item.href === "/for/owners" ? (
-                  <Link className="mt-2 block pl-3 text-sm text-soft-gray" href="/login" onClick={() => setOpen(false)}>
-                    Owner login
-                  </Link>
-                ) : null}
-              </div>
-            ))}
-            <Button href="/contact">Start a Project</Button>
-          </nav>
-        </div>
-      ) : null}
+      {open
+        ? createPortal(
+            <div
+              ref={panelRef}
+              id={menuId}
+              data-surface="public"
+              className="fixed inset-0 z-[60] flex h-dvh min-h-dvh w-screen flex-col bg-[#0B0D0C] px-5 pb-6 pt-[5.5rem] lg:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menu"
+            >
+              <button
+                ref={closeRef}
+                className="absolute right-4 top-4 rounded-md p-2 text-[#F3EFE7]"
+                onClick={() => setOpen(false)}
+                aria-label="Close menu"
+              >
+                <X aria-hidden />
+              </button>
+              <nav className="flex flex-1 flex-col justify-center gap-1" aria-label="Mobile">
+                {publicNav.map((item) => (
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      className="public-display block py-2 text-4xl text-[#F3EFE7]"
+                      onClick={() => setOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                    {item.href === "/for/owners"
+                      ? ownersMenu
+                          .filter((entry) => entry.href !== "/for/owners")
+                          .map((entry) => (
+                            <Link
+                              key={entry.href}
+                              className="block py-1 pl-1 text-sm uppercase tracking-[0.18em] text-[#B8BDBA]"
+                              href={entry.href}
+                              onClick={() => setOpen(false)}
+                            >
+                              {entry.label}
+                            </Link>
+                          ))
+                      : null}
+                  </div>
+                ))}
+              </nav>
+              <Button href="/contact" size="lg" className="mt-6 w-full">
+                Start a Project
+              </Button>
+            </div>,
+            document.body,
+          )
+        : null}
     </header>
   );
 }
@@ -78,7 +144,7 @@ function NavLink({ href, label, pathname }: { href: string; label: string; pathn
   return (
     <Link
       href={href}
-      className="underline-offset-4 transition hover:text-ivory hover:underline"
+      className="underline-offset-4 transition hover:text-[#C7FF3D]"
       aria-current={current ? "page" : undefined}
     >
       {label}
@@ -111,7 +177,7 @@ function OwnersDropdown({ pathname }: { pathname: string }) {
     <div className="relative" ref={wrapRef}>
       <button
         type="button"
-        className="inline-flex items-center gap-1 bg-transparent p-0 text-inherit underline-offset-4 transition hover:text-ivory hover:underline"
+        className="inline-flex items-center gap-1 bg-transparent p-0 text-inherit underline-offset-4 transition hover:text-[#C7FF3D]"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-controls={menuId}
@@ -125,14 +191,14 @@ function OwnersDropdown({ pathname }: { pathname: string }) {
         <div
           id={menuId}
           role="menu"
-          className="absolute left-0 top-full z-50 mt-3 min-w-52 rounded-lg border border-white/10 bg-obsidian p-1 shadow-[var(--shadow-card)]"
+          className="absolute left-0 top-full z-50 mt-3 min-w-52 rounded-lg border border-white/10 bg-[#0B0D0C] p-1 shadow-[0_18px_40px_rgb(0_0_0_/_0.35)]"
         >
           {ownersMenu.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               role="menuitem"
-              className="block rounded-md px-3 py-2 text-ivory hover:bg-white/10"
+              className="block rounded-md px-3 py-2 text-[#F3EFE7] hover:bg-white/10 hover:text-[#C7FF3D]"
               onClick={() => setOpen(false)}
             >
               {item.label}
@@ -144,53 +210,57 @@ function OwnersDropdown({ pathname }: { pathname: string }) {
   );
 }
 
-export function PublicFooter({ email, statement }: { email: string; statement: string }) {
+export function PublicFooter({
+  email,
+  statement,
+  instagram,
+  linkedin,
+}: {
+  email: string;
+  statement: string;
+  instagram?: string;
+  linkedin?: string;
+}) {
   return (
-    <footer className="border-t border-white/10 bg-obsidian text-soft-gray">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:grid-cols-4">
-        <div className="md:col-span-2">
+    <footer className="border-t border-white/10 bg-[#0B0D0C] text-[#B8BDBA]">
+      <div className="mx-auto grid max-w-[1440px] gap-10 px-4 py-14 md:px-8 lg:grid-cols-[1.2fr_2fr]">
+        <div>
           <Logo invert />
-          <p className="mt-4 max-w-md text-sm leading-6">{statement}</p>
-          <p className="mt-3 text-xs">Built for business owners and creators who already did the hard part.</p>
-        </div>
-        <nav aria-label="Visit">
-          <p className="text-xs uppercase tracking-[0.18em] text-gold">Visit</p>
-          <ul className="mt-3 space-y-2 text-sm">
-            {publicFooterVisit.map((item) => (
-              <li key={item.href}>
-                <Link className="underline-offset-4 hover:text-ivory hover:underline" href={item.href}>
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <nav aria-label="Trust">
-          <p className="text-xs uppercase tracking-[0.18em] text-gold">Trust</p>
-          <ul className="mt-3 space-y-2 text-sm">
-            {publicFooterAudience.map((item) => (
-              <li key={item.href}>
-                <Link className="underline-offset-4 hover:text-ivory hover:underline" href={item.href}>
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-            {publicFooterTrust.map((item) => (
-              <li key={item.href}>
-                <Link className="underline-offset-4 hover:text-ivory hover:underline" href={item.href}>
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-            <li>
-              <a className="underline-offset-4 hover:text-ivory hover:underline" href={`mailto:${email}`}>
-                {email}
+          <p className="mt-4 max-w-sm text-sm leading-6">{statement}</p>
+          <div className="mt-6 space-y-2 text-sm">
+            <a className="block hover:text-[#C7FF3D]" href={`mailto:${email}`}>
+              {email}
+            </a>
+            {instagram ? (
+              <a className="block hover:text-[#C7FF3D]" href={instagram}>
+                Instagram
               </a>
-            </li>
-          </ul>
-        </nav>
+            ) : null}
+            {linkedin ? (
+              <a className="block hover:text-[#C7FF3D]" href={linkedin}>
+                LinkedIn
+              </a>
+            ) : null}
+          </div>
+        </div>
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          {publicFooterGroups.map((group) => (
+            <nav key={group.label} aria-label={group.label}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#C7FF3D]">{group.label}</p>
+              <ul className="mt-3 space-y-2 text-sm">
+                {group.links.map((item) => (
+                  <li key={item.href}>
+                    <Link className="underline-offset-4 hover:text-[#F3EFE7] hover:underline" href={item.href}>
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+        </div>
       </div>
-      <div className="border-t border-white/10 px-4 py-4 text-center text-xs">
+      <div className="border-t border-white/10 px-4 py-4 text-center text-xs md:px-8">
         © {new Date().getFullYear()} Scars to Stars Media. stsmedia.co
       </div>
     </footer>

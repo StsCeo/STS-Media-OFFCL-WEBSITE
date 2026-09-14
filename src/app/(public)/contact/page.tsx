@@ -1,4 +1,5 @@
 import { ContactForm } from "@/components/public/contact-form";
+import { IvoryShell, PageKicker, PageLede, PageTitle } from "@/components/public/page-hero";
 import { getWorkspace } from "@/lib/data/store";
 
 export const metadata = { title: "Contact" };
@@ -12,33 +13,50 @@ export default async function ContactPage({
   const { brand, services } = getWorkspace();
   const audience = params.for === "creators" ? "creator" : params.for === "owners" ? "owner" : "both";
   return (
-    <div className="bg-ivory text-ink">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 lg:grid-cols-[0.9fr_1.1fr]">
+    <IvoryShell wide>
+      <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
         <div>
-          <h1 className="font-display text-4xl">Start a project</h1>
-          <p className="mt-4 text-muted">
-            Tell us what you need. We answer with a clear next step — not a fake waitlist or inflated promise.
-          </p>
+          <PageKicker>Contact</PageKicker>
+          <PageTitle>Start a project</PageTitle>
+          <PageLede>Tell us what you need. We answer with a clear next step.</PageLede>
           <dl className="mt-8 space-y-3 text-sm">
             <div>
-              <dt className="text-muted">Email</dt>
+              <dt className="text-[#4f564f]">Email</dt>
               <dd>
-                <a href={`mailto:${brand.email}`}>{brand.email}</a>
+                <a className="underline-offset-4 hover:underline" href={`mailto:${brand.email}`}>
+                  {brand.email}
+                </a>
               </dd>
             </div>
             {brand.phone ? (
               <div>
-                <dt className="text-muted">Phone</dt>
+                <dt className="text-[#4f564f]">Phone</dt>
                 <dd>{brand.phone}</dd>
               </div>
             ) : null}
             <div>
-              <dt className="text-muted">Social</dt>
+              <dt className="text-[#4f564f]">Social</dt>
               <dd className="space-x-3">
-                {brand.instagram ? <a href={brand.instagram}>Instagram</a> : null}
-                {brand.linkedin ? <a href={brand.linkedin}>LinkedIn</a> : null}
-                {brand.facebook ? <a href={brand.facebook}>Facebook</a> : null}
-                {brand.tiktok ? <a href={brand.tiktok}>TikTok</a> : null}
+                {brand.instagram ? (
+                  <a className="underline-offset-4 hover:underline" href={brand.instagram}>
+                    Instagram
+                  </a>
+                ) : null}
+                {brand.linkedin ? (
+                  <a className="underline-offset-4 hover:underline" href={brand.linkedin}>
+                    LinkedIn
+                  </a>
+                ) : null}
+                {brand.facebook ? (
+                  <a className="underline-offset-4 hover:underline" href={brand.facebook}>
+                    Facebook
+                  </a>
+                ) : null}
+                {brand.tiktok ? (
+                  <a className="underline-offset-4 hover:underline" href={brand.tiktok}>
+                    TikTok
+                  </a>
+                ) : null}
               </dd>
             </div>
           </dl>
@@ -50,6 +68,6 @@ export default async function ContactPage({
           services={services.filter((item) => item.active).map((item) => ({ slug: item.slug, name: item.name }))}
         />
       </div>
-    </div>
+    </IvoryShell>
   );
 }

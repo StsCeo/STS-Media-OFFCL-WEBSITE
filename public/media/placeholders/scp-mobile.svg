@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="750" height="1624" viewBox="0 0 750 1624" role="img" aria-labelledby="title desc">
+  <title id="title">Mobile website screenshot placeholder</title>
+  <desc id="desc">Replace with a production mobile screenshot at public/media/work/[slug]/mobile.webp, 750 by 1624.</desc>
+  <rect width="750" height="1624" rx="72" fill="#0B0D0C"/>
+  <rect x="18" y="18" width="714" height="1588" rx="58" fill="#1B1E1C" stroke="#B8BDBA" stroke-width="2"/>
+  <rect x="270" y="40" width="210" height="22" rx="11" fill="#0B0D0C"/>
+  <text x="64" y="160" fill="#C7FF3D" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" letter-spacing="5">REPLACEABLE</text>
+  <text x="64" y="260" fill="#F3EFE7" font-family="Georgia, serif" font-size="56">Mobile</text>
+  <text x="64" y="330" fill="#F3EFE7" font-family="Georgia, serif" font-size="56">screenshot</text>
+  <text x="64" y="400" fill="#F3EFE7" font-family="Georgia, serif" font-size="56">pending.</text>
+  <text x="64" y="490" fill="#91A38F" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22">mobile.webp · 750×1624</text>
+  <rect x="64" y="560" width="622" height="8" fill="#C7FF3D"/>
+  <rect x="64" y="620" width="622" height="280" fill="#0B0D0C"/>
+  <rect x="64" y="940" width="300" height="180" fill="#F3EFE7"/>
+  <rect x="386" y="940" width="300" height="180" fill="#91A38F"/>
+  <text x="64" y="1240" fill="#B8BDBA" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20">Do not crop controls or crop the fold.</text>
+  <rect x="300" y="1548" width="150" height="8" rx="4" fill="#B8BDBA"/>
+</svg>

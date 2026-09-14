@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1600" viewBox="0 0 1400 1600" role="img" aria-labelledby="title desc">
+  <title id="title">Business owners visual placeholder</title>
+  <desc id="desc">Replace with an approved original photograph at public/media/audience/business-owners.webp, 1400 by 1600.</desc>
+  <rect width="1400" height="1600" fill="#1B1E1C"/>
+  <rect x="0" y="0" width="1400" height="980" fill="#0B0D0C"/>
+  <rect x="80" y="820" width="620" height="680" fill="#F3EFE7"/>
+  <rect x="80" y="120" width="18" height="180" fill="#C7FF3D"/>
+  <text x="120" y="160" fill="#C7FF3D" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20" letter-spacing="6">OWNERS</text>
+  <text x="80" y="430" fill="#F3EFE7" font-family="Georgia, serif" font-size="88">The shop</text>
+  <text x="80" y="530" fill="#F3EFE7" font-family="Georgia, serif" font-size="88">is already</text>
+  <text x="80" y="630" fill="#F3EFE7" font-family="Georgia, serif" font-size="88">real.</text>
+  <text x="110" y="920" fill="#0B0D0C" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22">business-owners.webp</text>
+  <text x="110" y="960" fill="#1B1E1C" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20">1400 × 1600 · original photo</text>
+  <text x="110" y="1020" fill="#6f766f" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20">No stock people. No fake storefronts.</text>
+</svg>
