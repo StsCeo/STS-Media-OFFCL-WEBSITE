@@ -7,6 +7,7 @@ import { FINANCE_DEFINITIONS, computeFinance, expensesByCategory, rangeFromPrese
 import { briefing } from "@/lib/insights";
 import { getWorkspace } from "@/lib/data/store";
 import { formatCurrency } from "@/lib/utils";
+import { buildOverviewKpis, formatKpiValue } from "@/lib/kpi";
 import { LEAD_STAGES } from "@/lib/types";
 
 export const metadata = { title: "Command Center" };
@@ -28,25 +29,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const hidden = workspace.dashboardPreferences.hiddenCards;
   const show = (id: string) => !hidden.includes(id);
 
-  const kpis = [
-    ["Gross revenue", metrics.grossRevenue, FINANCE_DEFINITIONS.grossRevenue],
-    ["MRR", metrics.mrr, FINANCE_DEFINITIONS.mrr],
-    ["ARR", metrics.arr, FINANCE_DEFINITIONS.arr],
-    ["Gross profit", metrics.grossProfit, FINANCE_DEFINITIONS.grossProfit],
-    ["Net profit", metrics.netProfit, FINANCE_DEFINITIONS.netProfit],
-    ["Total expenses", metrics.totalExpenses, "All recognized expenses in range."],
-    ["Cash collected", metrics.cashCollected, FINANCE_DEFINITIONS.cashCollected],
-    ["Outstanding invoices", metrics.outstandingInvoices, FINANCE_DEFINITIONS.outstandingInvoices],
-    ["Active clients", workspace.clients.filter((c) => c.status === "active").length, "Clients marked active."],
-    ["Active projects", workspace.projects.filter((p) => !["completed", "on_hold"].includes(p.stage)).length, "Projects not completed or on hold."],
-    ["New leads", workspace.leads.filter((l) => l.stage === "new_inquiry").length, "Leads in New inquiry."],
-    ["Booked calls", workspace.events.filter((e) => e.kind === "client_meeting").length, "Client meetings on the calendar."],
-    ["Emails sent", workspace.emailsSentCount, "Logged send count. Inbox sync is Phase 2."],
-    ["Calls made", workspace.callsMadeCount, "Logged call count."],
-    ["Proposal conversion", workspace.leads.filter((l) => l.stage === "won").length && workspace.leads.filter((l) => ["proposal_sent", "negotiating", "won", "lost"].includes(l.stage)).length ? `${Math.round((workspace.leads.filter((l) => l.stage === "won").length / workspace.leads.filter((l) => ["proposal_sent", "negotiating", "won", "lost"].includes(l.stage)).length) * 100)}%` : "—", "Won / (proposal sent + negotiating + won + lost). Hidden when the set is empty."],
-    ["Website traffic", workspace.websiteTraffic.reduce((sum, row) => sum + row.visits, 0) || "Needs analytics setup", "No fabricated traffic. Connect analytics in Phase 2."],
-    ["Contact-form conversions", conversions, "New contact submissions in the workspace."],
-  ] as const;
+  const kpis = buildOverviewKpis(workspace, metrics, conversions);
 
   return (
     <div>
@@ -78,7 +61,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           <Brief title="Outstanding invoices" items={today.outstanding.map((i) => i.number)} href="/dashboard/revenue" />
           <Brief title="Recent payments" items={today.recentPayments.map((p) => p.description)} empty="No paid revenue yet." />
           <Brief title="Projects at risk" items={today.atRisk.map((p) => p.name)} href="/dashboard/projects" />
-          <Brief title="Missing receipts" items={today.missingReceipts.map((e) => e.vendor)} href="/dashboard/expenses" />
+          <Brief title="Missing receipts" items={today.missingReceipts.map((e) => e.vendor)} href="/dashboard/expenses?view=missing" />
           <Brief title="Upcoming recurring charges" items={today.upcomingCharges.map((e) => `${e.description} · ${e.nextDue}`)} />
           <Brief title="Expiring domains" items={today.expiringDomains.map((d) => `${d.domain} · ${d.expiresOn}`)} />
           <Brief title="Failed deployments" items={today.failedDeployments.map((d) => d.projectName)} empty="No failed deployments on file." />
@@ -91,11 +74,11 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
       {show("kpis") ? (
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map(([label, value, hint]) => (
-          <Card key={label} className="p-4">
-            <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
-            <p className="mt-2 font-mono text-2xl">{typeof value === "number" ? formatCurrency(value) : value}</p>
-            <p className="mt-2 text-xs text-muted">{hint}</p>
+        {kpis.map((kpi) => (
+          <Card key={kpi.label} className="p-4">
+            <p className="text-xs uppercase tracking-wide text-muted">{kpi.label}</p>
+            <p className="mt-2 font-mono text-2xl">{formatKpiValue(kpi.value, kpi.format)}</p>
+            <p className="mt-2 text-xs text-muted">{kpi.hint}</p>
           </Card>
         ))}
       </div>

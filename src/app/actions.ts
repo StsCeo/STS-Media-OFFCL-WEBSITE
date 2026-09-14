@@ -3,10 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { CONSENT_COOKIE, DEMO_COOKIE, PALETTE_COOKIE, isDemoModeEnabled, isSupabaseConfigured } from "@/lib/config";
+import { CONSENT_COOKIE, DEMO_COOKIE, PALETTE_COOKIE, isDemoModeEnabled, isObjectStorageConfigured, isSupabaseConfigured } from "@/lib/config";
 import { getWorkspace, mutateWorkspace, stampAudit } from "@/lib/data/store";
 import { clientKey, rateLimit } from "@/lib/security/rate-limit";
 import { allowedFile, assertSameOrigin } from "@/lib/security/origin";
+import { uploadFileError, safeUploadFileName } from "@/lib/security/files";
+import { describeAuthFlowState, describeMfaAttempt, looksForgedToken, NOT_CONFIGURED_MESSAGE } from "@/lib/auth/phase1-flows";
+import { resolveNoteRelationship } from "@/lib/notes";
+import { applyPrivateReceiptAttachment, STORAGE_NOT_CONFIGURED_MESSAGE } from "@/lib/receipts";
+import { passwordScore } from "@/lib/security/password";
 import { getPalette } from "@/lib/theme/palettes";
 import type {
   BusinessProfile,
@@ -34,6 +39,9 @@ function isSafePath(path: string) {
 
 export async function startDemoSession(formData: FormData) {
   await assertSameOrigin();
+  if (formData.has("code") || formData.has("password") || formData.has("confirm")) {
+    redirect("/login");
+  }
   if (!isDemoModeEnabled() || !getDemoSessionSecret()) {
     redirect("/login");
   }
@@ -716,18 +724,19 @@ export async function saveNoteForm(formData: FormData) {
   await requireOwnerWrite();
   const id = String(formData.get("id") || "");
   mutateWorkspace((state) => {
+    const current = id ? state.notes.find((item) => item.id === id) : undefined;
+    const relationship = resolveNoteRelationship(formData, current);
     const payload: OwnerNote = {
       id: id || `note-${Date.now()}`,
       title: sanitizeText(String(formData.get("title") || "Untitled note")),
       body: sanitizeText(String(formData.get("body") || "")),
-      relatedType: (String(formData.get("relatedType") || "none") as OwnerNote["relatedType"]),
-      relatedId: String(formData.get("relatedId") || "") || null,
+      relatedType: relationship.relatedType,
+      relatedId: relationship.relatedId,
       pinned: formData.get("pinned") === "on",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     if (id) {
-      const current = state.notes.find((item) => item.id === id);
       if (current) Object.assign(current, payload, { createdAt: current.createdAt });
     } else {
       state.notes.unshift(payload);
@@ -735,6 +744,154 @@ export async function saveNoteForm(formData: FormData) {
   });
   stampAudit("note_upsert", id || "new", "Note saved.");
   revalidatePath("/dashboard/notes");
+}
+
+export async function uploadExpenseReceipt(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const expenseId = String(formData.get("expenseId") || "");
+  const file = formData.get("file");
+  const upload = file instanceof File ? file : null;
+  const validationError = uploadFileError(upload);
+  if (!expenseId) {
+    return { error: "Choose an expense before attaching a receipt." };
+  }
+  if (validationError) {
+    return { error: validationError };
+  }
+  if (!isObjectStorageConfigured()) {
+    stampAudit("receipt_upload_blocked", expenseId, "Receipt upload blocked because private storage is not configured.");
+    return { error: STORAGE_NOT_CONFIGURED_MESSAGE, status: "storage_not_configured" as const };
+  }
+  const factory = createSupabaseServer();
+  if (!factory || !upload) {
+    stampAudit("receipt_upload_blocked", expenseId, "Receipt upload blocked because private storage is not configured.");
+    return { error: STORAGE_NOT_CONFIGURED_MESSAGE, status: "storage_not_configured" as const };
+  }
+  const supabase = await factory();
+  const path = `${expenseId}/${Date.now()}-${safeUploadFileName(upload.name)}`;
+  const { error } = await supabase.storage.from("receipts").upload(path, upload, { upsert: false });
+  if (error) {
+    stampAudit("receipt_upload_failed", expenseId, "Receipt upload failed. The file was not marked attached.");
+    return { error: "The receipt could not be stored.", status: "storage_failed" as const };
+  }
+  mutateWorkspace((state) => {
+    applyPrivateReceiptAttachment(state, expenseId, upload.name);
+  });
+  stampAudit("receipt_upload", expenseId, "Private receipt metadata stored after object storage accepted the file.");
+  revalidatePath("/dashboard/expenses");
+  revalidatePath("/dashboard/files");
+  return { ok: true as const };
+}
+
+export async function completePasswordReset(formData: FormData) {
+  await assertSameOrigin();
+  const password = String(formData.get("password") || "");
+  const confirm = String(formData.get("confirm") || "");
+  if (password !== confirm || !passwordScore(password).ok) {
+    return { error: "The password does not meet the policy or the confirmation does not match." };
+  }
+  const flow = await verifiedRecoveryFlow();
+  if (!flow.allowForm) {
+    return { error: flow.heading === NOT_CONFIGURED_MESSAGE ? NOT_CONFIGURED_MESSAGE : flow.message, status: flow.status };
+  }
+  const factory = createSupabaseServer();
+  if (!factory) return { error: NOT_CONFIGURED_MESSAGE, status: "not_configured" as const };
+  const supabase = await factory();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    stampAudit("password_reset_rejected", "auth", "Password reset rejected. No secret was logged.");
+    return { error: "This reset link is missing, invalid, or expired.", status: "invalid" as const };
+  }
+  stampAudit("password_reset_completed", "auth", "Password reset completed after a server-verified recovery session.");
+  return { ok: true as const };
+}
+
+export async function acceptInvitation(formData: FormData) {
+  await assertSameOrigin();
+  const password = String(formData.get("password") || "");
+  if (!passwordScore(password).ok) {
+    return { error: "The password does not meet the policy." };
+  }
+  const flow = await verifiedRecoveryFlow();
+  if (!flow.allowForm) {
+    return { error: flow.heading === NOT_CONFIGURED_MESSAGE ? NOT_CONFIGURED_MESSAGE : flow.message, status: flow.status };
+  }
+  const factory = createSupabaseServer();
+  if (!factory) return { error: NOT_CONFIGURED_MESSAGE, status: "not_configured" as const };
+  const supabase = await factory();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    stampAudit("invite_rejected", "auth", "Invitation rejected. No secret was logged.");
+    return { error: "This invitation is missing, invalid, or expired.", status: "invalid" as const };
+  }
+  stampAudit("invite_accepted", "auth", "Invitation accepted after a server-verified invite session.");
+  return { ok: true as const };
+}
+
+export async function verifyMfaCode(formData: FormData) {
+  await assertSameOrigin();
+  const code = String(formData.get("code") || "");
+  const attempt = describeMfaAttempt({
+    code,
+    demoMode: isDemoModeEnabled(),
+    backendConfigured: isSupabaseConfigured(),
+    production: process.env.NODE_ENV === "production",
+    verifiedByProvider: false,
+  });
+  if (!attempt.ok || !attempt.grantOwnerSession) {
+    stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
+    return { error: attempt.message, status: attempt.status, grantOwnerSession: false as const };
+  }
+  return { error: NOT_CONFIGURED_MESSAGE, status: "not_configured" as const, grantOwnerSession: false as const };
+}
+
+export async function verifyEmailCode(formData: FormData) {
+  await assertSameOrigin();
+  const code = String(formData.get("code") || "");
+  const email = normalizeEmail(String(formData.get("email") || ""));
+  if (!isSupabaseConfigured()) {
+    return { error: NOT_CONFIGURED_MESSAGE, status: "not_configured" as const };
+  }
+  if (!code) return { error: "Missing token", status: "missing" as const };
+  if (looksForgedToken(code)) return { error: "Invalid token", status: "forged" as const };
+  if (!/^\d{6,8}$/.test(code)) return { error: "Invalid token", status: "invalid" as const };
+  if (!isAllowedOwnerEmail(email)) {
+    stampAudit("otp_rejected", "auth", "Email code rejected. No code was logged.");
+    return { error: GENERIC_AUTH_ERROR, status: "invalid" as const };
+  }
+  const factory = createSupabaseServer();
+  if (!factory) return { error: NOT_CONFIGURED_MESSAGE, status: "not_configured" as const };
+  const supabase = await factory();
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token: code,
+    type: "email",
+  });
+  if (error) {
+    stampAudit("otp_rejected", "auth", "Email code rejected. No code was logged.");
+    return { error: "This code is missing, invalid, or expired.", status: "invalid" as const };
+  }
+  stampAudit("otp_verified", "auth", "Email code verified.");
+  redirect("/dashboard");
+}
+
+async function verifiedRecoveryFlow() {
+  const backendConfigured = isSupabaseConfigured();
+  let hasServerVerifiedSession = false;
+  if (backendConfigured) {
+    const factory = createSupabaseServer();
+    if (factory) {
+      const supabase = await factory();
+      const { data } = await supabase.auth.getUser();
+      hasServerVerifiedSession = Boolean(data.user);
+    }
+  }
+  return describeAuthFlowState({
+    backendConfigured,
+    hasServerVerifiedSession,
+    production: process.env.NODE_ENV === "production",
+  });
 }
 
 export async function saveDocumentForm(formData: FormData) {

@@ -109,6 +109,8 @@ export function computeFinance(
   };
 }
 
+export type FinanceMetrics = ReturnType<typeof computeFinance>;
+
 export function expensesByCategory(expenses: Expense[]) {
   const map = new Map<string, number>();
   for (const item of expenses) {

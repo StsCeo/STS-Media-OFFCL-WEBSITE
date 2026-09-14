@@ -1,10 +1,12 @@
-import { AuthShell } from "@/components/auth/shell";
-import { Button } from "@/components/ui";
+import { AuthFlowUnavailable } from "@/components/auth/unavailable";
+import { describeAuthFlowState } from "@/lib/auth/phase1-flows";
+import { isProductionEnv, isSupabaseConfigured } from "@/lib/config";
 
 export default function InviteAcceptedPage() {
-  return (
-    <AuthShell title="Invitation accepted" description="Enroll MFA before accessing owner or admin tools.">
-      <Button href="/mfa/enroll" className="w-full">Enroll authenticator</Button>
-    </AuthShell>
-  );
+  const state = describeAuthFlowState({
+    backendConfigured: isSupabaseConfigured(),
+    hasServerVerifiedSession: false,
+    production: isProductionEnv(),
+  });
+  return <AuthFlowUnavailable title="Invitation" state={{ ...state, message: "This page does not report an accepted invitation unless a server-verified token completed the flow." }} />;
 }

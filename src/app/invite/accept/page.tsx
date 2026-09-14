@@ -1,15 +1,33 @@
+import { AuthFlowUnavailable } from "@/components/auth/unavailable";
+import { InviteAcceptForm } from "@/components/auth/recovery-forms";
 import { AuthShell } from "@/components/auth/shell";
-import { Button, Field, inputClass } from "@/components/ui";
+import { createSupabaseServer } from "@/lib/auth/session";
+import { describeAuthFlowState } from "@/lib/auth/phase1-flows";
+import { isProductionEnv, isSupabaseConfigured } from "@/lib/config";
 
-export default function InviteAcceptPage() {
+export default async function InviteAcceptPage() {
+  const state = describeAuthFlowState({
+    backendConfigured: isSupabaseConfigured(),
+    hasServerVerifiedSession: await hasVerifiedAuthUser(),
+    production: isProductionEnv(),
+  });
+
+  if (!state.allowForm) {
+    return <AuthFlowUnavailable title="Accept invitation" state={state} />;
+  }
+
   return (
     <AuthShell title="Accept invitation" description="Set the initial password for this invited account. Public signup is not available.">
-      <form className="space-y-4" action="/invite/accepted">
-        <Field label="New password" name="password">
-          <input id="password" name="password" type="password" required minLength={12} className={inputClass} />
-        </Field>
-        <Button type="submit" className="w-full">Activate account</Button>
-      </form>
+      <InviteAcceptForm />
     </AuthShell>
   );
+}
+
+async function hasVerifiedAuthUser() {
+  if (!isSupabaseConfigured()) return false;
+  const factory = createSupabaseServer();
+  if (!factory) return false;
+  const supabase = await factory();
+  const { data } = await supabase.auth.getUser();
+  return Boolean(data.user);
 }

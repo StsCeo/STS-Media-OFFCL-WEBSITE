@@ -70,7 +70,8 @@ export function LoginForm({ next, demoEnabled, supabaseConfigured }: { next: str
           action={async (formData) => {
             const result = await requestOtp(formData);
             if (result.error) setOtpState(result.error);
-            else router.push(`/login/code?email=${encodeURIComponent(String(formData.get("email") || ""))}`);
+            else if (!supabaseConfigured) setOtpState("Not configured. Email codes cannot be verified until Auth is connected.");
+            else router.push("/login/code");
           }}
         >
           <Field label="Email" name="email">
