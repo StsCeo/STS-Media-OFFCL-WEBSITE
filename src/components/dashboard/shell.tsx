@@ -114,7 +114,7 @@ export function DashboardShell({
               {collapsed ? <ChevronRight size={16} aria-hidden /> : <ChevronLeft size={16} aria-hidden />}
             </button>
           </div>
-          <nav className="flex-1 overflow-y-auto px-2 pb-4" aria-label="Business OS">
+          <nav className="flex-1 overflow-y-auto px-2 pb-16" aria-label="Business OS">
             {dashboardNavGroups.map((group) => (
               <div key={group.id} className="mb-2">
                 {collapsed ? (
@@ -148,7 +148,7 @@ export function DashboardShell({
                   <X size={18} aria-hidden />
                 </button>
               </div>
-              <nav className="mt-6 space-y-4" aria-label="Business OS">
+              <nav className="mt-6 space-y-4 pb-16" aria-label="Business OS">
                 {dashboardNavGroups.map((group) => (
                   <div key={group.id}>
                     <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-soft-gray/70">{group.label}</p>

@@ -91,4 +91,17 @@ export function parseBusinessSettingsForm(formData: FormData): {
   };
 }
 
+export function draftBusinessSettings(formData: FormData): BusinessSettingsInput {
+  return {
+    legalName: String(formData.get("legalName") || ""),
+    displayName: String(formData.get("displayName") || ""),
+    timezone: String(formData.get("timezone") || ""),
+    baseCurrency: String(formData.get("baseCurrency") || "USD"),
+    fiscalYearStart: Number(formData.get("fiscalYearStart") || 1),
+    invoicePrefix: String(formData.get("invoicePrefix") || ""),
+    estimatePrefix: String(formData.get("estimatePrefix") || ""),
+    defaultPaymentTerms: String(formData.get("defaultPaymentTerms") || ""),
+  };
+}
+
 export const GENERIC_SETTINGS_ERROR = "We could not save business settings. Try again.";

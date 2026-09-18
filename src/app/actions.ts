@@ -30,7 +30,7 @@ import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
 import { clearCurrentAuth, createSupabaseServer, requireBusinessSettingsWrite, requireOwnerWrite } from "@/lib/auth/session";
 import { DEMO_ORGANIZATION_ID } from "@/lib/org/defaults";
-import { GENERIC_SETTINGS_ERROR, parseBusinessSettingsForm } from "@/lib/org/settings";
+import { draftBusinessSettings, GENERIC_SETTINGS_ERROR, parseBusinessSettingsForm } from "@/lib/org/settings";
 import { updateOrganizationBusinessSettings } from "@/lib/org/store";
 import { demoSessionCookieOptions, getDemoSessionSecret, signDemoSession } from "@/lib/auth/demo-session";
 import { GENERIC_AUTH_ERROR, isAllowedOwnerEmail, normalizeEmail } from "@/lib/auth/owner";
@@ -618,7 +618,11 @@ export async function saveBusinessProfile(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
-export type BusinessSettingsActionState = { ok?: boolean; error?: string };
+export type BusinessSettingsActionState = {
+  ok?: boolean;
+  error?: string;
+  values?: import("@/lib/org/types").BusinessSettingsInput;
+};
 
 export async function saveBusinessOsSettings(
   _prev: BusinessSettingsActionState,
@@ -629,7 +633,7 @@ export async function saveBusinessOsSettings(
   const session = await requireBusinessSettingsWrite();
   const parsed = parseBusinessSettingsForm(formData);
   if (!parsed.success) {
-    return { error: parsed.error };
+    return { error: parsed.error, values: draftBusinessSettings(formData) };
   }
 
   try {
@@ -664,7 +668,7 @@ export async function saveBusinessOsSettings(
     revalidatePath("/dashboard");
     return { ok: true };
   } catch {
-    return { error: GENERIC_SETTINGS_ERROR };
+    return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
   }
 }
 

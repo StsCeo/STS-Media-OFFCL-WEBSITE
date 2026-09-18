@@ -16,6 +16,7 @@ export function BusinessOsSettingsForm({
   organizationName: string;
 }) {
   const [state, action, pending] = useActionState(saveBusinessOsSettings, initialState);
+  const shown = state.values ?? values;
 
   return (
     <Card>
@@ -35,36 +36,39 @@ export function BusinessOsSettingsForm({
           {state.error}
         </p>
       ) : null}
-      <form action={action} className="grid gap-3 md:grid-cols-2">
+      <form action={action} className="grid gap-3 md:grid-cols-2" key={state.error ?? (state.ok ? "saved" : "edit")}>
         <Field label="Legal business name" name="legalName" hint="Used on future legal documents. Not an EIN.">
-          <input id="legalName" name="legalName" required className={inputClass} defaultValue={values.legalName} autoComplete="organization" />
+          <input id="legalName" name="legalName" required className={inputClass} defaultValue={shown.legalName} autoComplete="organization" />
         </Field>
         <Field label="Display name" name="displayName">
-          <input id="displayName" name="displayName" required className={inputClass} defaultValue={values.displayName} />
+          <input id="displayName" name="displayName" required className={inputClass} defaultValue={shown.displayName} />
         </Field>
         <Field label="Time zone" name="timezone">
-          <select id="timezone" name="timezone" className={inputClass} defaultValue={values.timezone}>
+          <select id="timezone" name="timezone" className={inputClass} defaultValue={shown.timezone}>
             {COMMON_TIMEZONES.map((zone) => (
               <option key={zone} value={zone}>
                 {zone}
               </option>
             ))}
-            {(COMMON_TIMEZONES as readonly string[]).includes(values.timezone) ? null : (
-              <option value={values.timezone}>{values.timezone}</option>
+            {(COMMON_TIMEZONES as readonly string[]).includes(shown.timezone) ? null : (
+              <option value={shown.timezone}>{shown.timezone}</option>
             )}
           </select>
         </Field>
         <Field label="Base currency" name="baseCurrency" hint="Book currency only. No conversion engine is active.">
-          <select id="baseCurrency" name="baseCurrency" className={inputClass} defaultValue={values.baseCurrency}>
+          <select id="baseCurrency" name="baseCurrency" className={inputClass} defaultValue={shown.baseCurrency}>
             {ISO_CURRENCIES.map((code) => (
               <option key={code} value={code}>
                 {code}
               </option>
             ))}
+            {(ISO_CURRENCIES as readonly string[]).includes(shown.baseCurrency) ? null : (
+              <option value={shown.baseCurrency}>{shown.baseCurrency}</option>
+            )}
           </select>
         </Field>
         <Field label="Fiscal-year starting month" name="fiscalYearStart">
-          <select id="fiscalYearStart" name="fiscalYearStart" className={inputClass} defaultValue={String(values.fiscalYearStart)}>
+          <select id="fiscalYearStart" name="fiscalYearStart" className={inputClass} defaultValue={String(shown.fiscalYearStart)}>
             {FISCAL_YEAR_MONTHS.map((month) => (
               <option key={month.value} value={month.value}>
                 {month.label}
@@ -73,13 +77,13 @@ export function BusinessOsSettingsForm({
           </select>
         </Field>
         <Field label="Default payment terms" name="defaultPaymentTerms">
-          <input id="defaultPaymentTerms" name="defaultPaymentTerms" required className={inputClass} defaultValue={values.defaultPaymentTerms} />
+          <input id="defaultPaymentTerms" name="defaultPaymentTerms" required className={inputClass} defaultValue={shown.defaultPaymentTerms} />
         </Field>
         <Field label="Invoice prefix" name="invoicePrefix" hint="Applies to new invoices only.">
-          <input id="invoicePrefix" name="invoicePrefix" required className={inputClass} defaultValue={values.invoicePrefix} />
+          <input id="invoicePrefix" name="invoicePrefix" required className={inputClass} defaultValue={shown.invoicePrefix} />
         </Field>
         <Field label="Estimate prefix" name="estimatePrefix" hint="Applies to new estimates only.">
-          <input id="estimatePrefix" name="estimatePrefix" required className={inputClass} defaultValue={values.estimatePrefix} />
+          <input id="estimatePrefix" name="estimatePrefix" required className={inputClass} defaultValue={shown.estimatePrefix} />
         </Field>
         <div className="md:col-span-2">
           <Button type="submit" disabled={pending}>
