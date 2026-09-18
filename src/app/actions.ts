@@ -28,7 +28,10 @@ import type {
 } from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
-import { clearCurrentAuth, createSupabaseServer, requireOwnerWrite } from "@/lib/auth/session";
+import { clearCurrentAuth, createSupabaseServer, requireBusinessSettingsWrite, requireOwnerWrite } from "@/lib/auth/session";
+import { DEMO_ORGANIZATION_ID } from "@/lib/org/defaults";
+import { GENERIC_SETTINGS_ERROR, parseBusinessSettingsForm } from "@/lib/org/settings";
+import { updateOrganizationBusinessSettings } from "@/lib/org/store";
 import { demoSessionCookieOptions, getDemoSessionSecret, signDemoSession } from "@/lib/auth/demo-session";
 import { GENERIC_AUTH_ERROR, isAllowedOwnerEmail, normalizeEmail } from "@/lib/auth/owner";
 import { parseDollarsToCents } from "@/lib/money";
@@ -613,6 +616,56 @@ export async function saveBusinessProfile(formData: FormData) {
   revalidatePath("/dashboard/settings/business");
   revalidatePath("/dashboard/taxes");
   revalidatePath("/dashboard");
+}
+
+export type BusinessSettingsActionState = { ok?: boolean; error?: string };
+
+export async function saveBusinessOsSettings(
+  _prev: BusinessSettingsActionState,
+  formData: FormData,
+): Promise<BusinessSettingsActionState> {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const session = await requireBusinessSettingsWrite();
+  const parsed = parseBusinessSettingsForm(formData);
+  if (!parsed.success) {
+    return { error: parsed.error };
+  }
+
+  try {
+    const organizationId = session.organizationId ?? session.user?.organizationId ?? DEMO_ORGANIZATION_ID;
+    const user = session.user!;
+    updateOrganizationBusinessSettings({
+      organizationId,
+      actorUserId: user.id,
+      actorRole: user.organizationRole ?? "owner",
+      actorStatus: user.membershipStatus ?? "active",
+      actorOrganizationId: user.organizationId ?? organizationId,
+      values: parsed.data,
+    });
+    mutateWorkspace((state) => {
+      state.businessProfile = {
+        ...state.businessProfile,
+        legalName: parsed.data.legalName,
+        dba: parsed.data.displayName,
+        timezone: parsed.data.timezone,
+        currency: parsed.data.baseCurrency,
+        fiscalYearStartMonth: parsed.data.fiscalYearStart,
+        defaultPaymentTerms: parsed.data.defaultPaymentTerms,
+        einStored: false,
+      };
+    });
+    stampAudit(
+      "business_settings_updated",
+      "business_settings",
+      "Organization business settings saved. Prefixes apply to new documents only. EIN is not stored.",
+    );
+    revalidatePath("/dashboard/settings/business");
+    revalidatePath("/dashboard");
+    return { ok: true };
+  } catch {
+    return { error: GENERIC_SETTINGS_ERROR };
+  }
 }
 
 export async function upsertClient(input: Partial<ClientRecord> & { id?: string }) {

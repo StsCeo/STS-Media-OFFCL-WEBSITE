@@ -1,188 +1,174 @@
 import Link from "next/link";
-import { Badge, Card, PageHeader } from "@/components/ui";
-import { DualLineChart, SimpleBarChart } from "@/components/dashboard/charts";
-import { OverviewCustomize } from "@/components/dashboard/overview-customize";
+import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui";
 import { QuickActions } from "@/components/dashboard/quick-actions";
-import { FINANCE_DEFINITIONS, computeFinance, expensesByCategory, rangeFromPreset, revenueByService, trendSeries } from "@/lib/finance";
 import { briefing } from "@/lib/insights";
 import { getWorkspace } from "@/lib/data/store";
-import { formatCurrency } from "@/lib/utils";
-import { buildOverviewKpis, formatKpiValue } from "@/lib/kpi";
-import { LEAD_STAGES } from "@/lib/types";
+import { getOrganization, getOrganizationSettings, listAuditEventsForOrganization } from "@/lib/org/store";
+import { DEMO_ORGANIZATION_ID, DEMO_OWNER_USER_ID } from "@/lib/org/defaults";
+import { implementedBusinessOsHrefs } from "@/lib/nav";
 
 export const metadata = { title: "Command Center" };
 
-export default async function OverviewPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
-  const params = await searchParams;
-  const preset = (params.range as "today" | "7d" | "30d" | "quarter" | "year") || "30d";
-  const workspace = getWorkspace();
-  const range = rangeFromPreset(preset);
-  const metrics = computeFinance(workspace, range);
-  const trends = trendSeries(workspace);
-  const today = briefing(workspace);
-  const funnel = LEAD_STAGES.map((stage) => ({
-    label: stage.replaceAll("_", " "),
-    value: workspace.leads.filter((lead) => lead.stage === stage).length,
-  }));
-  const traffic = workspace.websiteTraffic.map((row) => ({ label: row.date.slice(5), value: row.visits }));
-  const conversions = workspace.contacts.filter((item) => item.status === "new").length;
-  const hidden = workspace.dashboardPreferences.hiddenCards;
-  const show = (id: string) => !hidden.includes(id);
+const implementedLinks = [
+  { href: "/dashboard/crm", label: "CRM & Sales" },
+  { href: "/dashboard/projects", label: "Projects" },
+  { href: "/dashboard/calendar", label: "Calendar" },
+  { href: "/dashboard/finance", label: "Finance" },
+  { href: "/dashboard/taxes", label: "Taxes" },
+  { href: "/dashboard/documents", label: "Documents" },
+  { href: "/dashboard/reports", label: "Reports" },
+  { href: "/dashboard/integrations", label: "Integrations" },
+  { href: "/dashboard/security", label: "Security" },
+  { href: "/dashboard/settings/business", label: "Business Settings" },
+].filter((item) => implementedBusinessOsHrefs.includes(item.href));
 
-  const kpis = buildOverviewKpis(workspace, metrics, conversions);
+export default async function OverviewPage() {
+  const workspace = getWorkspace();
+  const today = briefing(workspace);
+  const organization = getOrganization(DEMO_ORGANIZATION_ID);
+  const settings = getOrganizationSettings(DEMO_ORGANIZATION_ID);
+  const actor = {
+    id: "demo-actor",
+    organizationId: DEMO_ORGANIZATION_ID,
+    userId: DEMO_OWNER_USER_ID,
+    role: "owner" as const,
+    status: "active" as const,
+    invitedAt: "",
+    acceptedAt: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+  const orgActivity = listAuditEventsForOrganization(DEMO_ORGANIZATION_ID, actor);
+  const workspaceActivity = workspace.auditLog.slice(0, 6);
+  const actionItems = [
+    ...today.overdue.map((task) => ({ label: `Overdue: ${task.title}`, href: "/dashboard/tasks" })),
+    ...today.followUps.map((lead) => ({ label: `Follow up: ${lead.businessName}`, href: "/dashboard/leads" })),
+    ...today.atRisk.map((project) => ({ label: `At risk: ${project.name}`, href: `/dashboard/projects/${project.id}` })),
+    ...today.missingReceipts.map((expense) => ({ label: `Missing receipt: ${expense.vendor}`, href: "/dashboard/expenses?view=missing" })),
+  ].slice(0, 8);
 
   return (
     <div>
       <PageHeader
         eyebrow="STS Media Business OS"
         title="Command Center"
-        description="Daily operations for the owner. Pending payments are not cash. One-time fees are not ARR."
-        actions={
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            {(["today", "7d", "30d", "quarter", "year"] as const).map((item) => (
-              <Link key={item} href={`/dashboard?range=${item}`} className={`rounded-md border px-3 py-1 ${preset === item ? "border-forest bg-forest text-white" : "border-line"}`}>
-                {item === "7d" ? "Last 7 days" : item === "30d" ? "Last 30 days" : item[0].toUpperCase() + item.slice(1)}
-              </Link>
-            ))}
-            <OverviewCustomize hiddenCards={hidden} />
-          </div>
-        }
+        description="Owner operations shell. Financial totals are not calculated here until Business OS ledgers exist. Existing workspace tools remain in their sections."
       />
 
-      {show("attention") ? (
-      <Card className="mb-6">
-        <h2 className="text-lg font-semibold">Today at STS Media</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <Brief title="Today’s meetings" items={today.meetingsToday.map((e) => e.title)} empty="No meetings on today’s calendar." />
-          <Brief title="Top three priorities" items={today.priorities.map((t) => t.title)} empty="No open tasks." />
-          <Brief title="Overdue tasks" items={today.overdue.map((t) => t.title)} empty="No overdue tasks." />
-          <Brief title="Leads needing follow-up" items={today.followUps.map((l) => l.businessName)} href="/dashboard/leads" />
-          <Brief title="Proposals awaiting response" items={today.proposals.map((l) => l.businessName)} href="/dashboard/leads" />
-          <Brief title="Outstanding invoices" items={today.outstanding.map((i) => i.number)} href="/dashboard/revenue" />
-          <Brief title="Recent payments" items={today.recentPayments.map((p) => p.description)} empty="No paid revenue yet." />
-          <Brief title="Projects at risk" items={today.atRisk.map((p) => p.name)} href="/dashboard/projects" />
-          <Brief title="Missing receipts" items={today.missingReceipts.map((e) => e.vendor)} href="/dashboard/expenses?view=missing" />
-          <Brief title="Upcoming recurring charges" items={today.upcomingCharges.map((e) => `${e.description} · ${e.nextDue}`)} />
-          <Brief title="Expiring domains" items={today.expiringDomains.map((d) => `${d.domain} · ${d.expiresOn}`)} />
-          <Brief title="Failed deployments" items={today.failedDeployments.map((d) => d.projectName)} empty="No failed deployments on file." />
-          <Brief title="Content awaiting review" items={today.contentReview.map((c) => c.title)} href="/dashboard/content" />
-        </div>
-      </Card>
-      ) : null}
-
-      {show("quick-actions") ? <div className="mb-6"><QuickActions /></div> : null}
-
-      {show("kpis") ? (
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((kpi) => (
-          <Card key={kpi.label} className="p-4">
-            <p className="text-xs uppercase tracking-wide text-muted">{kpi.label}</p>
-            <p className="mt-2 font-mono text-2xl">{formatKpiValue(kpi.value, kpi.format)}</p>
-            <p className="mt-2 text-xs text-muted">{kpi.hint}</p>
-          </Card>
-        ))}
+      <div className="mb-6">
+        <QuickActions />
       </div>
-      ) : null}
 
-      {show("charts") ? (
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
-          <h2 className="mb-4 font-semibold">Revenue versus expenses</h2>
-          <DualLineChart data={trends} aKey="revenue" bKey="expenses" aName="Revenue" bName="Expenses" />
-        </Card>
-        <Card>
-          <h2 className="mb-4 font-semibold">Profit trend</h2>
-          <DualLineChart data={trends} aKey="profit" bKey="mrr" aName="Profit" bName="MRR (active subscriptions only)" />
-        </Card>
-        <Card>
-          <h2 className="mb-4 font-semibold">Revenue by service</h2>
-          <SimpleBarChart
-            data={revenueByService(workspace.revenue).map((row) => ({ label: row.service, value: row.total }))}
-            dataKey="value"
-            name="Revenue"
-            color="var(--chart-revenue)"
-          />
-        </Card>
-        <Card>
-          <h2 className="mb-4 font-semibold">Expenses by category</h2>
-          <SimpleBarChart
-            data={expensesByCategory(workspace.expenses).map((row) => ({ label: row.category, value: row.total }))}
-            dataKey="value"
-            name="Expenses"
-            color="var(--chart-expenses)"
-          />
-        </Card>
-        <Card>
-          <h2 className="mb-4 font-semibold">Sales funnel</h2>
-          <SimpleBarChart data={funnel.map((row) => ({ label: row.label, value: row.value }))} dataKey="value" name="Leads" color="var(--chart-leads)" />
-        </Card>
-        <Card>
-          <h2 className="mb-4 font-semibold">Traffic and conversion</h2>
-          {traffic.length ? (
-            <SimpleBarChart data={traffic} dataKey="value" name="Visits" color="var(--chart-traffic)" />
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">Action Needed</h2>
+            <Badge tone="info">Operational</Badge>
+          </div>
+          {actionItems.length ? (
+            <ul className="space-y-2 text-sm">
+              {actionItems.map((item) => (
+                <li key={`${item.href}-${item.label}`}>
+                  <Link href={item.href} className="underline-offset-2 hover:underline">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <p className="text-sm text-muted">Website analytics is not connected. Traffic is shown as empty rather than invented.</p>
+            <EmptyState
+              title="No operational follow-ups"
+              body="Open tasks, at-risk projects, and lead follow-ups will appear here. This is not a tax, payroll, or profit dashboard."
+            />
           )}
+          <p className="mt-4 text-sm">
+            <Link href="/dashboard/expenses?view=missing" className="underline-offset-2 hover:underline">
+              Review missing receipts
+            </Link>
+          </p>
         </Card>
+
         <Card>
-          <h2 className="mb-4 font-semibold">MRR and ARR trend</h2>
-          <DualLineChart data={trends} aKey="mrr" bKey="arr" aName="MRR" bName="ARR" />
-          <p className="mt-2 text-xs text-muted">Draft subscriptions are excluded from MRR. State Collision Pro maintenance is draft until launch and first paid invoice.</p>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">Business Summary</h2>
+            <Badge>Placeholder</Badge>
+          </div>
+          <p className="text-sm text-muted">
+            Revenue, profit, tax, and payroll totals are not shown on Command Center until organization-owned financial records exist in the Business OS. Existing Phase 1 ledgers stay on Finance, Income, and Expenses.
+          </p>
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Organization</dt>
+              <dd className="mt-1 font-medium">{organization?.displayName ?? "Not provisioned"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Legal name</dt>
+              <dd className="mt-1 font-medium">{organization?.legalName ?? "Not provisioned"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Time zone</dt>
+              <dd className="mt-1 font-medium">{organization?.timezone ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Base currency</dt>
+              <dd className="mt-1 font-medium">{organization?.baseCurrency ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Invoice prefix</dt>
+              <dd className="mt-1 font-mono">{settings?.invoicePrefix ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Payment terms</dt>
+              <dd className="mt-1">{settings?.defaultPaymentTerms ?? "—"}</dd>
+            </div>
+          </dl>
+          <Button href="/dashboard/settings/business" size="sm" variant="secondary" className="mt-4">
+            Open Business Settings
+          </Button>
         </Card>
-        <Card>
-          <h2 className="mb-4 font-semibold">Project status</h2>
-          <ul className="space-y-2 text-sm">
-            {workspace.projects.map((project) => (
-              <li key={project.id} className="flex items-center justify-between gap-3">
-                <Link href={`/dashboard/projects/${project.id}`} className="underline-offset-2 hover:underline">{project.name}</Link>
-                <Badge tone={project.atRisk ? "warning" : "success"}>{project.stage.replaceAll("_", " ")}</Badge>
+      </div>
+
+      <Card className="mt-4">
+        <h2 className="text-lg font-semibold">Recent Activity</h2>
+        {orgActivity.length || workspaceActivity.length ? (
+          <ul className="mt-4 space-y-3 text-sm">
+            {orgActivity.slice(0, 5).map((event) => (
+              <li key={event.id} className="rounded-md border border-line p-3">
+                <p className="font-medium">{event.action.replaceAll(".", " ")}</p>
+                <p className="mt-1 text-xs text-muted">
+                  {event.entityType}
+                  {event.entityId ? ` · ${event.entityId}` : ""} · {new Date(event.createdAt).toLocaleString()}
+                </p>
+              </li>
+            ))}
+            {workspaceActivity.map((event) => (
+              <li key={event.id} className="rounded-md border border-line p-3">
+                <p className="font-medium">{event.action.replaceAll("_", " ")}</p>
+                <p className="mt-1 text-xs text-muted">
+                  {event.target} · {event.detail}
+                </p>
               </li>
             ))}
           </ul>
-        </Card>
-      </div>
-      ) : null}
+        ) : (
+          <EmptyState
+            title="No activity recorded yet"
+            body="Saving Business Settings or using workspace tools will list a safe activity trail here. Secrets and government identifiers are never stored in audit metadata."
+          />
+        )}
+      </Card>
 
-      {show("insights") ? (
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Card>
-          <h2 className="font-semibold">Evidence-based recommendations</h2>
-          <ul className="mt-4 space-y-3">
-            {today.insights.map((insight) => (
-              <li key={insight.id} className="rounded-md border border-line p-3">
-                <p className="font-medium">{insight.title}</p>
-                <p className="mt-1 text-sm text-muted">{insight.body}</p>
-                <p className="mt-2 text-xs">Evidence: {insight.evidence}</p>
-                <Link href={insight.href} className="mt-2 inline-block text-sm text-forest">Open</Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card>
-          <h2 className="font-semibold">Cash flow vs accounting profit</h2>
-          <p className="mt-2 font-mono text-lg">Cash flow {formatCurrency(metrics.cashFlow)}</p>
-          <p className="font-mono text-lg">Accounting profit {formatCurrency(metrics.accountingProfit)}</p>
-          <p className="mt-3 text-sm text-muted">{FINANCE_DEFINITIONS.cashVsAccrual}</p>
-        </Card>
-      </div>
-      ) : null}
-    </div>
-  );
-}
-
-function Brief({ title, items, empty = "None", href }: { title: string; items: string[]; empty?: string; href?: string }) {
-  return (
-    <div>
-      <p className="text-xs uppercase tracking-wide text-muted">{title}</p>
-      {items.length ? (
-        <ul className="mt-1 list-disc pl-4 text-sm">
-          {items.slice(0, 4).map((item) => (
-            <li key={item}>{href ? <Link href={href}>{item}</Link> : item}</li>
+      <Card className="mt-4">
+        <h2 className="text-lg font-semibold">Implemented sections</h2>
+        <p className="mt-1 text-sm text-muted">Command Center only links to sections that already have a working foundation.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {implementedLinks.map((item) => (
+            <Button key={item.href} href={item.href} size="sm" variant="secondary">
+              {item.label}
+            </Button>
           ))}
-        </ul>
-      ) : (
-        <p className="mt-1 text-sm text-muted">{empty}</p>
-      )}
+        </div>
+      </Card>
     </div>
   );
 }
