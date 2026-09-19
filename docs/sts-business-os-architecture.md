@@ -46,7 +46,9 @@ Day 1 does **not** change public routes, public navigation, or public copy. Priv
 
 ## 3.1 Locked Day / Night appearance
 
-Live chrome ignores the saved lookbook palette. Sun / Moon in the public header, auth shell, and Command Center writes `sts_theme` (`light` = Day, `dark` = Night) for a year. A blocking script in the root layout reads that cookie before paint so Night does not flash Day. Lookbook preview cookies still override for an hour.
+**Owner approved: keep these colors and this chrome.** Do not restyle the live Day / Night pair, public cards, or header control unless the owner asks.
+
+Live chrome ignores the saved lookbook palette. The public header, auth shell, and Command Center write `sts_theme` (`light` = Day, `dark` = Night) for a year. A blocking script in the root layout reads that cookie before paint so Night does not flash Day. Lookbook preview cookies still override for an hour.
 
 - **Day (`sts-day`)**: page `#F8F7FC`, type `#20202B`, buttons `#7047EB` / hover `#5B35D4`, selected nav `#EDE6FF`, blue `#2563EB` only on chart lines and links.
 - **Night (`midnight-navy`)**: navy field `#0B1020`, cream type, violet actions.
@@ -232,6 +234,7 @@ Existing extra routes (inbox, tasks, notes, content studio, and so on) stay in t
 - Changing the owner allowlist
 - Enabling public signup
 - Treating demo/workspace ledgers as production accounting
+- Changing the locked Day / Night colors or public comfort-mix chrome
 
 ## 17. Environment-variable names (no values)
 
