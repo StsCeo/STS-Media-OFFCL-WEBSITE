@@ -245,10 +245,19 @@ summary:focus-visible {
   box-shadow: var(--shadow-card);
 }
 
+.public-card {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgb(32 32 43 / 0.04), 0 10px 24px rgb(112 71 235 / 0.04);
+}
+
 html[data-theme="light"][data-palette="sts-day"] .public-grain {
+  background-color: var(--canvas);
   background-image:
-    radial-gradient(1100px 480px at 8% -12%, color-mix(in srgb, var(--lavender) 70%, transparent), transparent 55%),
-    radial-gradient(800px 380px at 92% 0%, color-mix(in srgb, var(--electric) 8%, transparent), transparent 52%);
+    radial-gradient(900px 420px at 12% -18%, color-mix(in srgb, var(--lavender) 55%, transparent), transparent 58%),
+    radial-gradient(700px 360px at 92% 0%, color-mix(in srgb, var(--electric) 5%, transparent), transparent 54%);
 }
 
 html[data-theme="light"][data-palette="sts-day"] .headline-gradient {
@@ -348,6 +357,7 @@ html[data-atmosphere="night-luxury"] [data-surface="dashboard"] {
   color: var(--ivory);
 }
 
+html[data-atmosphere="night-luxury"] .public-card,
 html[data-atmosphere="night-luxury"] .bg-white,
 html[data-atmosphere="night-luxury"] .bg-card,
 html[data-atmosphere="night-luxury"] .bg-surface,

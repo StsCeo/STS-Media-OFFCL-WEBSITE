@@ -23,26 +23,28 @@ export function CookieBanner({ visible }: { visible: boolean }) {
   if (!visible) return null;
   return (
     <div
-      className="no-print fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-3xl rounded-lg border border-line bg-card p-4 shadow-[var(--shadow-card)]"
+      className="no-print fixed inset-x-0 bottom-0 z-50 border-t border-line bg-card/95 px-4 py-3 backdrop-blur"
       role="region"
       aria-label="Cookie notice"
     >
-      <p className="text-sm text-ink">
-        This site uses essential cookies for security, sign-in, and remembering appearance. Analytics and marketing cookies are not enabled. See the{" "}
-        <Link className="underline" href="/legal/cookies">
-          cookie notice
-        </Link>{" "}
-        and{" "}
-        <Link className="underline" href="/rights">
-          your rights
-        </Link>
-        .
-      </p>
-      <form action={saveCookieConsent} className="mt-3">
-        <Button type="submit" size="sm">
-          Accept essential cookies
-        </Button>
-      </form>
+      <div className="mx-auto flex max-w-6xl flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm leading-6 text-muted">
+          Essential cookies only — security, sign-in, and appearance. See the{" "}
+          <Link className="underline underline-offset-2" href="/legal/cookies">
+            cookie notice
+          </Link>{" "}
+          and{" "}
+          <Link className="underline underline-offset-2" href="/rights">
+            your rights
+          </Link>
+          .
+        </p>
+        <form action={saveCookieConsent}>
+          <Button type="submit" size="sm" className="rounded-full">
+            Accept
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

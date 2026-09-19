@@ -24,10 +24,9 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-card/90 backdrop-blur">
-      <div className="gold-rule" aria-hidden="true" />
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Logo invert={theme === "dark"} />
-        <nav className="hidden items-center gap-6 text-sm text-soft-gray lg:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-7 text-sm text-muted lg:flex" aria-label="Primary">
           {publicNav.map((item) =>
             item.href === "/for/owners" ? (
               <OwnersDropdown key={item.href} pathname={pathname} />
@@ -38,7 +37,7 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
         </nav>
         <div className="hidden items-center gap-3 lg:flex">
           <ThemeToggle theme={theme} />
-          <Button href="/contact" size="sm">
+          <Button href="/contact" size="sm" className="rounded-full">
             Start a Project
           </Button>
         </div>
@@ -157,7 +156,7 @@ export function PublicFooter({ email, statement, theme }: { email: string; state
           <p className="mt-3 text-xs">Built for business owners and creators who already did the hard part.</p>
         </div>
         <nav aria-label="Visit">
-          <p className="text-xs uppercase tracking-[0.18em] text-gold">Visit</p>
+          <p className="text-sm font-medium text-ink">Visit</p>
           <ul className="mt-3 space-y-2 text-sm">
             {publicFooterVisit.map((item) => (
               <li key={item.href}>
@@ -169,7 +168,7 @@ export function PublicFooter({ email, statement, theme }: { email: string; state
           </ul>
         </nav>
         <nav aria-label="Trust">
-          <p className="text-xs uppercase tracking-[0.18em] text-gold">Trust</p>
+          <p className="text-sm font-medium text-ink">Trust</p>
           <ul className="mt-3 space-y-2 text-sm">
             {publicFooterAudience.map((item) => (
               <li key={item.href}>
