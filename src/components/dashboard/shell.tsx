@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Bell, ChevronLeft, ChevronRight, ExternalLink, LogOut, Search, X } from "lucide-react";
 import { SkipLink } from "@/components/a11y/skip-link";
 import { Logo } from "@/components/brand/logo";
@@ -74,7 +74,6 @@ export function DashboardShell({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(collapsedDefault);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [pending, start] = useTransition();
   const menuId = useId();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -203,7 +202,7 @@ export function DashboardShell({
               {email}
             </Link>
             <form action={endDemoSession}>
-              <button className="rounded-md p-2 hover:bg-canvas" aria-label="Sign out" disabled={pending}>
+              <button className="rounded-md p-2 hover:bg-canvas" aria-label="Sign out">
                 <LogOut size={18} aria-hidden />
               </button>
             </form>

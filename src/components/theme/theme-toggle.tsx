@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Moon, Sun } from "lucide-react";
 import { toggleTheme } from "@/app/actions";
 import { applyAppearance } from "@/lib/theme/apply-appearance";
-import { parseTheme } from "@/lib/theme/palettes";
 import { cn } from "@/lib/utils";
 
 export function ThemeToggle({
@@ -14,13 +13,9 @@ export function ThemeToggle({
   theme: "light" | "dark";
   className?: string;
 }) {
-  const [current, setCurrent] = useState(theme);
+  const [optimistic, setOptimistic] = useState<"light" | "dark" | null>(null);
   const [, start] = useTransition();
-
-  useEffect(() => {
-    setCurrent(theme);
-  }, [theme]);
-
+  const current = optimistic ?? theme;
   const next = current === "dark" ? "light" : "dark";
 
   return (
@@ -29,7 +24,7 @@ export function ThemeToggle({
       className={cn("rounded-md p-2 hover:bg-canvas", className)}
       aria-label={next === "dark" ? "Switch to Night mode" : "Switch to Day mode"}
       onClick={() => {
-        setCurrent(next);
+        setOptimistic(next);
         applyAppearance(next);
         start(() => toggleTheme(next));
       }}
@@ -37,8 +32,4 @@ export function ThemeToggle({
       {current === "dark" ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}
     </button>
   );
-}
-
-export function themeFromCookie(value: string | undefined) {
-  return parseTheme(value);
 }
