@@ -116,12 +116,39 @@ describe("trusted AAL MFA session", () => {
     expect(canAccessDashboard(session.user)).toBe(true);
   });
 
-  it("does not treat an allowlisted email as authenticated when the mailbox is not on the owner list", async () => {
-    getUser.mockResolvedValue({ data: { user: ownerUser("stranger@day1.test") }, error: null });
+  it("keeps an authenticated user without membership signed in but off the dashboard", async () => {
+    fromLimit.mockResolvedValue({ data: [], error: null });
+    getUser.mockResolvedValue({ data: { user: ownerUser("stranger@day2.test") }, error: null });
     assuranceLevel.current = "aal2";
     const session = await getSession();
-    expect(session.status).toBe("unauthenticated");
-    expect(session.user).toBeNull();
+    expect(session.status).toBe("authenticated");
+    expect(session.user?.email).toBe("stranger@day2.test");
+    expect(session.user?.organizationId).toBeNull();
+    expect(canAccessDashboard(session.user)).toBe(false);
+  });
+
+  it("grants dashboard access to an organization administrator after aal2", async () => {
+    fromLimit.mockResolvedValue({
+      data: [{ organization_id: ORG_ID, role: "administrator", status: "active" }],
+      error: null,
+    });
+    getUser.mockResolvedValue({ data: { user: ownerUser("admin@day2.test") }, error: null });
+    assuranceLevel.current = "aal2";
+    const session = await getSession();
+    expect(session.user?.organizationRole).toBe("administrator");
+    expect(canAccessDashboard(session.user)).toBe(true);
+  });
+
+  it("denies dashboard access to an employee member even at aal2", async () => {
+    fromLimit.mockResolvedValue({
+      data: [{ organization_id: ORG_ID, role: "employee", status: "active" }],
+      error: null,
+    });
+    getUser.mockResolvedValue({ data: { user: ownerUser("member@day2.test") }, error: null });
+    assuranceLevel.current = "aal2";
+    const session = await getSession();
+    expect(session.status).toBe("authenticated");
+    expect(canAccessDashboard(session.user)).toBe(false);
   });
 
   it("verifies a provider-accepted TOTP challenge and redirects", async () => {

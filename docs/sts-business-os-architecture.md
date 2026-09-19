@@ -61,10 +61,9 @@ Live chrome ignores the saved lookbook palette. The public header, auth shell, a
 4. `src/proxy.ts` blocks `/dashboard` unless a verified demo cookie (local only) or a Supabase auth cookie **and** configured Supabase env names are present. A cookie whose name merely contains `-auth-token` is ignored when Supabase is unset.
 5. `getSession()` then `canAccessDashboard()` require:
    - a session user
-   - `role === "owner"` (Phase 1 dashboard gate from the `OWNER_EMAIL` allowlist)
-   - email on the `OWNER_EMAIL` allowlist
-   - MFA verified, except local demo sessions
-6. Organization role and `organizationId` come from an **active** `organization_members` row when Supabase is configured. A missing membership is not defaulted to owner.
+   - Demo: `role === "owner"` and the `OWNER_EMAIL` allowlist
+   - Supabase: an **active** owner or administrator membership and trusted AAL2
+6. Organization role and `organizationId` come from an **active** `organization_members` row when Supabase is configured. A missing membership stays signed in but cannot open the dashboard or read org data. An email allowlist is not the production authorization model.
 7. Server actions that mutate workspace data call `assertSameOrigin()` and `requireOwnerWrite()`.
 8. Sign-out and idle expiry clear the demo cookie and call Supabase `signOut` when configured.
 
@@ -76,7 +75,7 @@ Portability rule: standard PostgreSQL, numbered SQL migrations in `supabase/migr
 
 ### 5.1 Phase 1 live owner schema (`os_*`)
 
-Owner-scoped tables keyed by `owner_id` → `auth.users`. Integer cents. RLS: `owner_id = auth.uid() and public.is_phase1_owner()`. Known risk: `is_phase1_owner()` currently compares JWT email to a hardcoded mailbox. Replacing that function with `OWNER_EMAIL` / membership checks requires owner approval (see §15).
+Owner-scoped tables keyed by `owner_id` → `auth.users`. Integer cents. RLS: `owner_id = auth.uid() and public.is_phase1_owner()`. Day 2 redefines `is_phase1_owner()` as an active owner or administrator membership for `auth.uid()`. It is no longer an email comparison. Production must have that membership before this function is deployed (see §15).
 
 ### 5.2 Day 1 Business OS tenant schema
 
@@ -259,7 +258,7 @@ Existing extra routes (inbox, tasks, notes, content studio, and so on) stay in t
 ## 14. Recommended implementation phases
 
 1. **Day 1 (this checkpoint)** — Audit, architecture, org/role/RLS foundation, dashboard shell, Command Center shell, Business Settings + audit.
-2. **Day 2** — Wire organization tables to Supabase (when credentials exist), provision the first owner membership, persist settings, add SQL integration tests against a branch database.
+2. **Day 2** — Replace email `is_phase1_owner()` with membership roles, private MFA enrollment, and persist CRM leads/clients. Settings persistence remains the Day 1 RPC.
 3. **CRM completion** — Organization-owned leads/clients/activities; no fake pipeline metrics.
 4. **Commercial documents** — Estimates then invoices as drafts; prefixes from settings; no live charges.
 5. **Projects + calendar automations** — Assigned-work rules for contractors.
@@ -271,7 +270,7 @@ Existing extra routes (inbox, tasks, notes, content studio, and so on) stay in t
 
 ## 15. Known risks
 
-- Phase 1 `os_*` tables remain owner-email gated by `is_phase1_owner()` until the owner supplies an Auth user UUID and approves membership bootstrap.
+- Phase 1 `os_*` tables are now gated by active owner/administrator membership (`is_phase1_owner()`). Deploying that change before a production owner membership exists locks the owner out.
 - Demo organization settings stay in-memory. Configured Supabase sessions write through `sts_save_business_settings`. Those migrations **have been applied to the disposable local `sts-media` stack** in this Cloud Agent VM. They have **not** been applied to production.
 - Legacy `20260911120000_init.sql` is first in the timestamped sequence and **is applied** by a normal `db reset`. It is not the live model. Day 1 extends `organizations` instead of dropping it.
 - Opening the dashboard to non-owner roles without memberships and RLS-backed queries would leak workspace data. Day 1 keeps the owner gate.
@@ -282,7 +281,7 @@ Existing extra routes (inbox, tasks, notes, content studio, and so on) stay in t
 
 - Applying migrations to the production Supabase project
 - Inviting any non-owner membership (administrator, accountant, employee, contractor, client)
-- Replacing `is_phase1_owner()` hardcoded email comparison before an active owner membership exists (see `supabase/manual/provision-owner-membership.sql`)
+- Applying the Day 2 membership-gate migration to production before an active owner membership exists (see `supabase/manual/provision-owner-membership.sql`)
 - Connecting Stripe, payroll, tax filing, e-sign, QuickBooks, Gmail, Calendar, analytics, or Turnstile
 - Storing any government identifier or bank account (even encrypted)
 - Changing the owner allowlist
@@ -300,7 +299,7 @@ Reserved, unused on Day 1: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_P
 
 ## 18. Tenant-isolation testing plan
 
-This Cloud Agent environment now has a disposable local Supabase stack (`project_id = "sts-media"`). Application-layer Vitest still covers in-memory and mocked sessions. Executable SQL is `supabase/tests/day1_isolation_runtime.sql` (executed locally as `anon` / `authenticated`). The manual plan remains in `supabase/tests/org_isolation.sql`. Setup notes: `docs/day-1-local-supabase-setup.md`. Evidence: `docs/day-1-foundation-verification.md`.
+This Cloud Agent environment now has a disposable local Supabase stack (`project_id = "sts-media"`). Application-layer Vitest still covers in-memory and mocked sessions. Executable SQL is `supabase/tests/day1_isolation_runtime.sql` plus `supabase/tests/day2_isolation_runtime.sql` (executed locally as `anon` / `authenticated`). The manual plan remains in `supabase/tests/org_isolation.sql`. Setup notes: `docs/day-1-local-supabase-setup.md`. Evidence: `docs/day-1-foundation-verification.md` and `docs/day-2-hardening-verification.md`.
 
 | # | Scenario | Application evidence | SQL evidence (after migrations on a branch DB) |
 | --- | --- | --- | --- |

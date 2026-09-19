@@ -28,12 +28,21 @@ import type {
 } from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
-import { clearCurrentAuth, createSupabaseServer, organizationRoleFor, requireBusinessSettingsWrite, requireOwnerWrite, sessionOrganizationId } from "@/lib/auth/session";
+import { clearCurrentAuth, createSupabaseServer, getSession, organizationRoleFor, requireBusinessSettingsWrite, requireCrmWrite, requireOwnerWrite, sessionOrganizationId } from "@/lib/auth/session";
 import { recordOrganizationAudit, updateOrganizationBusinessSettings } from "@/lib/org/store";
 import { saveOrganizationSettingsInDatabase } from "@/lib/org/database";
+import {
+  GENERIC_CRM_ERROR,
+  loadCrmLeadFromDatabase,
+  normalizeClientInput,
+  normalizeLeadInput,
+  saveCrmClientInDatabase,
+  saveCrmLeadInDatabase,
+  shouldUseCrmDatabase,
+} from "@/lib/org/crm";
 import { draftBusinessSettings, GENERIC_SETTINGS_ERROR, parseBusinessSettingsForm } from "@/lib/org/settings";
 import { demoSessionCookieOptions, getDemoSessionSecret, signDemoSession } from "@/lib/auth/demo-session";
-import { GENERIC_AUTH_ERROR, isAllowedOwnerEmail, normalizeEmail } from "@/lib/auth/owner";
+import { GENERIC_AUTH_ERROR, normalizeEmail } from "@/lib/auth/owner";
 import { parseDollarsToCents } from "@/lib/money";
 
 function isSafePath(path: string) {
@@ -75,7 +84,7 @@ export async function requestPasswordReset(formData: FormData) {
   }
   const email = normalizeEmail(String(formData.get("email") || ""));
   stampAudit("password_reset_request", email ? "auth" : "auth", "Password reset requested. Existence of the account is not confirmed in the UI.");
-  if (isSupabaseConfigured() && isAllowedOwnerEmail(email)) {
+  if (isSupabaseConfigured() && email) {
     const factory = createSupabaseServer();
     if (factory) {
       const supabase = await factory();
@@ -399,6 +408,20 @@ export async function upsertRevenue(input: Partial<RevenueEntry> & { id?: string
 export async function upsertLead(input: Partial<Lead> & { id?: string }) {
   await assertSameOrigin();
   await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseCrmDatabase(session.user)) {
+    const write = await requireCrmWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_CRM_ERROR);
+    const supabase = await factory();
+    const current = input.id ? await loadCrmLeadFromDatabase(supabase, write.organizationId, input.id) : null;
+    const payload = normalizeLeadInput(input, current);
+    const saved = await saveCrmLeadInDatabase(supabase, write.organizationId, payload);
+    if ("error" in saved) throw new Error(GENERIC_CRM_ERROR);
+    stampAudit("lead_upsert", saved.id, "Lead updated.");
+    revalidatePath("/dashboard/leads");
+    return;
+  }
   mutateWorkspace((state) => {
     if (input.id) {
       const current = state.leads.find((item) => item.id === input.id);
@@ -534,7 +557,7 @@ export async function signInWithPassword(formData: FormData) {
   const supabase = await factory();
   const email = normalizeEmail(String(formData.get("email") || ""));
   const password = String(formData.get("password") || "");
-  if (!isAllowedOwnerEmail(email)) {
+  if (!email || !password) {
     stampAudit("login_failed", "auth", "Failed password sign-in. Email existence is not confirmed in the UI.");
     return { error: GENERIC_AUTH_ERROR };
   }
@@ -552,7 +575,7 @@ export async function requestOtp(formData: FormData) {
   const limited = rateLimit(clientKey(await headers(), "otp"), 5, 15 * 60 * 1000);
   if (!limited.ok) return { error: "Please wait before requesting another code.", locked: true };
   const email = normalizeEmail(String(formData.get("email") || ""));
-  if (!isSupabaseConfigured() || !isAllowedOwnerEmail(email)) {
+  if (!isSupabaseConfigured() || !email) {
     return { sent: true, demo: !isSupabaseConfigured() };
   }
   const factory = createSupabaseServer();
@@ -569,7 +592,7 @@ export async function requestMagicLink(formData: FormData) {
   const limited = rateLimit(clientKey(await headers(), "magic"), 5, 15 * 60 * 1000);
   if (!limited.ok) return { error: "Please wait before requesting another link.", locked: true };
   const email = normalizeEmail(String(formData.get("email") || ""));
-  if (!isSupabaseConfigured() || !isAllowedOwnerEmail(email)) {
+  if (!isSupabaseConfigured() || !email) {
     return { sent: true, demo: !isSupabaseConfigured() };
   }
   const factory = createSupabaseServer();
@@ -721,25 +744,33 @@ export async function saveBusinessOsSettings(
 export async function upsertClient(input: Partial<ClientRecord> & { id?: string }) {
   await assertSameOrigin();
   await requireOwnerWrite();
+  const session = await getSession();
+  const payload = normalizeClientInput(input);
+  if (shouldUseCrmDatabase(session.user)) {
+    const write = await requireCrmWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_CRM_ERROR);
+    const supabase = await factory();
+    const saved = await saveCrmClientInDatabase(supabase, write.organizationId, payload);
+    if ("error" in saved) throw new Error(GENERIC_CRM_ERROR);
+    stampAudit("client_upsert", saved.id, "Client record saved. Clients do not receive a login.");
+    revalidatePath("/dashboard/clients");
+    revalidatePath("/dashboard");
+    return;
+  }
   mutateWorkspace((state) => {
-    if (input.id) {
-      const current = state.clients.find((item) => item.id === input.id);
-      if (current) Object.assign(current, input, { portalEnabled: false });
+    if (payload.id) {
+      const current = state.clients.find((item) => item.id === payload.id);
+      if (current) Object.assign(current, payload, { portalEnabled: false });
       return;
     }
     state.clients.unshift({
+      ...payload,
       id: `client-${Date.now()}`,
-      businessName: input.businessName || "New client",
-      contactName: input.contactName || "Add contact name",
-      email: input.email || "",
-      phone: input.phone || "",
-      industry: input.industry || "",
-      status: input.status || "active",
-      portalEnabled: false,
-      notes: input.notes || "",
+      contactName: payload.contactName || "Add contact name",
     });
   });
-  stampAudit("client_upsert", input.id || "new", "Client record saved. Clients do not receive a login.");
+  stampAudit("client_upsert", payload.id || "new", "Client record saved. Clients do not receive a login.");
   revalidatePath("/dashboard/clients");
   revalidatePath("/dashboard");
 }
@@ -954,7 +985,7 @@ export async function verifyMfaCode(formData: FormData) {
   }
   const supabase = await factory();
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user || !isAllowedOwnerEmail(userData.user.email)) {
+  if (!userData.user) {
     stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
     return { error: GENERIC_AUTH_ERROR, status: "invalid" as const, grantOwnerSession: false as const };
   }
@@ -1005,7 +1036,7 @@ export async function verifyEmailCode(formData: FormData) {
   if (!code) return { error: "Missing token", status: "missing" as const };
   if (looksForgedToken(code)) return { error: "Invalid token", status: "forged" as const };
   if (!/^\d{6,8}$/.test(code)) return { error: "Invalid token", status: "invalid" as const };
-  if (!isAllowedOwnerEmail(email)) {
+  if (!email) {
     stampAudit("otp_rejected", "auth", "Email code rejected. No code was logged.");
     return { error: GENERIC_AUTH_ERROR, status: "invalid" as const };
   }

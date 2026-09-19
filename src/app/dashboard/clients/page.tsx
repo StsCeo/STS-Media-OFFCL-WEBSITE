@@ -1,14 +1,22 @@
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { ClientEditor } from "@/components/dashboard/client-editor";
-import { getWorkspace } from "@/lib/data/store";
+import { loadVisibleCrmRecords } from "@/lib/org/crm-context";
 
 export const metadata = { title: "Clients" };
 
-export default function ClientsPage() {
-  const clients = getWorkspace().clients;
+export default async function ClientsPage() {
+  const { clients, source, unavailable } = await loadVisibleCrmRecords();
   return (
     <div>
       <PageHeader title="Clients" description="These are your client records. Clients do not receive a login. You manage the work here; they reach you by email or the contact form." />
+      {unavailable ? (
+        <Card className="mb-6">
+          <p className="text-sm text-muted">Clients could not be loaded from the database. Nothing was written to a local fallback.</p>
+        </Card>
+      ) : null}
+      {source === "postgres" ? (
+        <p className="mb-4 text-xs text-muted">These clients are stored on the organization record. In-memory demo clients are not mixed in.</p>
+      ) : null}
       <Card id="add" className="mb-6">
         <h2 className="mb-4 font-semibold">Add client</h2>
         <ClientEditor />
