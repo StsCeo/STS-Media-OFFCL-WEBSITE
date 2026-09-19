@@ -91,3 +91,30 @@ describe("settings save RPC migration", () => {
     expect(sql).not.toMatch(/\bp_actor\b|\bp_owner_role\b|\bp_role\b/);
   });
 });
+
+describe("day 2 membership owner gate", () => {
+  it("replaces email is_phase1_owner with membership roles and no identity literals", () => {
+    const sql = readFileSync("supabase/migrations/20260919120000_day2_membership_owner_gate.sql", "utf8");
+    expect(sql).toMatch(/create or replace function public\.is_phase1_owner/);
+    expect(sql).toContain("role in ('owner', 'administrator')");
+    expect(sql).toContain("user_id = auth.uid()");
+    expect(sql).toContain("status = 'active'");
+    expect(sql).not.toMatch(/info@stsmedia\.co/);
+    expect(sql).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    expect(sql).not.toMatch(/password|totp|secret|jwt/i);
+  });
+
+  it("adds organization-owned CRM tables with RLS and save RPCs", () => {
+    const sql = readFileSync("supabase/migrations/20260919123000_day2_crm_leads_clients.sql", "utf8");
+    expect(sql).toContain("create table if not exists public.crm_clients");
+    expect(sql).toContain("create table if not exists public.crm_leads");
+    expect(sql).toContain("enable row level security");
+    expect(sql).toContain("force row level security");
+    expect(sql).toContain("sts_can_manage_crm");
+    expect(sql).toContain("sts_save_crm_client");
+    expect(sql).toContain("sts_save_crm_lead");
+    expect(sql).toContain("estimated_value_cents");
+    expect(sql).not.toMatch(/info@stsmedia\.co/);
+    expect(sql).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  });
+});

@@ -53,15 +53,15 @@ EXPECTED=(
   "supabase/migrations/20260919041000_day1_settings_save_transaction.sql"
   "supabase/migrations/20260919053000_day1_legacy_init_compat_and_rpc_guards.sql"
 )
-if [[ "${#MIGRATIONS[@]}" -ne "${#EXPECTED[@]}" ]]; then
-  fail "unexpected migration count: ${#MIGRATIONS[@]} (expected ${#EXPECTED[@]})"
+if [[ "${#MIGRATIONS[@]}" -lt "${#EXPECTED[@]}" ]]; then
+  fail "unexpected migration count: ${#MIGRATIONS[@]} (expected at least ${#EXPECTED[@]})"
 fi
 for i in "${!EXPECTED[@]}"; do
   if [[ "${MIGRATIONS[$i]}" != "${EXPECTED[$i]}" ]]; then
     fail "migration order mismatch at index $i"
   fi
 done
-pass "six migrations present in timestamp order (init.sql is first and is applied)"
+pass "Day 1 migrations remain the first six in timestamp order (later Day 2 files may follow)"
 
 echo "Running authenticated/anonymous isolation SQL (not as proof via superuser)..."
 if ! docker ps --format '{{.Names}}' | grep -q '^supabase_db_sts-media$'; then
