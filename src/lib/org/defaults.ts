@@ -42,7 +42,7 @@ export function createDemoOrganizationFoundation(now = new Date()): Organization
         estimatePrefix: "EST",
         defaultPaymentTerms: "Net 15",
         brandSettings: {
-          paletteId: "charcoal-sage",
+          paletteId: "sts-day",
           accentColor: "",
           logoText: "STS",
         },

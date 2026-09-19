@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { Bell, ChevronLeft, ChevronRight, ExternalLink, LogOut, Moon, Search, Sun, X } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, ExternalLink, LogOut, Search, X } from "lucide-react";
 import { SkipLink } from "@/components/a11y/skip-link";
 import { Logo } from "@/components/brand/logo";
 import { CommandPalette } from "@/components/dashboard/command-palette";
 import { InactivityGuard } from "@/components/dashboard/inactivity";
-import { endDemoSession, toggleTheme } from "@/app/actions";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { endDemoSession } from "@/app/actions";
 import { dashboardNavGroups, type DashboardNavItem } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -34,8 +35,8 @@ function NavLink({
       href={item.href}
       onClick={onNavigate}
       className={cn(
-        "mb-0.5 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm text-soft-gray hover:bg-white/5 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric",
-        active && "bg-white/10 text-ivory shadow-[inset_2px_0_0_0_#3b82f6]",
+        "sts-nav-link mb-0.5 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm text-muted hover:bg-lavender hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric",
+        active && "bg-lavender text-ink shadow-[inset_3px_0_0_0_var(--violet)]",
         collapsed && "justify-center px-0",
       )}
       title={item.status === "planned" ? `${item.label} (planned)` : item.label}
@@ -93,19 +94,19 @@ export function DashboardShell({
       <CommandPalette />
       <InactivityGuard />
       {demo ? (
-        <div className="bg-forest px-4 py-2 text-center text-xs text-ivory">
+        <div className="bg-forest px-4 py-2 text-center text-xs text-white">
           Demo workspace — labeled draft data, not production books. Supabase Auth is required before this is a live command center.
         </div>
       ) : null}
       <div className="flex min-h-screen">
         <aside
           className={cn(
-            "no-print sticky top-0 z-30 hidden h-screen shrink-0 flex-col border-r border-white/10 bg-obsidian text-ivory transition-[width] md:flex",
+            "no-print sticky top-0 z-30 hidden h-screen shrink-0 flex-col border-r border-line bg-obsidian text-ink transition-[width] md:flex",
             collapsed ? "w-[76px]" : "w-[272px]",
           )}
         >
           <div className="flex items-center justify-between px-3 py-4">
-            <Logo compact={collapsed} invert href="/dashboard" />
+            <Logo compact={collapsed} invert={theme === "dark"} href="/dashboard" />
             <button
               className="rounded-md p-1 text-soft-gray hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric"
               onClick={() => setCollapsed((value) => !value)}
@@ -135,9 +136,9 @@ export function DashboardShell({
         {mobileOpen ? (
           <div className="fixed inset-0 z-40 md:hidden">
             <button className="absolute inset-0 bg-black/50" aria-label="Close menu" onClick={() => setMobileOpen(false)} />
-            <aside id={menuId} className="relative flex h-full w-[min(100%,20rem)] flex-col overflow-y-auto bg-obsidian p-4 text-ivory">
+            <aside id={menuId} className="relative flex h-full w-[min(100%,20rem)] flex-col overflow-y-auto bg-obsidian p-4 text-ink">
               <div className="flex items-center justify-between gap-3">
-                <Logo invert href="/dashboard" />
+                <Logo invert={theme === "dark"} href="/dashboard" />
                 <button
                   ref={closeButtonRef}
                   type="button"
@@ -197,13 +198,7 @@ export function DashboardShell({
             <Link href="/dashboard/notifications" className="rounded-md p-2 hover:bg-canvas" aria-label="Notifications">
               <Bell size={18} aria-hidden />
             </Link>
-            <button
-              className="rounded-md p-2 hover:bg-canvas"
-              aria-label="Toggle color theme"
-              onClick={() => start(() => toggleTheme(theme === "dark" ? "light" : "dark"))}
-            >
-              {theme === "dark" ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}
-            </button>
+            <ThemeToggle theme={theme} />
             <Link href="/dashboard/settings/security" className="hidden rounded-md border border-line px-3 py-1.5 text-xs sm:block">
               {email}
             </Link>

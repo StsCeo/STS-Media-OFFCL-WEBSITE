@@ -15,7 +15,7 @@ export function Logo({
       <span
         className={cn(
           "grid h-9 w-9 place-items-center rounded-md border",
-          invert ? "border-gold/40 bg-obsidian text-gold" : "border-forest/20 bg-forest text-ivory",
+          invert ? "border-gold/40 bg-obsidian text-gold" : "border-line bg-forest text-white",
         )}
         aria-hidden="true"
       >

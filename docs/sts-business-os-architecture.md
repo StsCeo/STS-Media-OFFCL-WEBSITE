@@ -10,7 +10,7 @@ This document is the Day 1 foundation audit and architecture checkpoint for the 
 | UI | React **19.2.8** | Server Components by default; client islands for shell, forms, and auth. |
 | Language | TypeScript **5**, `strict` | Path alias `@/*` → `src/*`. |
 | Package manager | **npm** (`package-lock.json`) | Do not switch managers in this repo without owner approval. |
-| Styling | Tailwind CSS **v4** + CSS variables in `src/app/globals.css` | Brand tokens: charcoal (`--obsidian`), forest/sage, Celsius blue (`--electric`, `--info`), purple (`--violet`, `--lead`, `--lavender`). |
+| Styling | Tailwind CSS **v4** + CSS variables in `src/app/globals.css` | Locked appearances: **Day** (`sts-day`, soft white `#F8F7FC`, charcoal type `#20202B`, purple buttons `#7047EB`, lavender selection `#EDE6FF`, blue `#2563EB` only on charts/links) and **Night** (`midnight-navy`). Cookie `sts_theme`. |
 | Validation | Zod **4** | Server-side schemas for public forms and Day 1 business settings. |
 | Auth / DB / storage | Supabase (`@supabase/ssr`, `@supabase/supabase-js`) when configured | Phase 1 also runs an in-memory workspace when demo mode is on. |
 | Charts | Recharts | Used by existing Phase 1 finance pages, not by the Day 1 Command Center totals. |
@@ -43,6 +43,13 @@ This document is the Day 1 foundation audit and architecture checkpoint for the 
 | Future client portal | Planned at `/dashboard/client-portal` (staff view) and a later client-auth route | Clients must never use owner dashboard routes |
 
 Day 1 does **not** change public routes, public navigation, or public copy. Private navigation was expanded to the 18-section Business OS map; existing Phase 1 pages remain routed under “Workspace tools.”
+
+## 3.1 Locked Day / Night appearance
+
+Live chrome ignores the saved lookbook palette. Sun / Moon in the public header, auth shell, and Command Center writes `sts_theme` (`light` = Day, `dark` = Night) for a year. A blocking script in the root layout reads that cookie before paint so Night does not flash Day. Lookbook preview cookies still override for an hour.
+
+- **Day (`sts-day`)**: page `#F8F7FC`, type `#20202B`, buttons `#7047EB` / hover `#5B35D4`, selected nav `#EDE6FF`, blue `#2563EB` only on chart lines and links.
+- **Night (`midnight-navy`)**: navy field `#0B1020`, cream type, violet actions.
 
 ## 4. Authentication flow
 

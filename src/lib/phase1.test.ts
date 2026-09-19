@@ -20,7 +20,7 @@ describe("business profile defaults", () => {
     expect(profile.ownerEmail).toBe(DEFAULT_OWNER_EMAIL);
     expect(profile.einStored).toBe(false);
     expect(createSeedWorkspace().businessProfile).toMatchObject(profile);
-    expect(createSeedWorkspace().brand.paletteId).toBe("charcoal-sage");
+    expect(createSeedWorkspace().brand.paletteId).toBe("sts-day");
   });
 });
 

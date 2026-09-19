@@ -1,53 +1,54 @@
 @import "tailwindcss";
 
 :root {
-  --obsidian: #0b0d0c;
-  --forest: #163d2b;
-  --forest-hover: #0f2f21;
-  --emerald: #2e7d5b;
-  --gold: #c6a15b;
-  --gold-ink: #6a4b12;
-  --ivory: #f7f5ef;
+  --obsidian: #ffffff;
+  --forest: #20202b;
+  --forest-hover: #14141c;
+  --emerald: #7047eb;
+  --gold: #7047eb;
+  --gold-ink: #7047eb;
+  --ivory: #f8f7fc;
   --white: #ffffff;
-  --soft-gray: #a7ada8;
-  --canvas: #f3f4f2;
+  --soft-gray: #8a8a98;
+  --canvas: #f8f7fc;
   --card: #ffffff;
-  --ink: #252825;
-  --muted: #6b716d;
-  --line: #dfe3df;
-  --focus: #52a77d;
+  --ink: #20202b;
+  --muted: #5c5c6b;
+  --line: #e4dff2;
+  --focus: #7047eb;
   --danger: #b42318;
   --warning: #b7791f;
-  --info: #2563a6;
+  --info: #2563eb;
   --success: #2e7d5b;
-  --lead: #7c5cfc;
-  --pending: #a7ada8;
-  --lavender: #c9b8ff;
-  --violet: #6d4aff;
-  --electric: #3b82f6;
-  --cream: #f7f2e8;
+  --lead: #7047eb;
+  --pending: #c8c4d6;
+  --lavender: #ede6ff;
+  --violet: #7047eb;
+  --electric: #2563eb;
+  --cream: #f8f7fc;
   --terracotta: #c87352;
-  --beige: #d9c9b5;
-  --tan: #b9956d;
-  --sage: #5c8f6b;
-  --brand-accent: var(--emerald);
+  --beige: #e4dff2;
+  --tan: #8a8a98;
+  --sage: #7047eb;
+  --brand-accent: var(--violet);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;
   --radius-xl: 28px;
-  --shadow-card: 0 1px 2px rgb(11 13 12 / 0.06), 0 12px 28px rgb(11 13 12 / 0.05);
-  --chart-revenue: #2e7d5b;
-  --chart-profit: #c6a15b;
-  --chart-traffic: #2563a6;
-  --chart-leads: #7c5cfc;
-  --chart-expenses: #b42318;
-  --chart-pending: #a7ada8;
+  --shadow-card: 0 1px 2px rgb(32 32 43 / 0.05), 0 12px 28px rgb(112 71 235 / 0.06);
+  --chart-revenue: #2563eb;
+  --chart-profit: #7047eb;
+  --chart-traffic: #20202b;
+  --chart-leads: #5b35d4;
+  --chart-expenses: #5c5c6b;
+  --chart-pending: #c8c4d6;
   --background: var(--ivory);
   --foreground: var(--ink);
   --surface: var(--white);
   --border: var(--line);
-  --primary: var(--forest);
-  --primary-hover: var(--forest-hover);
+  --primary: #7047eb;
+  --primary-hover: #5b35d4;
+  --primary-ink: #ffffff;
   --accent: var(--brand-accent);
 }
 
@@ -61,20 +62,34 @@
 
 html.dark,
 html[data-theme="dark"] {
-  --background: #0b0d0c;
-  --foreground: #f7f5ef;
-  --surface: #171a18;
-  --border: #343936;
-  --ink: #f7f5ef;
-  --muted: #a7ada8;
-  --card: #171a18;
-  --canvas: #0b0d0c;
-  --line: #343936;
-  --primary: var(--focus);
-  --primary-hover: var(--emerald);
-  --accent: var(--focus);
-  --brand-accent: var(--focus);
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.28);
+  --obsidian: #0b1020;
+  --forest: #121a2f;
+  --forest-hover: #0e1528;
+  --emerald: #3b82f6;
+  --gold: #d7b56d;
+  --gold-ink: #d7b56d;
+  --ivory: #f7f2e8;
+  --soft-gray: #d5cdbf;
+  --canvas: #0b1020;
+  --card: #121a2f;
+  --ink: #f7f2e8;
+  --muted: #c9c2b4;
+  --line: #2c3550;
+  --focus: #c9b8ff;
+  --lavender: #c9b8ff;
+  --violet: #6d4aff;
+  --electric: #3b82f6;
+  --cream: #f7f2e8;
+  --background: #0b1020;
+  --foreground: #f7f2e8;
+  --surface: #121a2f;
+  --border: #2c3550;
+  --primary: #6d4aff;
+  --primary-hover: #5b3de8;
+  --primary-ink: #f7f2e8;
+  --accent: #3b82f6;
+  --brand-accent: #3b82f6;
+  --shadow-card: 0 18px 50px rgb(8 12 24 / 0.45), 0 0 0 1px color-mix(in srgb, #c9b8ff 16%, transparent);
 }
 
 @theme inline {
@@ -112,6 +127,7 @@ html[data-theme="dark"] {
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
+  --color-primary-ink: var(--primary-ink);
   --color-accent: var(--accent);
   --color-chart-revenue: var(--chart-revenue);
   --color-chart-profit: var(--chart-profit);
@@ -148,7 +164,8 @@ body {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--gold) 38%, transparent);
+  background: color-mix(in srgb, var(--lavender) 70%, var(--violet) 12%);
+  color: var(--ink);
 }
 
 kbd {
@@ -201,7 +218,7 @@ summary:focus-visible {
 
 .btn-primary {
   background-color: var(--primary);
-  color: #fff;
+  color: var(--primary-ink);
   box-shadow: none;
 }
 .btn-primary:hover {
@@ -227,6 +244,66 @@ summary:focus-visible {
 .lift:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-card);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .public-grain {
+  background-image:
+    radial-gradient(1100px 480px at 8% -12%, color-mix(in srgb, var(--lavender) 70%, transparent), transparent 55%),
+    radial-gradient(800px 380px at 92% 0%, color-mix(in srgb, var(--electric) 8%, transparent), transparent 52%);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .headline-gradient {
+  color: var(--ink);
+  background: none;
+}
+
+html[data-theme="light"][data-palette="sts-day"] .gold-rule {
+  background: linear-gradient(90deg, transparent, var(--violet), transparent);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .bg-obsidian {
+  background-color: var(--card);
+  color: var(--ink);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .text-ivory,
+html[data-theme="light"][data-palette="sts-day"] .hover\:text-ivory:hover {
+  color: var(--ink);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .border-white\/10 {
+  border-color: var(--line);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .bg-white\/5 {
+  background-color: var(--card);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .hover\:bg-white\/5:hover,
+html[data-theme="light"][data-palette="sts-day"] .hover\:bg-white\/10:hover {
+  background-color: var(--lavender);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .glass-panel {
+  background-color: var(--card);
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: none;
+}
+
+html[data-theme="light"][data-palette="sts-day"] [data-surface="dashboard"] nav a {
+  color: var(--muted);
+}
+
+html[data-theme="light"][data-palette="sts-day"] [data-surface="dashboard"] nav a:hover {
+  background: var(--lavender);
+  color: var(--ink);
+}
+
+html[data-theme="light"][data-palette="sts-day"] [data-surface="dashboard"] nav a[aria-current="page"] {
+  background: var(--lavender);
+  color: var(--ink);
+  box-shadow: inset 3px 0 0 var(--violet);
 }
 
 html[data-atmosphere="night-luxury"] {
@@ -378,6 +455,11 @@ html[data-atmosphere="night-luxury"] footer a:hover {
 html[data-atmosphere="night-luxury"] header nav a[aria-current="page"] {
   color: var(--lavender);
   text-shadow: 0 0 18px color-mix(in srgb, var(--lavender) 35%, transparent);
+}
+
+html[data-atmosphere="night-luxury"] [data-surface="dashboard"] nav a:hover {
+  background: color-mix(in srgb, var(--violet) 18%, transparent);
+  color: var(--ivory);
 }
 
 html[data-atmosphere="night-luxury"] [data-surface="dashboard"] nav a[aria-current="page"] {

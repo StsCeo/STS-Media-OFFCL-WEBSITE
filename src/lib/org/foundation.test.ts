@@ -96,7 +96,7 @@ describe("organization isolation", () => {
       invoicePrefix: "OTH",
       estimatePrefix: "OES",
       defaultPaymentTerms: "Due on receipt",
-      brandSettings: { paletteId: "charcoal-sage", accentColor: "", logoText: "O" },
+      brandSettings: { paletteId: "sts-day", accentColor: "", logoText: "O" },
       notificationSettings: { emailInvoices: false, emailEstimates: false },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

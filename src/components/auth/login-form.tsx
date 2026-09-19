@@ -24,7 +24,7 @@ export function LoginForm({ next, demoEnabled, supabaseConfigured }: { next: str
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-3 gap-1 rounded-md bg-black/30 p-1 text-xs" role="tablist" aria-label="Sign-in method">
+      <div className="grid grid-cols-3 gap-1 rounded-md bg-canvas p-1 text-xs" role="tablist" aria-label="Sign-in method">
         {(["password", "code", "magic"] as const).map((item) => (
           <button
             key={item}
@@ -32,7 +32,7 @@ export function LoginForm({ next, demoEnabled, supabaseConfigured }: { next: str
             role="tab"
             aria-selected={tab === item}
             onClick={() => setTab(item)}
-            className={`rounded-md px-2 py-2 ${tab === item ? "btn-primary text-white" : "text-soft-gray"}`}
+            className={`rounded-md px-2 py-2 ${tab === item ? "btn-primary text-primary-ink" : "text-muted"}`}
           >
             {item === "password" ? "Password" : item === "code" ? "Email code" : "Magic link"}
           </button>

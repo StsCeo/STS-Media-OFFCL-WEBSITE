@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { CONSENT_COOKIE, DEMO_COOKIE, PALETTE_COOKIE, isDemoModeEnabled, isObjectStorageConfigured, isSupabaseConfigured } from "@/lib/config";
+import { CONSENT_COOKIE, DEMO_COOKIE, PALETTE_COOKIE, THEME_COOKIE, isDemoModeEnabled, isObjectStorageConfigured, isSupabaseConfigured } from "@/lib/config";
 import { getWorkspace, mutateWorkspace, stampAudit } from "@/lib/data/store";
 import { clientKey, rateLimit } from "@/lib/security/rate-limit";
 import { allowedFile, assertSameOrigin } from "@/lib/security/origin";
@@ -510,8 +510,13 @@ export async function saveTestimonial(formData: FormData) {
 
 export async function toggleTheme(next: "light" | "dark") {
   const jar = await cookies();
-  jar.set("sts_theme", next, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
-  revalidatePath("/");
+  jar.set(THEME_COOKIE, next === "dark" ? "dark" : "light", {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+    httpOnly: false,
+  });
+  revalidatePath("/", "layout");
 }
 
 export async function signInWithPassword(formData: FormData) {

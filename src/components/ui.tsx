@@ -13,7 +13,7 @@ type ButtonProps = {
 };
 
 const variants = {
-  primary: "btn-primary text-white",
+  primary: "btn-primary text-primary-ink",
   secondary: "btn-secondary",
   ghost: "text-foreground hover:bg-canvas",
   danger: "bg-danger text-white hover:opacity-90",

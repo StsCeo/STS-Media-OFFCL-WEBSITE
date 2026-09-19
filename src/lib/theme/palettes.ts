@@ -9,7 +9,8 @@ export type PaletteId =
   | "midnight-navy"
   | "celsius-creative"
   | "charcoal-sage"
-  | "warm-earth";
+  | "warm-earth"
+  | "sts-day";
 
 export type PaletteAtmosphere = "daylight" | "night-luxury";
 
@@ -321,10 +322,60 @@ export const PALETTES: Palette[] = [
       focus: "#315D46",
     },
   },
+  {
+    id: "sts-day",
+    name: "STS Day",
+    tagline: "Soft white page, charcoal type, purple only on controls.",
+    suitedFor: "The locked daylight look: all-day Command Center and public pages without glare.",
+    atmosphere: "daylight",
+    lavender: "#EDE6FF",
+    violet: "#7047EB",
+    electric: "#2563EB",
+    primary: "#7047EB",
+    primaryHover: "#5B35D4",
+    primaryInk: "#FFFFFF",
+    goldInk: "#7047EB",
+    charts: {
+      revenue: "#2563EB",
+      profit: "#7047EB",
+      traffic: "#20202B",
+      leads: "#5B35D4",
+      expenses: "#5C5C6B",
+      pending: "#C8C4D6",
+    },
+    tokens: {
+      obsidian: "#FFFFFF",
+      forest: "#20202B",
+      forestHover: "#14141C",
+      emerald: "#7047EB",
+      gold: "#7047EB",
+      ivory: "#F8F7FC",
+      softGray: "#8A8A98",
+      canvas: "#F8F7FC",
+      card: "#FFFFFF",
+      ink: "#20202B",
+      muted: "#5C5C6B",
+      line: "#E4DFF2",
+      focus: "#7047EB",
+    },
+  },
 ];
+
+export const STS_DAY_PALETTE_ID: PaletteId = "sts-day";
+export const STS_NIGHT_PALETTE_ID: PaletteId = "midnight-navy";
 
 export function getPalette(id: string | null | undefined): Palette {
   return PALETTES.find((item) => item.id === id) ?? PALETTES[0];
+}
+
+export function parseTheme(value: string | null | undefined): "light" | "dark" {
+  return value === "dark" ? "dark" : "light";
+}
+
+/** Live chrome: Day comfort or Night navy. Lookbook preview cookie still wins. */
+export function resolveLivePalette(theme: "light" | "dark", previewId?: string | null) {
+  if (previewId) return getPalette(previewId);
+  return getPalette(theme === "dark" ? STS_NIGHT_PALETTE_ID : STS_DAY_PALETTE_ID);
 }
 
 export function paletteAtmosphere(palette: Palette): PaletteAtmosphere {
@@ -362,6 +413,7 @@ export function paletteCssVars(palette: Palette, accentOverride?: string) {
     "--sage": t.emerald,
     "--primary": palette.primary ?? (night ? violet : t.forest),
     "--primary-hover": palette.primaryHover ?? (night ? "#5B3DE8" : t.forestHover),
+    "--primary-ink": palette.primaryInk ?? "#FFFFFF",
     "--accent": accent,
     "--brand-accent": accent,
     "--background": night ? t.obsidian : t.ivory,
