@@ -1,5 +1,17 @@
 import { cn } from "@/lib/utils";
 
+export function PublicCard({
+  children,
+  className,
+  as: Tag = "div",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  as?: "div" | "article" | "blockquote" | "section";
+}) {
+  return <Tag className={cn("public-card lift", className)}>{children}</Tag>;
+}
+
 export function IvoryShell({
   children,
   wide = false,
@@ -10,18 +22,18 @@ export function IvoryShell({
   className?: string;
 }) {
   return (
-    <div className="bg-ivory text-ink">
+    <div className="bg-canvas text-ink">
       <div className={cn("mx-auto px-4 py-16", wide ? "max-w-6xl" : "max-w-3xl", className)}>{children}</div>
     </div>
   );
 }
 
 export function PageKicker({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs uppercase tracking-[0.18em] text-forest">{children}</p>;
+  return <p className="text-sm font-medium text-muted">{children}</p>;
 }
 
 export function PageTitle({ children }: { children: React.ReactNode }) {
-  return <h1 className="headline-gradient mt-3 font-display text-4xl leading-tight md:text-5xl">{children}</h1>;
+  return <h1 className="mt-3 font-display text-4xl leading-tight tracking-tight text-ink md:text-5xl">{children}</h1>;
 }
 
 export function PageLede({ children }: { children: React.ReactNode }) {

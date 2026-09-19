@@ -10,7 +10,7 @@ export default async function WorkPage({ searchParams }: { searchParams: Promise
   const filtered = industry ? items.filter((item) => item.industry === industry) : items;
 
   return (
-    <div className="bg-ivory text-ink">
+    <div className="bg-canvas text-ink">
       <div className="mx-auto max-w-6xl px-4 py-16">
         <p className="text-xs uppercase tracking-[0.18em] text-forest">Portfolio</p>
         <h1 className="mt-3 font-display text-4xl">Our work</h1>
@@ -20,7 +20,7 @@ export default async function WorkPage({ searchParams }: { searchParams: Promise
         <div className="mt-8 flex flex-wrap gap-2">
           <Link
             href="/work"
-            className={`rounded-full border px-3 py-1 text-sm ${!industry ? "border-forest bg-forest text-white" : "border-line bg-white"}`}
+            className={`rounded-full border px-3 py-1 text-sm ${!industry ? "border-violet bg-violet text-white" : "border-line bg-card"}`}
           >
             All
           </Link>
@@ -28,7 +28,7 @@ export default async function WorkPage({ searchParams }: { searchParams: Promise
             <Link
               key={name}
               href={`/work?industry=${encodeURIComponent(name)}`}
-              className={`rounded-full border px-3 py-1 text-sm ${industry === name ? "border-forest bg-forest text-white" : "border-line bg-white"}`}
+              className={`rounded-full border px-3 py-1 text-sm ${industry === name ? "border-violet bg-violet text-white" : "border-line bg-card"}`}
             >
               {name}
             </Link>
@@ -36,7 +36,7 @@ export default async function WorkPage({ searchParams }: { searchParams: Promise
         </div>
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           {filtered.map((item) => (
-            <Link key={item.id} href={`/work/${item.slug}`} className="lift rounded-xl border border-line bg-white p-6">
+            <Link key={item.id} href={`/work/${item.slug}`} className="public-card lift block p-6">
               <p className="text-xs uppercase tracking-[0.16em] text-muted">{item.industry}</p>
               <h2 className="mt-2 font-display text-2xl">{item.companyName}</h2>
               <p className="mt-2 text-sm">{item.projectTitle}</p>

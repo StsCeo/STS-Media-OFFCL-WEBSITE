@@ -69,7 +69,20 @@ vi.mock("@supabase/ssr", () => ({
     auth: {
       signOut: () => supabaseSignOut(),
       getUser: async () => ({ data: { user: null }, error: null }),
+      mfa: {
+        getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: "aal1" }, error: null }),
+        listFactors: async () => ({ data: { totp: [], phone: [] }, error: null }),
+      },
     },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            limit: async () => ({ data: [], error: null }),
+          }),
+        }),
+      }),
+    }),
   })),
 }));
 
@@ -271,8 +284,10 @@ describe("sign-out and idle expiration", () => {
   it("signs out of Supabase when it is configured", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "test-anon-key");
+    cookieStore.set("sb-127-auth-token", "session-blob");
     await clearCurrentAuth();
     expect(supabaseSignOut).toHaveBeenCalledTimes(1);
+    expect(cookieStore.has("sb-127-auth-token")).toBe(false);
   });
 
   it("terminates the session on idle expiration so /dashboard cannot be re-entered", async () => {

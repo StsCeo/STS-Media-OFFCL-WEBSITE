@@ -130,7 +130,7 @@ Until they are reviewed: the public site is informational; project work is scope
 ${REVIEW_DISCLAIMER}`,
   cookies: `Essential cookies
 • sts_demo_session or a Supabase auth cookie: keep you signed in
-• sts_theme: light or dark appearance
+• sts_theme: Day (light) or Night (dark) appearance
 • sts_sidebar: Command Center layout
 • sts_palette_preview: temporary color-scheme preview (one hour)
 • sts_cookie_consent: remembers that you acknowledged essential cookies

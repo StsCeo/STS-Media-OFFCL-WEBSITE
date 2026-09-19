@@ -22,13 +22,22 @@ import {
   Landmark,
   History,
   Scale,
+  ClipboardList,
+  FileSignature,
+  Table2,
+  Wallet,
+  Shield,
+  Calculator,
   type LucideIcon,
 } from "lucide-react";
+import type { BusinessOsSectionId } from "@/lib/auth/organization-roles";
 
 export type DashboardNavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  status?: "available" | "planned";
+  sectionId?: BusinessOsSectionId;
 };
 
 export type DashboardNavGroup = {
@@ -39,67 +48,77 @@ export type DashboardNavGroup = {
 
 export const dashboardNavGroups: DashboardNavGroup[] = [
   {
-    id: "overview",
-    label: "Overview",
+    id: "operate",
+    label: "Operate",
     items: [
-      { href: "/dashboard", label: "Command Center", icon: LayoutDashboard },
-      { href: "/dashboard/inbox", label: "Inbox", icon: Inbox },
-    ],
-  },
-  {
-    id: "sales",
-    label: "Sales",
-    items: [
-      { href: "/dashboard/leads", label: "Leads", icon: Users },
-      { href: "/dashboard/clients", label: "Clients", icon: Briefcase },
-    ],
-  },
-  {
-    id: "delivery",
-    label: "Delivery",
-    items: [
-      { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
-      { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
-      { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDays },
+      { href: "/dashboard", label: "Command Center", icon: LayoutDashboard, status: "available", sectionId: "command-center" },
+      { href: "/dashboard/crm", label: "CRM & Sales", icon: Users, status: "available", sectionId: "crm" },
+      { href: "/dashboard/estimates", label: "Estimates & Proposals", icon: ClipboardList, status: "planned", sectionId: "estimates" },
+      { href: "/dashboard/contracts", label: "Contracts & Signatures", icon: FileSignature, status: "planned", sectionId: "contracts" },
+      { href: "/dashboard/projects", label: "Projects", icon: FolderKanban, status: "available", sectionId: "projects" },
+      { href: "/dashboard/calendar", label: "Calendar & Automations", icon: CalendarDays, status: "available", sectionId: "calendar" },
     ],
   },
   {
     id: "money",
     label: "Money",
     items: [
+      { href: "/dashboard/invoices", label: "Invoices & Payments", icon: CircleDollarSign, status: "planned", sectionId: "invoices" },
+      { href: "/dashboard/finance", label: "Finance & Accounting", icon: Landmark, status: "available", sectionId: "finance" },
+      { href: "/dashboard/sheets", label: "STS Sheets & Charts", icon: Table2, status: "planned", sectionId: "sheets" },
+      { href: "/dashboard/taxes", label: "Taxes", icon: Scale, status: "available", sectionId: "taxes" },
+      { href: "/dashboard/payroll", label: "Payroll & Contractors", icon: Wallet, status: "planned", sectionId: "payroll" },
+    ],
+  },
+  {
+    id: "records",
+    label: "Records",
+    items: [
+      { href: "/dashboard/documents", label: "Documents & Receipts", icon: Files, status: "available", sectionId: "documents" },
+      { href: "/dashboard/reports", label: "Reports", icon: FileBarChart, status: "available", sectionId: "reports" },
+      { href: "/dashboard/client-portal", label: "Client Portal", icon: Briefcase, status: "planned", sectionId: "client-portal" },
+      { href: "/dashboard/accountant", label: "Accountant Center", icon: Calculator, status: "planned", sectionId: "accountant" },
+    ],
+  },
+  {
+    id: "system",
+    label: "System",
+    items: [
+      { href: "/dashboard/integrations", label: "Integrations", icon: Plug, status: "available", sectionId: "integrations" },
+      { href: "/dashboard/security", label: "Security & Ownership", icon: Shield, status: "available", sectionId: "security" },
+      { href: "/dashboard/settings/business", label: "Business Settings", icon: Settings, status: "available", sectionId: "business-settings" },
+    ],
+  },
+  {
+    id: "workspace-tools",
+    label: "Workspace tools",
+    items: [
+      { href: "/dashboard/inbox", label: "Inbox", icon: Inbox },
+      { href: "/dashboard/leads", label: "Leads", icon: Users },
+      { href: "/dashboard/clients", label: "Clients", icon: Briefcase },
+      { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
       { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight },
       { href: "/dashboard/revenue", label: "Income", icon: CircleDollarSign },
       { href: "/dashboard/expenses", label: "Expenses", icon: Receipt },
-      { href: "/dashboard/finance", label: "Finance", icon: Landmark },
       { href: "/dashboard/files", label: "Receipts & files", icon: Files },
-    ],
-  },
-  {
-    id: "business",
-    label: "Business",
-    items: [
-      { href: "/dashboard/documents", label: "Documents", icon: FileText },
       { href: "/dashboard/notes", label: "Notes", icon: StickyNote },
-      { href: "/dashboard/reports", label: "Reports", icon: FileBarChart },
-      { href: "/dashboard/taxes", label: "Taxes", icon: Scale },
       { href: "/dashboard/activity", label: "Activity", icon: History },
-      { href: "/dashboard/settings", label: "Settings", icon: Settings },
-    ],
-  },
-  {
-    id: "studio",
-    label: "Studio",
-    items: [
       { href: "/dashboard/content", label: "Content Studio", icon: Clapperboard },
       { href: "/dashboard/portfolio", label: "Portfolio", icon: Images },
       { href: "/dashboard/analytics", label: "Analytics", icon: LineChart },
-      { href: "/dashboard/integrations", label: "Integrations", icon: Plug },
       { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
+      { href: "/dashboard/settings", label: "All settings", icon: FileText },
     ],
   },
 ];
 
 export const dashboardNav = dashboardNavGroups.flatMap((group) => group.items);
+
+export const implementedBusinessOsHrefs = dashboardNavGroups
+  .filter((group) => group.id !== "workspace-tools")
+  .flatMap((group) => group.items)
+  .filter((item) => item.status === "available")
+  .map((item) => item.href);
 
 export const publicNav = [
   { href: "/work", label: "Work" },

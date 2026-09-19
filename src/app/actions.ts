@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { CONSENT_COOKIE, DEMO_COOKIE, PALETTE_COOKIE, isDemoModeEnabled, isObjectStorageConfigured, isSupabaseConfigured } from "@/lib/config";
+import { CONSENT_COOKIE, DEMO_COOKIE, PALETTE_COOKIE, THEME_COOKIE, isDemoModeEnabled, isObjectStorageConfigured, isSupabaseConfigured } from "@/lib/config";
 import { getWorkspace, mutateWorkspace, stampAudit } from "@/lib/data/store";
 import { clientKey, rateLimit } from "@/lib/security/rate-limit";
 import { allowedFile, assertSameOrigin } from "@/lib/security/origin";
@@ -28,7 +28,10 @@ import type {
 } from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
-import { clearCurrentAuth, createSupabaseServer, requireOwnerWrite } from "@/lib/auth/session";
+import { clearCurrentAuth, createSupabaseServer, organizationRoleFor, requireBusinessSettingsWrite, requireOwnerWrite, sessionOrganizationId } from "@/lib/auth/session";
+import { recordOrganizationAudit, updateOrganizationBusinessSettings } from "@/lib/org/store";
+import { saveOrganizationSettingsInDatabase } from "@/lib/org/database";
+import { draftBusinessSettings, GENERIC_SETTINGS_ERROR, parseBusinessSettingsForm } from "@/lib/org/settings";
 import { demoSessionCookieOptions, getDemoSessionSecret, signDemoSession } from "@/lib/auth/demo-session";
 import { GENERIC_AUTH_ERROR, isAllowedOwnerEmail, normalizeEmail } from "@/lib/auth/owner";
 import { parseDollarsToCents } from "@/lib/money";
@@ -507,8 +510,13 @@ export async function saveTestimonial(formData: FormData) {
 
 export async function toggleTheme(next: "light" | "dark") {
   const jar = await cookies();
-  jar.set("sts_theme", next, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
-  revalidatePath("/");
+  jar.set(THEME_COOKIE, next === "dark" ? "dark" : "light", {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+    httpOnly: false,
+  });
+  revalidatePath("/", "layout");
 }
 
 export async function signInWithPassword(formData: FormData) {
@@ -613,6 +621,101 @@ export async function saveBusinessProfile(formData: FormData) {
   revalidatePath("/dashboard/settings/business");
   revalidatePath("/dashboard/taxes");
   revalidatePath("/dashboard");
+}
+
+export type BusinessSettingsActionState = {
+  ok?: boolean;
+  error?: string;
+  values?: import("@/lib/org/types").BusinessSettingsInput;
+};
+
+export async function saveBusinessOsSettings(
+  _prev: BusinessSettingsActionState,
+  formData: FormData,
+): Promise<BusinessSettingsActionState> {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const session = await requireBusinessSettingsWrite();
+  const parsed = parseBusinessSettingsForm(formData);
+  if (!parsed.success) {
+    return { error: parsed.error, values: draftBusinessSettings(formData) };
+  }
+
+  const user = session.user!;
+  const organizationId = session.organizationId ?? sessionOrganizationId(user);
+  const actorRole = organizationRoleFor(user);
+  if (!organizationId || !actorRole || user.membershipStatus !== "active") {
+    return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+  }
+
+  if (user.source === "supabase") {
+    if (!isSupabaseConfigured()) {
+      return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+    }
+    try {
+      const factory = createSupabaseServer();
+      if (!factory) return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+      const supabase = await factory();
+      const saved = await saveOrganizationSettingsInDatabase(supabase, organizationId, parsed.data);
+      if ("error" in saved) {
+        return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+      }
+      revalidatePath("/dashboard/settings/business");
+      revalidatePath("/dashboard");
+      return { ok: true };
+    } catch {
+      return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+    }
+  }
+
+  if (user.source !== "demo" || !isDemoModeEnabled()) {
+    return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+  }
+
+  try {
+    updateOrganizationBusinessSettings({
+      organizationId,
+      actorUserId: user.id,
+      actorRole,
+      actorStatus: user.membershipStatus,
+      actorOrganizationId: organizationId,
+      values: parsed.data,
+    });
+    mutateWorkspace((state) => {
+      state.businessProfile = {
+        ...state.businessProfile,
+        legalName: parsed.data.legalName,
+        dba: parsed.data.displayName,
+        timezone: parsed.data.timezone,
+        currency: parsed.data.baseCurrency,
+        fiscalYearStartMonth: parsed.data.fiscalYearStart,
+        defaultPaymentTerms: parsed.data.defaultPaymentTerms,
+        einStored: false,
+      };
+    });
+    stampAudit(
+      "business_settings_updated",
+      "business_settings",
+      "Organization business settings saved. Prefixes apply to new documents only. EIN is not stored.",
+    );
+    revalidatePath("/dashboard/settings/business");
+    revalidatePath("/dashboard");
+    return { ok: true };
+  } catch {
+    recordOrganizationAudit({
+      organizationId,
+      actorUserId: user.id,
+      action: "business_settings.update_failed",
+      result: "failure",
+      entityType: "business_settings",
+      entityId: null,
+      metadata: {
+        result: "failure",
+        note: "Settings were not saved. Prefixes were not applied to historical documents.",
+      },
+    });
+    return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+  }
 }
 
 export async function upsertClient(input: Partial<ClientRecord> & { id?: string }) {
@@ -832,18 +935,64 @@ export async function acceptInvitation(formData: FormData) {
 export async function verifyMfaCode(formData: FormData) {
   await assertSameOrigin();
   const code = String(formData.get("code") || "");
-  const attempt = describeMfaAttempt({
+  const format = describeMfaAttempt({
     code,
     demoMode: isDemoModeEnabled(),
     backendConfigured: isSupabaseConfigured(),
     production: process.env.NODE_ENV === "production",
     verifiedByProvider: false,
   });
+  if (format.status === "not_configured" || format.status === "missing" || format.status === "forged" || format.status === "expired") {
+    stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
+    return { error: format.message, status: format.status, grantOwnerSession: false as const };
+  }
+
+  const factory = createSupabaseServer();
+  if (!factory) {
+    stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
+    return { error: NOT_CONFIGURED_MESSAGE, status: "not_configured" as const, grantOwnerSession: false as const };
+  }
+  const supabase = await factory();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user || !isAllowedOwnerEmail(userData.user.email)) {
+    stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
+    return { error: GENERIC_AUTH_ERROR, status: "invalid" as const, grantOwnerSession: false as const };
+  }
+
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  const totp = factors?.totp.find((factor) => factor.status === "verified") ?? factors?.totp[0];
+  if (!totp) {
+    stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
+    return { error: GENERIC_AUTH_ERROR, status: "invalid" as const, grantOwnerSession: false as const };
+  }
+
+  const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: totp.id });
+  if (challengeError || !challenge) {
+    stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
+    return { error: GENERIC_AUTH_ERROR, status: "invalid" as const, grantOwnerSession: false as const };
+  }
+
+  const { error: verifyError } = await supabase.auth.mfa.verify({
+    factorId: totp.id,
+    challengeId: challenge.id,
+    code,
+  });
+  const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const verifiedByProvider = !verifyError && assurance?.currentLevel === "aal2";
+  const attempt = describeMfaAttempt({
+    code,
+    demoMode: isDemoModeEnabled(),
+    backendConfigured: isSupabaseConfigured(),
+    production: process.env.NODE_ENV === "production",
+    verifiedByProvider,
+  });
   if (!attempt.ok || !attempt.grantOwnerSession) {
     stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
     return { error: attempt.message, status: attempt.status, grantOwnerSession: false as const };
   }
-  return { error: NOT_CONFIGURED_MESSAGE, status: "not_configured" as const, grantOwnerSession: false as const };
+  stampAudit("mfa_verified", "auth", "MFA challenge verified. No code was logged.");
+  const next = String(formData.get("next") || "/dashboard");
+  redirect(isSafePath(next) ? next : "/dashboard");
 }
 
 export async function verifyEmailCode(formData: FormData) {

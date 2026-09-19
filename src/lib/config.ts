@@ -62,11 +62,17 @@ export function isObjectStorageConfigured() {
 }
 
 export function isProductionEnv() {
-  return process.env.NODE_ENV === "production";
+  return process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
 }
 
+/** Demo workspace is local opt-in only. Production never honors demo cookies. */
 export function isDemoModeEnabled() {
+  if (isProductionEnv()) return false;
   return process.env.NEXT_PUBLIC_ENABLE_DEMO_MODE === "true";
+}
+
+export function isOrgDatabaseConfigured() {
+  return isSupabaseConfigured();
 }
 
 export function siteUrl() {

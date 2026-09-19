@@ -3,6 +3,14 @@ import { createServerClient } from "@supabase/ssr";
 import { DEMO_COOKIE, isDemoModeEnabled, isSupabaseConfigured } from "@/lib/config";
 import { DEFAULT_OWNER_EMAIL, isAllowedOwnerEmail } from "@/lib/auth/owner";
 import { demoSessionCookieOptions, verifyDemoSession } from "@/lib/auth/demo-session";
+import {
+  canAccessOrganizationResource,
+  type MembershipStatus,
+  type OrganizationRole,
+  type Permission,
+} from "@/lib/auth/organization-roles";
+import { DEMO_ORGANIZATION_ID } from "@/lib/org/defaults";
+import { readActiveMembership } from "@/lib/org/membership";
 import type { Role } from "@/lib/types";
 
 export type AuthStatus =
@@ -19,6 +27,9 @@ export interface SessionUser {
   mfaVerified: boolean;
   emailVerified: boolean;
   source: "demo" | "supabase";
+  organizationId?: string | null;
+  organizationRole?: OrganizationRole | null;
+  membershipStatus?: MembershipStatus | null;
 }
 
 export function createSupabaseServer() {
@@ -62,6 +73,9 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
           mfaVerified: true,
           emailVerified: true,
           source: "demo",
+          organizationId: DEMO_ORGANIZATION_ID,
+          organizationRole: "owner",
+          membershipStatus: "active",
         },
       };
     }
@@ -75,6 +89,9 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
           mfaVerified: false,
           emailVerified: true,
           source: "demo",
+          organizationId: DEMO_ORGANIZATION_ID,
+          organizationRole: "owner",
+          membershipStatus: "active",
         },
       };
     }
@@ -95,8 +112,9 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
     return { status: "unauthenticated", user: null };
   }
 
-  const aal = data.user.factors?.length ? "aal2-unknown" : "aal1";
-  const mfaVerified = aal !== "aal1" && (data.user.app_metadata?.mfa_verified === true || false);
+  const membership = await readActiveMembership(supabase, data.user.id);
+  const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const mfaVerified = assurance?.currentLevel === "aal2";
 
   return {
     status: mfaVerified ? "authenticated" : "needs_mfa",
@@ -107,15 +125,20 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
       mfaVerified,
       emailVerified: Boolean(data.user.email_confirmed_at),
       source: "supabase",
+      organizationId: membership?.organizationId ?? null,
+      organizationRole: membership?.role ?? null,
+      membershipStatus: membership?.status ?? null,
     },
   };
 }
 
 export function canAccessDashboard(user: SessionUser | null) {
   if (!user) return false;
+  if (user.source === "demo" && !isDemoModeEnabled()) return false;
   if (user.role !== "owner") return false;
   if (!isAllowedOwnerEmail(user.email)) return false;
-  return user.mfaVerified || user.source === "demo";
+  if (user.source === "supabase" && !user.mfaVerified) return false;
+  return user.mfaVerified || (user.source === "demo" && isDemoModeEnabled());
 }
 
 export async function requireOwnerWrite() {
@@ -124,6 +147,56 @@ export async function requireOwnerWrite() {
     throw new Error("Unauthorized");
   }
   return session;
+}
+
+export function sessionOrganizationId(user: SessionUser | null | undefined): string | null {
+  if (!user) return null;
+  if (user.source === "demo") {
+    if (!isDemoModeEnabled()) return null;
+    return user.organizationId ?? DEMO_ORGANIZATION_ID;
+  }
+  return user.organizationId ?? null;
+}
+
+export function organizationRoleFor(user: SessionUser | null): OrganizationRole | null {
+  if (!user) return null;
+  return user.organizationRole ?? null;
+}
+
+export function canUseOrganizationPermission(
+  user: SessionUser | null,
+  permission: Permission,
+  resourceOrganizationId?: string | null,
+) {
+  if (!user) return false;
+  const organizationId = resourceOrganizationId ?? user.organizationId;
+  const result = canAccessOrganizationResource({
+    role: organizationRoleFor(user),
+    membershipStatus: user.membershipStatus ?? null,
+    actorOrganizationId: user.organizationId,
+    resourceOrganizationId: organizationId,
+    permission,
+  });
+  return result.allowed;
+}
+
+export async function requireBusinessSettingsWrite() {
+  const session = await requireOwnerWrite();
+  const user = session.user!;
+  const organizationId = sessionOrganizationId(user);
+  if (!organizationId) {
+    throw new Error("Unauthorized");
+  }
+  if (
+    !canUseOrganizationPermission(
+      user,
+      "settings.business.write",
+      organizationId,
+    )
+  ) {
+    throw new Error("Unauthorized");
+  }
+  return { ...session, organizationId };
 }
 
 export async function clearCurrentAuth() {
@@ -145,5 +218,15 @@ export async function clearCurrentAuth() {
     await supabase.auth.signOut();
   } catch {
     // Demo cookie is already cleared; continue even if Supabase sign-out fails.
+  }
+  for (const item of jar.getAll()) {
+    if (!item.name.includes("-auth-token")) continue;
+    jar.set(item.name, "", { ...cookie, maxAge: 0 });
+    jar.delete({
+      name: item.name,
+      path: cookie.path,
+      secure: cookie.secure,
+      sameSite: cookie.sameSite,
+    });
   }
 }

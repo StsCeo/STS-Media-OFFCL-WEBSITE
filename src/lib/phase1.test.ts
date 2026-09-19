@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSeedWorkspace } from "./data/seed";
 import { defaultBusinessProfile } from "./data/business-defaults";
 import { backupFilename, buildWorkspaceBackup } from "./export-backup";
@@ -20,7 +20,7 @@ describe("business profile defaults", () => {
     expect(profile.ownerEmail).toBe(DEFAULT_OWNER_EMAIL);
     expect(profile.einStored).toBe(false);
     expect(createSeedWorkspace().businessProfile).toMatchObject(profile);
-    expect(createSeedWorkspace().brand.paletteId).toBe("charcoal-sage");
+    expect(createSeedWorkspace().brand.paletteId).toBe("sts-day");
   });
 });
 
@@ -38,7 +38,12 @@ describe("tax disclaimer", () => {
 });
 
 describe("dashboard access", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("allows the demo owner and rejects clients", () => {
+    vi.stubEnv("NEXT_PUBLIC_ENABLE_DEMO_MODE", "true");
     expect(
       canAccessDashboard({
         id: "user-owner",
