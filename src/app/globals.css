@@ -57,7 +57,6 @@
   --foreground: var(--ink);
   --surface: var(--card);
   --border: var(--line);
-  --primary: var(--forest);
 }
 
 html.dark,
