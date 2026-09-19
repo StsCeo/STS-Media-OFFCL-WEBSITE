@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui";
 import { QuickActions } from "@/components/dashboard/quick-actions";
+import { getSession } from "@/lib/auth/session";
 import { briefing } from "@/lib/insights";
 import { getWorkspace } from "@/lib/data/store";
-import { getOrganization, getOrganizationSettings, listAuditEventsForOrganization } from "@/lib/org/store";
-import { DEMO_ORGANIZATION_ID, DEMO_OWNER_USER_ID } from "@/lib/org/defaults";
+import { getBusinessOsContext } from "@/lib/org/context";
 import { implementedBusinessOsHrefs } from "@/lib/nav";
 
 export const metadata = { title: "Command Center" };
@@ -25,20 +25,11 @@ const implementedLinks = [
 export default async function OverviewPage() {
   const workspace = getWorkspace();
   const today = briefing(workspace);
-  const organization = getOrganization(DEMO_ORGANIZATION_ID);
-  const settings = getOrganizationSettings(DEMO_ORGANIZATION_ID);
-  const actor = {
-    id: "demo-actor",
-    organizationId: DEMO_ORGANIZATION_ID,
-    userId: DEMO_OWNER_USER_ID,
-    role: "owner" as const,
-    status: "active" as const,
-    invitedAt: "",
-    acceptedAt: "",
-    createdAt: "",
-    updatedAt: "",
-  };
-  const orgActivity = listAuditEventsForOrganization(DEMO_ORGANIZATION_ID, actor);
+  const session = await getSession();
+  const os = await getBusinessOsContext(session.user);
+  const organization = os.organization;
+  const settings = os.settings;
+  const orgActivity = os.audit;
   const workspaceActivity = workspace.auditLog.slice(0, 6);
   const actionItems = [
     ...today.overdue.map((task) => ({ label: `Overdue: ${task.title}`, href: "/dashboard/tasks" })),
@@ -99,7 +90,7 @@ export default async function OverviewPage() {
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs uppercase tracking-wide text-muted">Organization</dt>
-              <dd className="mt-1 font-medium">{organization?.displayName ?? "Not provisioned"}</dd>
+              <dd className="mt-1 font-medium">{organization?.displayName ?? (os.unavailable ? "Temporarily unavailable" : "Not provisioned")}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-muted">Legal name</dt>

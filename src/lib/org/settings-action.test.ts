@@ -87,6 +87,16 @@ describe("business settings action", () => {
     expect(result).toEqual({ ok: true });
     expect(getOrganizationSettings(DEMO_ORGANIZATION_ID)?.invoicePrefix).toBe("STSX");
   });
+
+  it("ignores a client-supplied organization id on the settings form", async () => {
+    cookieStore.set(DEMO_COOKIE, await signDemoSession("owner", { secret: TEST_SECRET }));
+    const form = settingsForm();
+    form.set("organizationId", "44444444-4444-4444-8444-444444444444");
+    const result = await saveBusinessOsSettings({}, form);
+    expect(result).toEqual({ ok: true });
+    expect(getOrganizationSettings(DEMO_ORGANIZATION_ID)?.invoicePrefix).toBe("STSX");
+    expect(getOrganizationSettings("44444444-4444-4444-8444-444444444444")).toBeNull();
+  });
 });
 
 describe("dashboard gate", () => {

@@ -3,6 +3,7 @@ import {
   canAccessAssignedWork,
   canAccessClientRecord,
   canAccessOrganizationResource,
+  canWriteMembership,
   hasPermission,
   mapLegacyRole,
 } from "./organization-roles";
@@ -62,6 +63,70 @@ describe("organization roles", () => {
     ).toBe("client_scope");
     expect(hasPermission("client", "section.command-center")).toBe(false);
     expect(hasPermission("client", "section.client-portal")).toBe(true);
+  });
+
+  it("prevents members from elevating their own role and keeps owner assignment owner-only", () => {
+    expect(
+      canWriteMembership({
+        actorRole: "administrator",
+        actorUserId: "admin-1",
+        actorStatus: "active",
+        actorOrganizationId: "org-a",
+        targetUserId: "admin-1",
+        targetOrganizationId: "org-a",
+        currentRole: "administrator",
+        nextRole: "owner",
+      }),
+    ).toEqual({ allowed: false, reason: "self_elevation" });
+    expect(
+      canWriteMembership({
+        actorRole: "administrator",
+        actorUserId: "admin-1",
+        actorStatus: "active",
+        actorOrganizationId: "org-a",
+        targetUserId: "user-2",
+        targetOrganizationId: "org-a",
+        currentRole: "employee",
+        nextRole: "owner",
+      }),
+    ).toEqual({ allowed: false, reason: "role_denied" });
+    expect(
+      canWriteMembership({
+        actorRole: "owner",
+        actorUserId: "owner-1",
+        actorStatus: "active",
+        actorOrganizationId: "org-a",
+        targetUserId: "user-2",
+        targetOrganizationId: "org-a",
+        currentRole: "employee",
+        nextRole: "administrator",
+      }).allowed,
+    ).toBe(true);
+    expect(
+      canWriteMembership({
+        actorRole: "accountant",
+        actorUserId: "books-1",
+        actorStatus: "active",
+        actorOrganizationId: "org-a",
+        targetUserId: "user-2",
+        targetOrganizationId: "org-a",
+        currentRole: "employee",
+        nextRole: "administrator",
+      }).allowed,
+    ).toBe(false);
+    expect(
+      canWriteMembership({
+        actorRole: "owner",
+        actorUserId: "owner-1",
+        actorStatus: "active",
+        actorOrganizationId: "org-a",
+        targetUserId: "owner-2",
+        targetOrganizationId: "org-a",
+        currentRole: "owner",
+        nextRole: "administrator",
+        activeOwnerCount: 1,
+      }),
+    ).toEqual({ allowed: false, reason: "role_denied" });
   });
 
   it("does not treat an invited or disabled membership as authorization", () => {

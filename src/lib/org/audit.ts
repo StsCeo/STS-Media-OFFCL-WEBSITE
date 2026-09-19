@@ -25,7 +25,7 @@ export function sanitizeAuditMetadata(input: unknown): Record<string, unknown> {
   return result;
 }
 
-export function auditResultMetadata(result: "success" | "failure", extra: Record<string, unknown> = {}) {
+export function auditResultMetadata(result: "success" | "failure" | "denied", extra: Record<string, unknown> = {}) {
   return sanitizeAuditMetadata({
     result,
     ...extra,

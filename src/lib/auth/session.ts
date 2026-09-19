@@ -5,12 +5,12 @@ import { DEFAULT_OWNER_EMAIL, isAllowedOwnerEmail } from "@/lib/auth/owner";
 import { demoSessionCookieOptions, verifyDemoSession } from "@/lib/auth/demo-session";
 import {
   canAccessOrganizationResource,
-  mapLegacyRole,
   type MembershipStatus,
   type OrganizationRole,
   type Permission,
 } from "@/lib/auth/organization-roles";
 import { DEMO_ORGANIZATION_ID } from "@/lib/org/defaults";
+import { readActiveMembership } from "@/lib/org/membership";
 import type { Role } from "@/lib/types";
 
 export type AuthStatus =
@@ -112,6 +112,7 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
     return { status: "unauthenticated", user: null };
   }
 
+  const membership = await readActiveMembership(supabase, data.user.id);
   const aal = data.user.factors?.length ? "aal2-unknown" : "aal1";
   const mfaVerified = aal !== "aal1" && (data.user.app_metadata?.mfa_verified === true || false);
 
@@ -124,18 +125,19 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
       mfaVerified,
       emailVerified: Boolean(data.user.email_confirmed_at),
       source: "supabase",
-      organizationId: null,
-      organizationRole: "owner",
-      membershipStatus: "active",
+      organizationId: membership?.organizationId ?? null,
+      organizationRole: membership?.role ?? null,
+      membershipStatus: membership?.status ?? null,
     },
   };
 }
 
 export function canAccessDashboard(user: SessionUser | null) {
   if (!user) return false;
+  if (user.source === "demo" && !isDemoModeEnabled()) return false;
   if (user.role !== "owner") return false;
   if (!isAllowedOwnerEmail(user.email)) return false;
-  return user.mfaVerified || user.source === "demo";
+  return user.mfaVerified || (user.source === "demo" && isDemoModeEnabled());
 }
 
 export async function requireOwnerWrite() {
@@ -146,9 +148,18 @@ export async function requireOwnerWrite() {
   return session;
 }
 
+export function sessionOrganizationId(user: SessionUser | null | undefined): string | null {
+  if (!user) return null;
+  if (user.source === "demo") {
+    if (!isDemoModeEnabled()) return null;
+    return user.organizationId ?? DEMO_ORGANIZATION_ID;
+  }
+  return user.organizationId ?? null;
+}
+
 export function organizationRoleFor(user: SessionUser | null): OrganizationRole | null {
   if (!user) return null;
-  return user.organizationRole ?? mapLegacyRole(user.role);
+  return user.organizationRole ?? null;
 }
 
 export function canUseOrganizationPermission(
@@ -171,10 +182,13 @@ export function canUseOrganizationPermission(
 export async function requireBusinessSettingsWrite() {
   const session = await requireOwnerWrite();
   const user = session.user!;
-  const organizationId = user.organizationId ?? DEMO_ORGANIZATION_ID;
+  const organizationId = sessionOrganizationId(user);
+  if (!organizationId) {
+    throw new Error("Unauthorized");
+  }
   if (
     !canUseOrganizationPermission(
-      { ...user, organizationId, membershipStatus: user.membershipStatus ?? "active" },
+      user,
       "settings.business.write",
       organizationId,
     )

@@ -28,10 +28,10 @@ import type {
 } from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
-import { clearCurrentAuth, createSupabaseServer, requireBusinessSettingsWrite, requireOwnerWrite } from "@/lib/auth/session";
-import { DEMO_ORGANIZATION_ID } from "@/lib/org/defaults";
+import { clearCurrentAuth, createSupabaseServer, organizationRoleFor, requireBusinessSettingsWrite, requireOwnerWrite, sessionOrganizationId } from "@/lib/auth/session";
+import { recordOrganizationAudit, updateOrganizationBusinessSettings } from "@/lib/org/store";
+import { saveOrganizationSettingsInDatabase } from "@/lib/org/database";
 import { draftBusinessSettings, GENERIC_SETTINGS_ERROR, parseBusinessSettingsForm } from "@/lib/org/settings";
-import { updateOrganizationBusinessSettings } from "@/lib/org/store";
 import { demoSessionCookieOptions, getDemoSessionSecret, signDemoSession } from "@/lib/auth/demo-session";
 import { GENERIC_AUTH_ERROR, isAllowedOwnerEmail, normalizeEmail } from "@/lib/auth/owner";
 import { parseDollarsToCents } from "@/lib/money";
@@ -641,15 +641,44 @@ export async function saveBusinessOsSettings(
     return { error: parsed.error, values: draftBusinessSettings(formData) };
   }
 
+  const user = session.user!;
+  const organizationId = session.organizationId ?? sessionOrganizationId(user);
+  const actorRole = organizationRoleFor(user);
+  if (!organizationId || !actorRole || user.membershipStatus !== "active") {
+    return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+  }
+
+  if (user.source === "supabase") {
+    if (!isSupabaseConfigured()) {
+      return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+    }
+    try {
+      const factory = createSupabaseServer();
+      if (!factory) return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+      const supabase = await factory();
+      const saved = await saveOrganizationSettingsInDatabase(supabase, organizationId, parsed.data);
+      if ("error" in saved) {
+        return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+      }
+      revalidatePath("/dashboard/settings/business");
+      revalidatePath("/dashboard");
+      return { ok: true };
+    } catch {
+      return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+    }
+  }
+
+  if (user.source !== "demo" || !isDemoModeEnabled()) {
+    return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
+  }
+
   try {
-    const organizationId = session.organizationId ?? session.user?.organizationId ?? DEMO_ORGANIZATION_ID;
-    const user = session.user!;
     updateOrganizationBusinessSettings({
       organizationId,
       actorUserId: user.id,
-      actorRole: user.organizationRole ?? "owner",
-      actorStatus: user.membershipStatus ?? "active",
-      actorOrganizationId: user.organizationId ?? organizationId,
+      actorRole,
+      actorStatus: user.membershipStatus,
+      actorOrganizationId: organizationId,
       values: parsed.data,
     });
     mutateWorkspace((state) => {
@@ -673,6 +702,18 @@ export async function saveBusinessOsSettings(
     revalidatePath("/dashboard");
     return { ok: true };
   } catch {
+    recordOrganizationAudit({
+      organizationId,
+      actorUserId: user.id,
+      action: "business_settings.update_failed",
+      result: "failure",
+      entityType: "business_settings",
+      entityId: null,
+      metadata: {
+        result: "failure",
+        note: "Settings were not saved. Prefixes were not applied to historical documents.",
+      },
+    });
     return { error: GENERIC_SETTINGS_ERROR, values: parsed.data };
   }
 }

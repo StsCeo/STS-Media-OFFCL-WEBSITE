@@ -18,7 +18,7 @@ This document is the Day 1 foundation audit and architecture checkpoint for the 
 | Lint | ESLint 9 + `eslint-config-next` | |
 | Hosting (intended) | Vercel + domain `stsmedia.co` | No `vercel.json` in repo; project settings live in the Vercel dashboard. |
 
-**Day 1 baseline (before these changes):** `npm run lint` exited 0 with one existing unused-import warning in `src/lib/phase1-acceptance.test.ts`; `npm run typecheck`, `npm test` (78 tests), and `npm run build` passed.
+**Day 1 baseline (this checkpoint):** recorded after inspect, repair, and verification. Commands and exit codes belong in the Day 1 completion report. Do not treat demo totals as filed books.
 
 ## 2. What already existed (reuse)
 
@@ -56,16 +56,17 @@ Live chrome ignores the saved lookbook palette. The public header, auth shell, a
 ## 4. Authentication flow
 
 1. Browser hits `/login`.
-2. If `NEXT_PUBLIC_ENABLE_DEMO_MODE=true` and `DEMO_SESSION_SECRET` (32+ chars) is set, “Explore demo workspace” signs an HTTP-only cookie (`sts_demo_session`). Demo mode must be `false` in production.
-3. If Supabase is configured, password / OTP / magic-link go through Supabase Auth. Public signup must stay disabled (invite-only).
-4. `src/proxy.ts` blocks `/dashboard` unless a verified demo cookie or a Supabase auth cookie is present.
+2. Demo authentication is **local opt-in only**. It requires `NEXT_PUBLIC_ENABLE_DEMO_MODE=true`, a 32+ character `DEMO_SESSION_SECRET`, and a non-production runtime (`NODE_ENV` and `VERCEL_ENV` are not `production`). Production never issues, verifies, or honors demo cookies, including cookies issued earlier.
+3. If Supabase is configured, password / OTP / magic-link go through Supabase Auth. Public signup must stay disabled (invite-only). Missing Supabase configuration in production returns `unconfigured` and denies `/dashboard`; it does not fall back to demo.
+4. `src/proxy.ts` blocks `/dashboard` unless a verified demo cookie (local only) or a Supabase auth cookie **and** configured Supabase env names are present. A cookie whose name merely contains `-auth-token` is ignored when Supabase is unset.
 5. `getSession()` then `canAccessDashboard()` require:
    - a session user
-   - `role === "owner"`
-   - email on the `OWNER_EMAIL` allowlist (default documented mailbox is configured by env, not hardcoded into Day 1 SQL)
-   - MFA verified, except demo sessions
-6. Server actions that mutate workspace data call `assertSameOrigin()` and `requireOwnerWrite()`.
-7. Sign-out and idle expiry clear the demo cookie and call Supabase `signOut` when configured.
+   - `role === "owner"` (Phase 1 dashboard gate from the `OWNER_EMAIL` allowlist)
+   - email on the `OWNER_EMAIL` allowlist
+   - MFA verified, except local demo sessions
+6. Organization role and `organizationId` come from an **active** `organization_members` row when Supabase is configured. A missing membership is not defaulted to owner.
+7. Server actions that mutate workspace data call `assertSameOrigin()` and `requireOwnerWrite()`.
+8. Sign-out and idle expiry clear the demo cookie and call Supabase `signOut` when configured.
 
 Day 1 adds organization role metadata on the session (`organizationId`, `organizationRole`, `membershipStatus`) and a permission matrix. It does **not** open the dashboard to accountants, employees, contractors, or clients. Those roles are denied by default until memberships exist and owner approval is given to invite them.
 
@@ -86,13 +87,23 @@ Migration `supabase/migrations/20260918134000_business_os_org_foundation.sql` is
 | `organizations` | Tenant: legal name, display name, slug, base currency, timezone, fiscal-year start month |
 | `organization_members` | `user_id` + role + status (invited / active / disabled / removed) |
 | `business_settings` | Invoice / estimate prefixes, default payment terms, structured brand and notification JSON |
-| `audit_events` | Who / what / when / entity + sanitized metadata JSON |
+| `audit_events` | Who / what / when / **result** (`success` \| `failure` \| `denied`) / entity + sanitized metadata JSON |
 
 UUID primary keys. Every organization-owned row includes `organization_id`.
 
-If the legacy `organizations` table from the unused init migration already exists, the Day 1 migration adds missing columns instead of creating a duplicate tenant table.
+Forward-only follow-up: `supabase/migrations/20260919033000_day1_audit_result_and_rls_hardening.sql` adds the audit `result` column, missing organization check constraints on legacy tables, `search_path` on remaining functions, membership self-elevation / last-owner guards, and a freeze on changing `organization_id`. `supabase/migrations/20260919041000_day1_settings_save_transaction.sql` adds `sts_save_business_settings()` so a settings update and its success audit commit together. `supabase/migrations/20260919053000_day1_legacy_init_compat_and_rpc_guards.sql` keeps a normal `db reset` honest when legacy `init.sql` created `organizations.name`, and rejects a null organization id in the RPC.
 
-**Application persistence (honest):** Phase 1 still reads/writes the in-memory workspace. Day 1 organization settings follow the same pattern (`src/lib/org/store.ts`) so the public site and owner tools keep working before the migration is applied to a live Supabase project. Wiring these tables to Supabase from the Next.js app is a later-day task after credentials exist.
+**Normal migration process:** `npx supabase db reset` applies every timestamped file in filename order. `20260911120000_init.sql` is **first** and is applied. It is not the live model. Day 1 files are additive (`IF NOT EXISTS` / `ADD COLUMN`). Do not claim the normal process passed while skipping `init.sql`. Local setup: `docs/day-1-local-supabase-setup.md`.
+
+If the legacy `organizations` table from init.sql already exists, the Day 1 migrations add missing columns instead of creating a duplicate tenant table.
+
+**Application persistence:**
+
+- Local demo session (`source=demo`, demo mode on): in-memory `src/lib/org/store.ts`. Process restart loses demo org data.
+- Configured Supabase session (`source=supabase`): PostgreSQL via the user-scoped client and `sts_save_business_settings`. Organization IDs come from the session membership. If the database is unavailable, the save returns a generic error and **does not** write the in-memory store.
+- Phase 1 CRM/finance/documents remain in-memory until a later program wires `os_*` tables.
+
+Manual owner membership insert: `supabase/manual/provision-owner-membership.sql` (blocked until the owner supplies the Auth user UUID).
 
 ## 6. Storage architecture
 
@@ -131,6 +142,8 @@ Deny by default. Hidden navigation is not authorization.
 
 Phase 1 `canAccessDashboard()` remains owner-only so existing invite-only behavior is preserved.
 
+Application helpers: `hasPermission`, `canAccessOrganizationResource`, `canAccessAssignedWork`, `canAccessClientRecord`, `canWriteMembership`. Members cannot change their own role or status. Only an owner may assign the owner role. Hidden navigation is not authorization.
+
 ## 9. Planned financial-data model
 
 Not implemented on Day 1. Future organization-owned ledgers should:
@@ -145,18 +158,58 @@ Not implemented on Day 1. Future organization-owned ledgers should:
 
 Command Center does not calculate revenue, profit, tax, or payroll totals until those organization ledgers exist. Existing Phase 1 finance pages remain available as workspace tools and stay labeled as such.
 
-## 10. Security boundaries
+## 10. Server-side authorization
+
+Deny by default. The browser never supplies a trusted role or organization id.
+
+1. `src/proxy.ts` redirects signed-out requests away from `/dashboard`. A cookie named like a Supabase auth token is not enough by itself; `getSession()` still verifies the user.
+2. `src/app/dashboard/layout.tsx` calls `getSession()` then `canAccessDashboard()`. Invalid sessions, non-owners, emails outside `OWNER_EMAIL`, and unverified MFA (except demo) redirect to login or MFA.
+3. Mutating server actions call `assertSameOrigin()` and `requireOwnerWrite()`. Business Settings also calls `requireBusinessSettingsWrite()`, which checks `settings.business.write` against the **session** organization id (`sessionOrganizationId`).
+4. `canAccessOrganizationResource` rejects missing membership, inactive membership, and cross-organization ids.
+5. Owner-only routes stay owner-only even if a future role is modeled. Accountants, employees, contractors, and clients are denied dashboard entry until memberships exist and the owner approves invites.
+6. Roles and organization ids on forms, query strings, or localStorage are ignored.
+
+## 10.1 Row-level security
+
+When the Day 1 migrations are applied to a non-production Postgres/Supabase database:
+
+- RLS is **enabled and forced** on `organizations`, `organization_members`, `business_settings`, and `audit_events`.
+- Policies use `sts_is_organization_member` / `sts_has_organization_role` (`SECURITY DEFINER`, `search_path = public`) so membership checks do not recurse.
+- `USING` and `WITH CHECK` both require an active membership in **that** `organization_id`.
+- There is no `USING (true)` policy and no grant that lets every authenticated user read every organization.
+- `anon` / `public` have no table privileges. `authenticated` cannot `INSERT` organizations (first tenant is provisioned with the service role).
+- `authenticated` cannot `INSERT`/`UPDATE`/`DELETE` `audit_events`. Members write through `sts_record_audit_event()`, which stamps `actor_user_id = auth.uid()` and a `result`.
+- `sts_guard_membership_write` blocks self role/status changes and administrator assignment of `owner`.
+- `business_settings` has INSERT/UPDATE policies only (no DELETE).
+- Privileged clients (`SUPABASE_SERVICE_ROLE_KEY`) stay server-side and are never imported into Client Components.
+
+`sts_save_business_settings` is `SECURITY DEFINER`. RLS on the tables does not protect that path. The control is `auth.uid()`, an active owner/administrator membership check, field validation, and a single transaction that rolls back if the audit insert fails. Execute is revoked from `public`/`anon` and granted to `authenticated`.
+
+Until the migration is applied, the in-memory store enforces the same membership, cross-org, self-elevation, and audit-immutability rules in application code. Source review of the RPC is not a substitute for running `supabase/tests/day1_isolation_runtime.sql` as `anon` and `authenticated` on a disposable local stack.
+
+## 10.2 Audit-event strategy
+
+Every successful Business Settings save records an organization audit event with:
+
+- who: `actor_user_id` from the session (never a client-supplied actor)
+- what: `action` (for example `business_settings.updated`)
+- when: `created_at`
+- result: `success` | `failure` | `denied` (column plus sanitized metadata)
+- organization: `organization_id`
+- affected entity: `entity_type` + `entity_id`
+
+Metadata is allowlisted by sanitizer: keys and values matching passwords, tokens, secrets, PAN/CVV, bank identifiers, EINs, SSNs, and similar are dropped. Failed saves record `result = failure` without the database error text. Audit rows are append-only; application helpers `updateOrganizationAuditEvent` / `deleteOrganizationAuditEvent` always deny. Prefix and terms changes apply to **new** documents only and never rewrite historical invoices or estimates.
+
+## 10.3 Security and integration boundaries
 
 - Dashboard layout + proxy: signed-out users cannot use private routes.
 - Owner allowlist + `canAccessDashboard`: non-owners cannot use owner routes.
 - Permission helper `canAccessOrganizationResource`: cross-org requests fail.
-- RLS enabled **and forced** on the four Day 1 tables; policies use `security definer` membership helpers to avoid recursive RLS.
-- No `using (true)` authenticated-wide policies on Day 1 tables.
-- `sts_record_audit_event()` stamps `actor_user_id = auth.uid()` and strips secret-like JSON keys.
 - Server actions return generic errors; dashboard `error.tsx` does not render `error.message`.
 - CSP, frame denial, HSTS in production, and `poweredByHeader: false` remain in `next.config.ts`.
+- Stripe, payroll, tax filing, e-sign, and QuickBooks remain env-name-only.
 
-Manual SQL isolation plan: `supabase/tests/org_isolation.sql`.
+Manual SQL isolation plan: `supabase/tests/org_isolation.sql` (eight required scenarios in §18).
 
 ## 11. Integration boundaries
 
@@ -169,13 +222,14 @@ Manual SQL isolation plan: `supabase/tests/org_isolation.sql`.
 | QuickBooks / tax filing / payroll processors / e-sign | **Out of scope; do not enable** |
 | Spaceship | Secure quick link only |
 
-## 12. Backup and portability
+## 12. Backup, portability, and recovery
 
-- Owner JSON backup remains at `/dashboard/export` (Phase 1 workspace).
+- Owner JSON backup remains at `/dashboard/export` (Phase 1 workspace). That export is a portability snapshot, not a substitute for Postgres backups once organization tables are live.
 - Schema lives in ordinary `.sql` migrations that can be applied to any Postgres 15-compatible host.
+- Recovery: restore from a Postgres backup / Supabase point-in-time recovery for applied migrations; restore the owner JSON export only into a **non-production** workspace. Demo data must never be copied into production books.
 - Replace Supabase Auth later by swapping the session adapter; keep membership tables on Postgres.
 - Do not rely on dashboard-only UI as the system of record once Postgres writes are connected.
-- Demo data must never be copied into production books.
+- Applying Day 1 SQL to production requires owner approval and a backup first.
 
 ## 13. Route map for the 18 sections
 
@@ -217,9 +271,9 @@ Existing extra routes (inbox, tasks, notes, content studio, and so on) stay in t
 
 ## 15. Known risks
 
-- Phase 1 `os_*` RLS helper hardcodes an owner email in SQL. Day 1 policies do not repeat that. Changing the Phase 1 helper needs owner approval.
-- Phase 1 and Day 1 still use in-memory persistence until Supabase writes are wired. Data resets on server restart. Do not treat demo totals as filed books.
-- Legacy `20260911120000_init.sql` must not be applied as the live model. If it was already applied in an environment, Day 1 extends `organizations` instead of dropping it.
+- Phase 1 `os_*` tables remain owner-email gated by `is_phase1_owner()` until the owner supplies an Auth user UUID and approves membership bootstrap.
+- Demo organization settings stay in-memory. Configured Supabase sessions write through `sts_save_business_settings`. Those migrations **have been applied to the disposable local `sts-media` stack** in this Cloud Agent VM. They have **not** been applied to production.
+- Legacy `20260911120000_init.sql` is first in the timestamped sequence and **is applied** by a normal `db reset`. It is not the live model. Day 1 extends `organizations` instead of dropping it.
 - Opening the dashboard to non-owner roles without memberships and RLS-backed queries would leak workspace data. Day 1 keeps the owner gate.
 - `OWNER_EMAIL` default in `.env.example` documents the production mailbox name; production must set the env var explicitly.
 - Applying Day 1 SQL to production is safe only as an additive migration; still requires a backup first.
@@ -228,7 +282,7 @@ Existing extra routes (inbox, tasks, notes, content studio, and so on) stay in t
 
 - Applying migrations to the production Supabase project
 - Inviting any non-owner membership (administrator, accountant, employee, contractor, client)
-- Replacing `is_phase1_owner()` hardcoded email comparison
+- Replacing `is_phase1_owner()` hardcoded email comparison before an active owner membership exists (see `supabase/manual/provision-owner-membership.sql`)
 - Connecting Stripe, payroll, tax filing, e-sign, QuickBooks, Gmail, Calendar, analytics, or Turnstile
 - Storing any government identifier or bank account (even encrypted)
 - Changing the owner allowlist
@@ -243,3 +297,19 @@ Required for local demo: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_NAME`, `NEXT_P
 Required for real auth/persistence: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only), `OWNER_EMAIL`.
 
 Reserved, unused on Day 1: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `CALENDLY_CLIENT_ID`, `CALENDLY_CLIENT_SECRET`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `VERCEL_API_TOKEN`, `SPACESHIP_DASHBOARD_URL`, `NEXT_PUBLIC_ANALYTICS_ID`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`.
+
+## 18. Tenant-isolation testing plan
+
+This Cloud Agent environment now has a disposable local Supabase stack (`project_id = "sts-media"`). Application-layer Vitest still covers in-memory and mocked sessions. Executable SQL is `supabase/tests/day1_isolation_runtime.sql` (executed locally as `anon` / `authenticated`). The manual plan remains in `supabase/tests/org_isolation.sql`. Setup notes: `docs/day-1-local-supabase-setup.md`. Evidence: `docs/day-1-foundation-verification.md`.
+
+| # | Scenario | Application evidence | SQL evidence (after migrations on a branch DB) |
+| --- | --- | --- | --- |
+| 1 | Signed-out users cannot read private records | `auth-security.test.ts` (proxy + `getSession` + settings action) | anon `SELECT` denied / 0 rows |
+| 2 | Organization A members can access permitted Organization A data | owner settings save + audit in `foundation.test.ts` / `settings-action.test.ts` | org A owner sees org A settings |
+| 3 | Organization A members cannot read Organization B data | `listMembersForOrganization` / `listAuditEventsForOrganization` return empty for org B | `SELECT` org B = 0 |
+| 4 | Organization A members cannot insert Organization B records | cross-org `updateOrganizationBusinessSettings` throws | `INSERT` settings for org B fails |
+| 5 | Members cannot elevate their own roles | `canWriteMembership` + `changeOrganizationMemberRole` | `sts_guard_membership_write` rejects self `role = owner` |
+| 6 | Non-owners cannot perform owner-only actions | `canAccessDashboard` rejects client/accountant; accountant lacks `security.ownership` | accountant cannot `UPDATE organizations` or read audit |
+| 7 | Unauthorized users cannot modify audit events | `updateOrganizationAuditEvent` / `deleteOrganizationAuditEvent` always deny; no INSERT grant | no INSERT/UPDATE/DELETE policy on `audit_events` |
+| 8 | Service-role credentials never reach the browser | `src/lib/supabase/browser.ts` uses `NEXT_PUBLIC_SUPABASE_ANON_KEY` only; acceptance test rejects `SUPABASE_SERVICE_ROLE` in serialized client config | n/a (bundle grep) |
+

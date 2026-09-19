@@ -1,17 +1,25 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { sanitizeAuditMetadata } from "./audit";
-import { createDemoOrganizationFoundation, DEMO_ORGANIZATION_ID, DEMO_OWNER_USER_ID } from "./defaults";
+import { createDemoOrganizationFoundation, DEMO_ORGANIZATION_ID, DEMO_MEMBER_ID, DEMO_OWNER_USER_ID } from "./defaults";
 import { parseBusinessSettingsForm } from "./settings";
 import {
+  changeOrganizationMemberRole,
+  deleteOrganizationAuditEvent,
   getOrganization,
   listAuditEventsForOrganization,
   listMembersForOrganization,
   resetOrganizationFoundation,
+  updateOrganizationAuditEvent,
   updateOrganizationBusinessSettings,
 } from "./store";
 
-const migration = readFileSync("supabase/migrations/20260918134000_business_os_org_foundation.sql", "utf8");
+const migration = [
+  readFileSync("supabase/migrations/20260918134000_business_os_org_foundation.sql", "utf8"),
+  readFileSync("supabase/migrations/20260919033000_day1_audit_result_and_rls_hardening.sql", "utf8"),
+  readFileSync("supabase/migrations/20260919041000_day1_settings_save_transaction.sql", "utf8"),
+  readFileSync("supabase/migrations/20260919053000_day1_legacy_init_compat_and_rpc_guards.sql", "utf8"),
+].join("\n");
 
 afterEach(() => {
   resetOrganizationFoundation();
@@ -28,10 +36,30 @@ describe("business OS foundation migration", () => {
     expect(migration).toContain("sts_is_organization_member");
     expect(migration).toContain("security definer");
     expect(migration).toContain("sts_sanitize_audit_metadata");
+    expect(migration).toContain("add column if not exists result text");
+    expect(migration).toContain("sts_guard_membership_write");
+    expect(migration).toContain("sts_save_business_settings");
+    expect(migration).toContain("sts_freeze_organization_id");
+    expect(migration).toContain("set search_path = public");
     expect(migration).not.toMatch(/for\s+(select|all|insert|update|delete)[\s\S]{0,80}using\s*\(\s*true\s*\)/i);
     expect(migration).not.toMatch(/ein text/i);
     expect(migration).not.toMatch(/ssn text/i);
     expect(migration).not.toMatch(/service_role_key/i);
+  });
+
+  it("keeps legacy init.sql first in the normal timestamped sequence", () => {
+    const files = readdirSync("supabase/migrations").filter((name) => name.endsWith(".sql")).sort();
+    expect(files).toEqual([
+      "20260911120000_init.sql",
+      "20260912060000_phase1_owner_os.sql",
+      "20260918134000_business_os_org_foundation.sql",
+      "20260919033000_day1_audit_result_and_rls_hardening.sql",
+      "20260919041000_day1_settings_save_transaction.sql",
+      "20260919053000_day1_legacy_init_compat_and_rpc_guards.sql",
+    ]);
+    expect(readFileSync("supabase/tests/day1_isolation_runtime.sql", "utf8")).toContain("set local role authenticated");
+    expect(readFileSync("supabase/tests/day1_isolation_runtime.sql", "utf8")).toContain("set local role anon");
+    expect(readFileSync("docs/day-1-local-supabase-setup.md", "utf8")).toContain("Docker Desktop");
   });
 });
 
@@ -161,8 +189,101 @@ describe("organization isolation", () => {
     expect(result.settings.invoicePrefix).toBe("STSM");
     expect(result.audit.actorUserId).toBe(DEMO_OWNER_USER_ID);
     expect(result.audit.action).toBe("business_settings.updated");
+    expect(result.audit.result).toBe("success");
     expect(result.audit.entityType).toBe("business_settings");
     expect(result.audit.metadata).toMatchObject({ result: "success" });
     expect(JSON.stringify(result.audit.metadata)).not.toMatch(/password|token|ein|ssn|cvv/i);
+  });
+
+  it("denies accountant writes and keeps the service role key off the browser client", () => {
+    expect(() =>
+      updateOrganizationBusinessSettings({
+        organizationId: DEMO_ORGANIZATION_ID,
+        actorUserId: "user-accountant",
+        actorRole: "accountant",
+        actorStatus: "active",
+        actorOrganizationId: DEMO_ORGANIZATION_ID,
+        values: {
+          legalName: "Takeover",
+          displayName: "Takeover",
+          timezone: "UTC",
+          baseCurrency: "USD",
+          fiscalYearStart: 1,
+          invoicePrefix: "HAX",
+          estimatePrefix: "HAX",
+          defaultPaymentTerms: "Net 1",
+        },
+      }),
+    ).toThrow(/Unauthorized/i);
+    expect(getOrganization(DEMO_ORGANIZATION_ID)?.legalName).toBe("Scars to Stars Media");
+
+    const browser = readFileSync("src/lib/supabase/browser.ts", "utf8");
+    expect(browser).not.toMatch(/SERVICE_ROLE/);
+    expect(browser).toContain("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  });
+
+  it("blocks self-elevation, owner-only owner assignment, and audit mutation", () => {
+    const state = createDemoOrganizationFoundation();
+    const adminId = "77777777-7777-4777-8777-777777777777";
+    state.members.push({
+      id: adminId,
+      organizationId: DEMO_ORGANIZATION_ID,
+      userId: "user-admin",
+      role: "administrator",
+      status: "active",
+      invitedAt: new Date().toISOString(),
+      acceptedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    resetOrganizationFoundation(state);
+
+    expect(() =>
+      changeOrganizationMemberRole({
+        actorUserId: "user-admin",
+        actorRole: "administrator",
+        actorStatus: "active",
+        actorOrganizationId: DEMO_ORGANIZATION_ID,
+        targetMemberId: adminId,
+        nextRole: "owner",
+      }),
+    ).toThrow(/Unauthorized/i);
+    expect(state.members.find((item) => item.id === adminId)?.role).toBe("administrator");
+
+    expect(() =>
+      changeOrganizationMemberRole({
+        actorUserId: "user-admin",
+        actorRole: "administrator",
+        actorStatus: "active",
+        actorOrganizationId: DEMO_ORGANIZATION_ID,
+        targetMemberId: DEMO_MEMBER_ID,
+        nextRole: "owner",
+      }),
+    ).toThrow(/Unauthorized/i);
+
+    const promoted = changeOrganizationMemberRole({
+      actorUserId: DEMO_OWNER_USER_ID,
+      actorRole: "owner",
+      actorStatus: "active",
+      actorOrganizationId: DEMO_ORGANIZATION_ID,
+      targetMemberId: adminId,
+      nextRole: "employee",
+    });
+    expect(promoted.role).toBe("employee");
+
+    expect(() =>
+      changeOrganizationMemberRole({
+        actorUserId: DEMO_OWNER_USER_ID,
+        actorRole: "owner",
+        actorStatus: "active",
+        actorOrganizationId: DEMO_ORGANIZATION_ID,
+        targetMemberId: DEMO_MEMBER_ID,
+        nextRole: "administrator",
+      }),
+    ).toThrow(/Unauthorized/i);
+    expect(state.members.find((item) => item.id === DEMO_MEMBER_ID)?.role).toBe("owner");
+
+    expect(() => updateOrganizationAuditEvent()).toThrow(/cannot be modified/i);
+    expect(() => deleteOrganizationAuditEvent()).toThrow(/cannot be modified/i);
   });
 });

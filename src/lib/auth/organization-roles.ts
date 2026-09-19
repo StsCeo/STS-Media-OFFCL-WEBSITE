@@ -54,7 +54,10 @@ export type AccessDenialReason =
   | "cross_organization"
   | "role_denied"
   | "assigned_work_only"
-  | "client_scope";
+  | "client_scope"
+  | "self_elevation";
+
+export type AuditResult = "success" | "failure" | "denied";
 
 const ALL_SECTION_PERMISSIONS = BUSINESS_OS_SECTIONS.map(
   (section) => `section.${section}` as Permission,
@@ -190,4 +193,43 @@ export function canAccessClientRecord(input: {
 
 export function sectionPermission(section: BusinessOsSectionId): Permission {
   return `section.${section}`;
+}
+
+export function canWriteMembership(input: {
+  actorRole: OrganizationRole | null | undefined;
+  actorUserId: string | null | undefined;
+  actorStatus: MembershipStatus | null | undefined;
+  actorOrganizationId: string | null | undefined;
+  targetUserId: string;
+  targetOrganizationId: string;
+  currentRole?: OrganizationRole;
+  nextRole: OrganizationRole;
+  activeOwnerCount?: number;
+}): { allowed: boolean; reason: AccessDenialReason | "ok" } {
+  const access = canAccessOrganizationResource({
+    role: input.actorRole,
+    membershipStatus: input.actorStatus,
+    actorOrganizationId: input.actorOrganizationId,
+    resourceOrganizationId: input.targetOrganizationId,
+    permission: "org.members.manage",
+  });
+  if (!access.allowed) return access;
+  if (!input.actorUserId) return { allowed: false, reason: "unauthenticated" };
+  if (input.targetUserId === input.actorUserId) {
+    return { allowed: false, reason: "self_elevation" };
+  }
+  if (input.nextRole === "owner" && input.actorRole !== "owner") {
+    return { allowed: false, reason: "role_denied" };
+  }
+  if (input.currentRole === "owner" && input.actorRole !== "owner") {
+    return { allowed: false, reason: "role_denied" };
+  }
+  if (
+    input.currentRole === "owner" &&
+    input.nextRole !== "owner" &&
+    (input.activeOwnerCount ?? 1) <= 1
+  ) {
+    return { allowed: false, reason: "role_denied" };
+  }
+  return { allowed: true, reason: "ok" };
 }

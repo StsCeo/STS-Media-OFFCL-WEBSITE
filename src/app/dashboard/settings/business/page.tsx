@@ -3,15 +3,17 @@ import { BusinessOsSettingsForm } from "@/components/dashboard/business-settings
 import { saveBusinessProfile } from "@/app/actions";
 import { getWorkspace } from "@/lib/data/store";
 import { centsToDollars } from "@/lib/money";
-import { DEMO_ORGANIZATION_ID } from "@/lib/org/defaults";
-import { getOrganization, getOrganizationSettings } from "@/lib/org/store";
+import { getSession } from "@/lib/auth/session";
+import { getBusinessOsContext } from "@/lib/org/context";
 
 export const metadata = { title: "Business Settings" };
 
-export default function BusinessSettingsPage() {
+export default async function BusinessSettingsPage() {
   const profile = getWorkspace().businessProfile;
-  const organization = getOrganization(DEMO_ORGANIZATION_ID);
-  const settings = getOrganizationSettings(DEMO_ORGANIZATION_ID);
+  const session = await getSession();
+  const os = await getBusinessOsContext(session.user);
+  const organization = os.organization;
+  const settings = os.settings;
 
   return (
     <div>
@@ -39,9 +41,11 @@ export default function BusinessSettingsPage() {
         </div>
       ) : (
         <Card className="mb-6">
-          <h2 className="font-semibold">Organization not provisioned</h2>
+          <h2 className="font-semibold">{os.unavailable ? "Organization settings unavailable" : "Organization not provisioned"}</h2>
           <p className="mt-2 text-sm text-muted">
-            Apply the Day 1 organization migration and create the first owner membership before using production persistence. The demo workspace includes a local organization foundation.
+            {os.unavailable
+              ? "Business OS settings could not be loaded from the database. Nothing was saved to a local fallback."
+              : "Apply the Day 1 organization migration and create the first owner membership before using production persistence. The demo workspace includes a local organization foundation."}
           </p>
         </Card>
       )}

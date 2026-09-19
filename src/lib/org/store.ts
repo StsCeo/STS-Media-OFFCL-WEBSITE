@@ -1,5 +1,5 @@
-import { canAccessOrganizationResource } from "@/lib/auth/organization-roles";
-import type { OrganizationRole } from "@/lib/auth/organization-roles";
+import { canAccessOrganizationResource, canWriteMembership } from "@/lib/auth/organization-roles";
+import type { AuditResult, MembershipStatus, OrganizationRole } from "@/lib/auth/organization-roles";
 import { auditResultMetadata } from "./audit";
 import { createDemoOrganizationFoundation, DEMO_ORGANIZATION_ID } from "./defaults";
 import type {
@@ -31,11 +31,13 @@ export function resetOrganizationFoundation(state?: OrganizationFoundationState)
   return g().__stsOrganizationFoundation!;
 }
 
-export function getOrganization(organizationId: string): Organization | null {
+export function getOrganization(organizationId: string | null | undefined): Organization | null {
+  if (!organizationId) return null;
   return getOrganizationFoundation().organizations.find((item) => item.id === organizationId) ?? null;
 }
 
-export function getOrganizationSettings(organizationId: string): BusinessSettings | null {
+export function getOrganizationSettings(organizationId: string | null | undefined): BusinessSettings | null {
+  if (!organizationId) return null;
   return getOrganizationFoundation().settings.find((item) => item.organizationId === organizationId) ?? null;
 }
 
@@ -77,20 +79,69 @@ export function recordOrganizationAudit(input: {
   action: string;
   entityType: string;
   entityId: string | null;
+  result?: AuditResult;
   metadata?: Record<string, unknown>;
 }): OrganizationAuditEvent {
+  const result = input.result ?? "success";
   const event: OrganizationAuditEvent = {
     id: `audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     organizationId: input.organizationId,
     actorUserId: input.actorUserId,
     action: input.action,
+    result,
     entityType: input.entityType,
     entityId: input.entityId,
-    metadata: auditResultMetadata("success", input.metadata),
+    metadata: auditResultMetadata(result, input.metadata),
     createdAt: new Date().toISOString(),
   };
   getOrganizationFoundation().auditEvents.unshift(event);
   return event;
+}
+
+export function updateOrganizationAuditEvent(): never {
+  throw new OrganizationAccessError("Audit history cannot be modified.", "unauthorized");
+}
+
+export function deleteOrganizationAuditEvent(): never {
+  throw new OrganizationAccessError("Audit history cannot be modified.", "unauthorized");
+}
+
+export function changeOrganizationMemberRole(input: {
+  actorUserId: string;
+  actorRole: OrganizationRole;
+  actorStatus: MembershipStatus;
+  actorOrganizationId: string;
+  targetMemberId: string;
+  nextRole: OrganizationRole;
+}): OrganizationMember {
+  const state = getOrganizationFoundation();
+  const target = state.members.find((item) => item.id === input.targetMemberId);
+  if (!target) {
+    throw new OrganizationAccessError("Membership was not found.", "not_found");
+  }
+  const access = canWriteMembership({
+    actorRole: input.actorRole,
+    actorUserId: input.actorUserId,
+    actorStatus: input.actorStatus,
+    actorOrganizationId: input.actorOrganizationId,
+    targetUserId: target.userId,
+    targetOrganizationId: target.organizationId,
+    currentRole: target.role,
+    nextRole: input.nextRole,
+    activeOwnerCount: state.members.filter(
+      (item) =>
+        item.organizationId === target.organizationId && item.role === "owner" && item.status === "active",
+    ).length,
+  });
+  if (!access.allowed) {
+    throw new OrganizationAccessError(
+      "Unauthorized",
+      access.reason === "cross_organization" ? "cross_organization" : "unauthorized",
+    );
+  }
+  target.role = input.nextRole;
+  target.updatedAt = new Date().toISOString();
+  return target;
 }
 
 export class OrganizationAccessError extends Error {

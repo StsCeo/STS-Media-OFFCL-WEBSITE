@@ -118,7 +118,7 @@ export function LoginForm({ next, demoEnabled, supabaseConfigured }: { next: str
           <Button type="submit" variant="gold" className="w-full">
             Explore demo workspace
           </Button>
-          <p className="mt-2 text-xs text-soft-gray">Development/demo only. Not a production backdoor. Disable with NEXT_PUBLIC_ENABLE_DEMO_MODE=false.</p>
+          <p className="mt-2 text-xs text-soft-gray">Local development only. Production ignores demo cookies even if this flag is left on.</p>
         </form>
       ) : null}
     </div>

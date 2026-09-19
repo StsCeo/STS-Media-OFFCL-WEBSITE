@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { DEMO_COOKIE, isDemoModeEnabled } from "@/lib/config";
+import { DEMO_COOKIE, isDemoModeEnabled, isSupabaseConfigured } from "@/lib/config";
 import { verifyDemoSession } from "@/lib/auth/demo-session";
 import { updateSupabaseSession } from "@/lib/supabase/proxy";
 
@@ -25,7 +25,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const hasSupabaseAuth = request.cookies.getAll().some((cookie) => cookie.name.includes("-auth-token"));
+  const hasSupabaseAuth =
+    isSupabaseConfigured() &&
+    request.cookies.getAll().some((cookie) => cookie.name.includes("-auth-token"));
   if (hasSupabaseAuth) return response;
 
   const login = request.nextUrl.clone();

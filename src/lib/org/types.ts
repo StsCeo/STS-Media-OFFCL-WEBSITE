@@ -1,4 +1,4 @@
-import type { MembershipStatus, OrganizationRole } from "@/lib/auth/organization-roles";
+import type { AuditResult, MembershipStatus, OrganizationRole } from "@/lib/auth/organization-roles";
 
 export interface Organization {
   id: string;
@@ -52,6 +52,7 @@ export interface OrganizationAuditEvent {
   organizationId: string;
   actorUserId: string | null;
   action: string;
+  result: AuditResult;
   entityType: string;
   entityId: string | null;
   metadata: Record<string, unknown>;

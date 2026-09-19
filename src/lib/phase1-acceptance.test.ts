@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_OWNER_EMAIL, GENERIC_AUTH_ERROR, isAllowedOwnerEmail } from "./auth/owner";
 import { canAccessDashboard } from "./auth/session";
 import { createSeedWorkspace } from "./data/seed";
@@ -16,6 +16,10 @@ import { isSafeRedirect } from "./utils";
 const sql = readFileSync("supabase/migrations/20260912060000_phase1_owner_os.sql", "utf8");
 
 describe("login", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("allowlists only info@stsmedia.co and uses one generic auth error", () => {
     expect(isAllowedOwnerEmail("info@stsmedia.co")).toBe(true);
     expect(isAllowedOwnerEmail("hello@stsmedia.co")).toBe(false);
@@ -24,6 +28,7 @@ describe("login", () => {
   });
 
   it("grants the dashboard only to a verified owner on the allowlist", () => {
+    vi.stubEnv("NEXT_PUBLIC_ENABLE_DEMO_MODE", "true");
     expect(
       canAccessDashboard({
         id: "user-owner",
