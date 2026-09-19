@@ -25,12 +25,12 @@ export default async function MfaVerifyPage({ searchParams }: { searchParams: Pr
     redirect("/dashboard");
   }
 
-  if (!state.allowForm) {
-    return <AuthFlowUnavailable title="Two-factor challenge" state={state} />;
-  }
-
   if (!session.user) {
     redirect("/login");
+  }
+
+  if (!state.allowForm) {
+    return <AuthFlowUnavailable title="Two-factor challenge" state={state} />;
   }
 
   return (

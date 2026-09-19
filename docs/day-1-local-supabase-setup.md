@@ -61,7 +61,8 @@ Do not paste secrets, connection strings, cookie values, or environment-variable
 8. Copy local URL and key **names** from `npx supabase status` into `.env.local` yourself. Keep `NEXT_PUBLIC_ENABLE_DEMO_MODE=true` only for this local machine if you still want the demo button. Production continues to ignore that flag.
 9. In local Studio, create a **new** Auth user for the documented owner mailbox. Choose your own password. This local UUID is not the production owner UUID. Do not invent or reuse a production UUID.
 10. Insert the owner membership on this local database only, using that local UUID, following `supabase/manual/provision-owner-membership.sql`. Do not run that file against production.
-11. Restart the Next.js app, sign in with that local user, save Business Settings, sign out, confirm `/dashboard` redirects, restart Node, and confirm the settings row and success audit event are still present.
+11. Local `supabase/config.toml` enables TOTP enroll/verify so the MFA challenge can be completed. Enroll the factor privately (authenticator app or a local generator). Do not paste the TOTP secret, QR, or codes into chat, git, or screenshots.
+12. Restart the Next.js app, sign in with that local user, complete the MFA challenge in the app, save Business Settings, sign out, confirm `/dashboard` redirects, restart Node and local Supabase, and confirm the settings row and success audit event are still present.
 
 ## How to verify the setup succeeded
 
