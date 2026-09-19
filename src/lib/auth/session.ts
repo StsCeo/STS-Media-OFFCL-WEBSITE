@@ -108,20 +108,17 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
   if (!data.user) return { status: "unauthenticated", user: null };
 
   const email = data.user.email ?? "";
-  if (!isAllowedOwnerEmail(email)) {
-    return { status: "unauthenticated", user: null };
-  }
-
   const membership = await readActiveMembership(supabase, data.user.id);
   const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   const mfaVerified = assurance?.currentLevel === "aal2";
+  const hasMembership = Boolean(membership);
 
   return {
-    status: mfaVerified ? "authenticated" : "needs_mfa",
+    status: hasMembership && !mfaVerified ? "needs_mfa" : "authenticated",
     user: {
       id: data.user.id,
       email,
-      role: "owner",
+      role: sessionRoleFromOrganizationRole(membership?.role),
       mfaVerified,
       emailVerified: Boolean(data.user.email_confirmed_at),
       source: "supabase",
@@ -132,13 +129,31 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
   };
 }
 
+export function sessionRoleFromOrganizationRole(role: OrganizationRole | null | undefined): Role {
+  if (role === "owner") return "owner";
+  if (role === "administrator") return "admin";
+  if (role === "accountant") return "accountant";
+  if (role === "client") return "client";
+  return "contractor";
+}
+
+export function hasPrivilegedOrganizationRole(user: SessionUser | null) {
+  if (!user) return false;
+  if (user.membershipStatus !== "active") return false;
+  if (!user.organizationId) return false;
+  return user.organizationRole === "owner" || user.organizationRole === "administrator";
+}
+
 export function canAccessDashboard(user: SessionUser | null) {
   if (!user) return false;
-  if (user.source === "demo" && !isDemoModeEnabled()) return false;
-  if (user.role !== "owner") return false;
-  if (!isAllowedOwnerEmail(user.email)) return false;
-  if (user.source === "supabase" && !user.mfaVerified) return false;
-  return user.mfaVerified || (user.source === "demo" && isDemoModeEnabled());
+  if (user.source === "demo") {
+    if (!isDemoModeEnabled()) return false;
+    if (user.role !== "owner") return false;
+    if (!isAllowedOwnerEmail(user.email)) return false;
+    return user.mfaVerified || isDemoModeEnabled();
+  }
+  if (!user.mfaVerified) return false;
+  return hasPrivilegedOrganizationRole(user);
 }
 
 export async function requireOwnerWrite() {
@@ -194,6 +209,19 @@ export async function requireBusinessSettingsWrite() {
       organizationId,
     )
   ) {
+    throw new Error("Unauthorized");
+  }
+  return { ...session, organizationId };
+}
+
+export async function requireCrmWrite() {
+  const session = await requireOwnerWrite();
+  const user = session.user!;
+  const organizationId = sessionOrganizationId(user);
+  if (!organizationId) {
+    throw new Error("Unauthorized");
+  }
+  if (!canUseOrganizationPermission(user, "section.crm", organizationId)) {
     throw new Error("Unauthorized");
   }
   return { ...session, organizationId };
