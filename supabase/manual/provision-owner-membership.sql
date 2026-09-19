@@ -1,37 +1,31 @@
 -- Manual owner-membership bootstrap. NOT applied by the app.
 -- Do not run against production until the owner supplies the Auth user UUID
 -- and approves the change. Do not invent a UUID. Do not use profile metadata.
+-- Do not copy a disposable local Auth user UUID into this file or into production.
 --
--- How the owner is recognized today
--- 1. Application: OWNER_EMAIL allowlist (default documented mailbox info@stsmedia.co).
--- 2. Phase 1 SQL: public.is_phase1_owner() compares auth.jwt() email to that same mailbox.
--- 3. Day 1 org tables: empty until a service-role insert creates organizations +
---    organization_members (role=owner, status=active) for that Auth user id.
+-- Day 2 authorization
+-- public.is_phase1_owner() now returns true only when auth.uid() has an
+-- active organization_members row with role owner or administrator.
+-- Applying that migration before this membership exists locks the owner out
+-- of Phase 1 os_* tables and privileged RPCs.
 --
--- Why this file is blocked until an owner decision
--- Replacing is_phase1_owner() with membership-only checks before that row exists
--- would lock the allowlisted owner out of Phase 1 os_* tables. This file therefore
--- does not replace is_phase1_owner().
---
--- Local-first test (required before any production change)
--- 1. On a disposable local stack, create a new Auth user for the allowlisted mailbox.
+-- Local-first test
+-- 1. On the disposable local stack, create a new Auth user for the documented mailbox.
 -- 2. That local UUID is synthetic. Do not treat it as the production owner UUID.
--- 3. Insert the membership below with the local organization id and local user id.
+-- 3. Run supabase/seed.sql on the local stack (email lookup) or insert below
+--    with local organization id and local user id.
 -- 4. Confirm /dashboard still opens and Business Settings save writes an audit row.
--- 5. Do not replace is_phase1_owner() after that local test until the production
---    Auth UUID is supplied and the same insert is approved for a non-production
---    hosted project, then production.
 --
 -- Owner action for a real project
--- 1. In the Supabase Auth dashboard, copy the UUID for the allowlisted owner user.
--- 2. Replace the two placeholders below.
+-- 1. In the Supabase Auth dashboard, copy the UUID for the production owner user.
+-- 2. Replace the two placeholders below. Do not commit the filled-in values.
 -- 3. Run this on a non-production project first, with the service role.
 -- 4. Confirm the owner can still open /dashboard.
--- 5. Only then approve replacing is_phase1_owner() in a later migration.
+-- 5. Only then apply Day 2 migrations to production.
 --
 -- Placeholders (do not commit real UUIDs):
 --   :organization_id  existing or new public.organizations.id
---   :owner_user_id    auth.users.id for the allowlisted owner
+--   :owner_user_id    auth.users.id for the production owner
 
 -- insert into public.organization_members (
 --   organization_id,
@@ -49,4 +43,4 @@
 --   now()
 -- );
 
-select 'blocked: supply owner Auth UUID before inserting membership'::text as status;
+select 'blocked: supply owner Auth UUID before inserting a production membership'::text as status;
