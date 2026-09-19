@@ -61,12 +61,16 @@ npm run build
    - Day 1 hardening: `supabase/migrations/20260919033000_day1_audit_result_and_rls_hardening.sql`
    - Settings RPC: `supabase/migrations/20260919041000_day1_settings_save_transaction.sql`
    - Legacy init compatibility + RPC guards: `supabase/migrations/20260919053000_day1_legacy_init_compat_and_rpc_guards.sql`
+   - Day 2 membership gate: `supabase/migrations/20260919120000_day2_membership_owner_gate.sql`
+   - Day 2 CRM leads/clients: `supabase/migrations/20260919123000_day2_crm_leads_clients.sql`
+   - Do not apply Day 2 to production until an active owner membership exists.
 6. Create private storage buckets `receipts` and `documents`. Do not create a public `client-files` bucket.
 7. Auth redirect URLs:
    - `http://localhost:3000/auth/callback`
    - `http://localhost:3000/reset-password`
    - `http://localhost:3000/invite/accept`
    - `http://localhost:3000/mfa/verify`
+   - `http://localhost:3000/mfa/enroll`
    - the same paths on `https://stsmedia.co`
 8. Invite the owner user. Require TOTP MFA for owner/admin.
 9. Invite-only: do not enable “allow new users to sign up”.

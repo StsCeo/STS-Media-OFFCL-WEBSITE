@@ -160,6 +160,29 @@ begin
 end;
 $$;
 
+create or replace function pg_temp.sts_day2_expect_blocked_write(p_sql text, p_name text)
+returns void
+language plpgsql
+as $$
+declare
+  n integer;
+begin
+  begin
+    execute p_sql;
+    get diagnostics n = row_count;
+  exception
+    when others then
+      raise notice 'PASS % (error)', p_name;
+      return;
+  end;
+  if n = 0 then
+    raise notice 'PASS % (zero rows)', p_name;
+    return;
+  end if;
+  raise exception 'day2 isolation failed: % (wrote % rows)', p_name, n;
+end;
+$$;
+
 do $$
 declare
   owner_a uuid := 'c1111111-1111-4111-8111-111111111111';
@@ -207,8 +230,7 @@ begin
   perform pg_temp.sts_day2_as_anon();
   perform pg_temp.sts_day2_expect_denied_or_zero('select count(*) from public.crm_clients', 'anon cannot select crm_clients');
   perform pg_temp.sts_day2_expect_denied_or_zero('select count(*) from public.crm_leads', 'anon cannot select crm_leads');
-  select public.is_phase1_owner() into privileged;
-  perform pg_temp.sts_day2_expect(coalesce(privileged, false) = false, 'anon is not a privileged member');
+  perform pg_temp.sts_day2_expect_exception('select public.is_phase1_owner()', 'anon cannot execute is_phase1_owner');
 
   perform pg_temp.sts_day2_impersonate(stranger, 'stranger@day2.test');
   select public.is_phase1_owner() into privileged;
@@ -275,7 +297,7 @@ begin
   perform pg_temp.sts_day2_expect(n = 0, 'owner B cannot read org A clients');
   execute format('select count(*) from public.crm_leads where organization_id = %L::uuid', org_a) into n;
   perform pg_temp.sts_day2_expect(n = 0, 'owner B cannot read org A leads');
-  perform pg_temp.sts_day2_expect_exception(
+  perform pg_temp.sts_day2_expect_blocked_write(
     format('update public.crm_leads set business_name = %L where id = %L::uuid', 'Stolen', lead_id),
     'owner B cannot update org A leads'
   );

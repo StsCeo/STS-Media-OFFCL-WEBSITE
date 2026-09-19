@@ -56,6 +56,8 @@ describe("business OS foundation migration", () => {
       "20260919033000_day1_audit_result_and_rls_hardening.sql",
       "20260919041000_day1_settings_save_transaction.sql",
       "20260919053000_day1_legacy_init_compat_and_rpc_guards.sql",
+      "20260919120000_day2_membership_owner_gate.sql",
+      "20260919123000_day2_crm_leads_clients.sql",
     ]);
     expect(readFileSync("supabase/tests/day1_isolation_runtime.sql", "utf8")).toContain("set local role authenticated");
     expect(readFileSync("supabase/tests/day1_isolation_runtime.sql", "utf8")).toContain("set local role anon");

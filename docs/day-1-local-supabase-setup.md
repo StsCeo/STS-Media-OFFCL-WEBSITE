@@ -51,6 +51,10 @@ Do not paste secrets, connection strings, cookie values, or environment-variable
    4. `supabase/migrations/20260919033000_day1_audit_result_and_rls_hardening.sql`
    5. `supabase/migrations/20260919041000_day1_settings_save_transaction.sql`
    6. `supabase/migrations/20260919053000_day1_legacy_init_compat_and_rpc_guards.sql`
+   7. `supabase/migrations/20260919120000_day2_membership_owner_gate.sql`
+   8. `supabase/migrations/20260919123000_day2_crm_leads_clients.sql`
+
+   To apply Day 2 onto an existing local stack **without** wiping Auth users, use `npx supabase db push --local` (or `bash scripts/verify-day2-local-supabase.sh`). Do not reset if you need to keep local MFA factors.
 7. Run the isolation script:
 
    ```bash

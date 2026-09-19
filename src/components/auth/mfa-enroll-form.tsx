@@ -57,7 +57,8 @@ export function MfaEnrollForm() {
       <p className="text-sm text-soft-gray">
         Scan this code in your authenticator app, then enter a code to finish. Cancel removes the unfinished factor.
       </p>
-      {/* The QR is session-only UI. Do not screenshot or copy it into reports. */}
+      {/* The QR is a session-only data URL. Do not screenshot or copy it into reports. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={qrCode} alt="Authenticator enrollment" width={180} height={180} className="mx-auto rounded-md border border-line bg-white p-2" />
       <form className="space-y-4" action={confirmFormAction} method="post">
         <input type="hidden" name="factorId" value={factorId} />
