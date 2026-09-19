@@ -935,18 +935,64 @@ export async function acceptInvitation(formData: FormData) {
 export async function verifyMfaCode(formData: FormData) {
   await assertSameOrigin();
   const code = String(formData.get("code") || "");
-  const attempt = describeMfaAttempt({
+  const format = describeMfaAttempt({
     code,
     demoMode: isDemoModeEnabled(),
     backendConfigured: isSupabaseConfigured(),
     production: process.env.NODE_ENV === "production",
     verifiedByProvider: false,
   });
+  if (format.status === "not_configured" || format.status === "missing" || format.status === "forged" || format.status === "expired") {
+    stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
+    return { error: format.message, status: format.status, grantOwnerSession: false as const };
+  }
+
+  const factory = createSupabaseServer();
+  if (!factory) {
+    stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
+    return { error: NOT_CONFIGURED_MESSAGE, status: "not_configured" as const, grantOwnerSession: false as const };
+  }
+  const supabase = await factory();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user || !isAllowedOwnerEmail(userData.user.email)) {
+    stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
+    return { error: GENERIC_AUTH_ERROR, status: "invalid" as const, grantOwnerSession: false as const };
+  }
+
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  const totp = factors?.totp.find((factor) => factor.status === "verified") ?? factors?.totp[0];
+  if (!totp) {
+    stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
+    return { error: GENERIC_AUTH_ERROR, status: "invalid" as const, grantOwnerSession: false as const };
+  }
+
+  const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: totp.id });
+  if (challengeError || !challenge) {
+    stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
+    return { error: GENERIC_AUTH_ERROR, status: "invalid" as const, grantOwnerSession: false as const };
+  }
+
+  const { error: verifyError } = await supabase.auth.mfa.verify({
+    factorId: totp.id,
+    challengeId: challenge.id,
+    code,
+  });
+  const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const verifiedByProvider = !verifyError && assurance?.currentLevel === "aal2";
+  const attempt = describeMfaAttempt({
+    code,
+    demoMode: isDemoModeEnabled(),
+    backendConfigured: isSupabaseConfigured(),
+    production: process.env.NODE_ENV === "production",
+    verifiedByProvider,
+  });
   if (!attempt.ok || !attempt.grantOwnerSession) {
     stampAudit("mfa_rejected", "auth", "MFA challenge rejected. No code was logged.");
     return { error: attempt.message, status: attempt.status, grantOwnerSession: false as const };
   }
-  return { error: NOT_CONFIGURED_MESSAGE, status: "not_configured" as const, grantOwnerSession: false as const };
+  stampAudit("mfa_verified", "auth", "MFA challenge verified. No code was logged.");
+  const next = String(formData.get("next") || "/dashboard");
+  redirect(isSafePath(next) ? next : "/dashboard");
 }
 
 export async function verifyEmailCode(formData: FormData) {

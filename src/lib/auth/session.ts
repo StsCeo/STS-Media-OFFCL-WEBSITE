@@ -113,8 +113,8 @@ export async function getSession(): Promise<{ status: AuthStatus; user: SessionU
   }
 
   const membership = await readActiveMembership(supabase, data.user.id);
-  const aal = data.user.factors?.length ? "aal2-unknown" : "aal1";
-  const mfaVerified = aal !== "aal1" && (data.user.app_metadata?.mfa_verified === true || false);
+  const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const mfaVerified = assurance?.currentLevel === "aal2";
 
   return {
     status: mfaVerified ? "authenticated" : "needs_mfa",
@@ -137,6 +137,7 @@ export function canAccessDashboard(user: SessionUser | null) {
   if (user.source === "demo" && !isDemoModeEnabled()) return false;
   if (user.role !== "owner") return false;
   if (!isAllowedOwnerEmail(user.email)) return false;
+  if (user.source === "supabase" && !user.mfaVerified) return false;
   return user.mfaVerified || (user.source === "demo" && isDemoModeEnabled());
 }
 
@@ -217,5 +218,15 @@ export async function clearCurrentAuth() {
     await supabase.auth.signOut();
   } catch {
     // Demo cookie is already cleared; continue even if Supabase sign-out fails.
+  }
+  for (const item of jar.getAll()) {
+    if (!item.name.includes("-auth-token")) continue;
+    jar.set(item.name, "", { ...cookie, maxAge: 0 });
+    jar.delete({
+      name: item.name,
+      path: cookie.path,
+      secure: cookie.secure,
+      sameSite: cookie.sameSite,
+    });
   }
 }
