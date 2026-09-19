@@ -35,21 +35,21 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
             ),
           )}
         </nav>
-        <div className="hidden items-center gap-3 lg:flex">
-          <ThemeToggle theme={theme} />
-          <Button href="/contact" size="sm" className="rounded-full">
+        <div className="flex items-center gap-2">
+          <ThemeToggle theme={theme} variant="pair" />
+          <Button href="/contact" size="sm" className="hidden rounded-full lg:inline-flex">
             Start a Project
           </Button>
+          <button
+            className="rounded-md p-2 text-ink lg:hidden"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            aria-controls={menuId}
+            aria-label={open ? "Close menu" : "Open menu"}
+          >
+            {open ? <X aria-hidden /> : <Menu aria-hidden />}
+          </button>
         </div>
-        <button
-          className="rounded-md p-2 text-ink lg:hidden"
-          onClick={() => setOpen((value) => !value)}
-          aria-expanded={open}
-          aria-controls={menuId}
-          aria-label={open ? "Close menu" : "Open menu"}
-        >
-          {open ? <X aria-hidden /> : <Menu aria-hidden />}
-        </button>
       </div>
       {open ? (
         <div id={menuId} className="border-t border-line px-4 py-4 lg:hidden">
@@ -67,7 +67,6 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
               </div>
             ))}
             <Button href="/contact">Start a Project</Button>
-            <ThemeToggle theme={theme} className="self-start" />
           </nav>
         </div>
       ) : null}
