@@ -45,7 +45,7 @@ export function ThemeToggle({
           onClick={() => select("light")}
         >
           <Sun size={14} aria-hidden />
-          Day
+          <span className="hidden sm:inline">Day</span>
         </button>
         <button
           type="button"
@@ -58,7 +58,7 @@ export function ThemeToggle({
           onClick={() => select("dark")}
         >
           <Moon size={14} aria-hidden />
-          Night
+          <span className="hidden sm:inline">Night</span>
         </button>
       </div>
     );

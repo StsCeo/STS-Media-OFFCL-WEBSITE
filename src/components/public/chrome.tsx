@@ -37,9 +37,11 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
         </nav>
         <div className="flex items-center gap-2">
           <ThemeToggle theme={theme} variant="pair" />
-          <Button href="/contact" size="sm" className="hidden rounded-full lg:inline-flex">
-            Start a Project
-          </Button>
+          <span className="hidden lg:inline-flex">
+            <Button href="/contact" size="sm" className="rounded-full">
+              Start a Project
+            </Button>
+          </span>
           <button
             className="rounded-md p-2 text-ink lg:hidden"
             onClick={() => setOpen((value) => !value)}
