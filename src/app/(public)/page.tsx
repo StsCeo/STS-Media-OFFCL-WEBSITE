@@ -7,9 +7,9 @@ import { getWorkspace } from "@/lib/data/store";
 import { creatorPath, ownerPath } from "@/lib/content/public";
 
 const homeServiceIds = [
-  { id: "website-design-and-development", icon: Globe },
-  { id: "digital-optimization", icon: Sparkles },
-  { id: "website-maintenance", icon: Headset },
+  { slug: "website-design-and-development", icon: Globe },
+  { slug: "digital-optimization", icon: Sparkles },
+  { slug: "website-maintenance", icon: Headset },
 ] as const;
 
 export default function HomePage() {
@@ -19,7 +19,7 @@ export default function HomePage() {
   const featuredPackage = packages.find((item) => item.featured && item.active);
   const highlightServices = homeServiceIds
     .map((entry) => {
-      const service = services.find((item) => item.id === entry.id && item.active);
+      const service = services.find((item) => item.slug === entry.slug && item.active);
       return service ? { ...entry, service } : null;
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -28,9 +28,9 @@ export default function HomePage() {
     <div className="public-grain bg-canvas text-ink">
       <OrganizationJsonLd brand={brand} />
 
-      <section className="mx-auto max-w-6xl px-4 pb-10 pt-16 md:pt-20">
+      <section className="mx-auto max-w-6xl px-4 pb-8 pt-12 md:pt-16">
         <p className="text-sm font-medium text-muted">Scars to Stars Media</p>
-        <h1 className="mt-3 max-w-3xl font-display text-4xl leading-[1.15] tracking-tight text-ink md:text-6xl">
+        <h1 className="mt-3 max-w-3xl font-display text-4xl leading-[1.15] tracking-tight text-ink md:text-5xl">
           {brand.brandStatement}
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-7 text-muted md:text-lg">{brand.mission}</p>
