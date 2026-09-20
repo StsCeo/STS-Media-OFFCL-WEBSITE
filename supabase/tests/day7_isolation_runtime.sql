@@ -308,13 +308,20 @@ begin
 
   perform public.sts_save_ops_project(
     org_a, project_a, client_a, 'Renamed launch', '', 'discovery', 'medium',
-    date '1990-01-01', current_date + 21, 250000, null, 'Owner', false, ''
+    null, current_date + 21, 250000, null, 'Owner', false, ''
   );
   execute $sql$
     select count(*) from public.ws_calendar_events
     where source_type = 'project_start' and source_id = $1 and archived_at is null
   $sql$ into n using project_a;
-  perform pg_temp.sts_day7_expect(n = 0, 'invalid historical date closes generated start entry');
+  perform pg_temp.sts_day7_expect(n = 0, 'removing a start date closes generated start entry');
+  perform pg_temp.sts_day7_expect_exception(
+    format(
+      $sql$select public.sts_save_ops_project(%L::uuid, %L::uuid, %L::uuid, 'Renamed launch', '', 'discovery', 'medium', date '1990-01-01', current_date + 21, 250000, null, 'Owner', false, '')$sql$,
+      org_a, project_a, client_a
+    ),
+    'invalid historical date is rejected on the source record'
+  );
 
   perform public.sts_save_ops_project(
     org_a, project_a, client_a, 'Renamed launch', '', 'discovery', 'medium',
