@@ -2255,7 +2255,8 @@ export async function convertEstimateToInvoiceForm(formData: FormData) {
   return { ok: true as const, invoiceId };
 }
 
-export async function reconcileScheduleForm(_formData: FormData) {
+export async function reconcileScheduleForm(formData: FormData) {
+  void formData;
   await assertSameOrigin();
   await requireOwnerWrite();
   const session = await getSession();

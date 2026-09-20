@@ -251,7 +251,7 @@ begin
     'USD', '', '', '', '', '', '', 0, lines
   ) into estimate_a;
   select public.sts_save_ws_invoice(
-    org_a, null, client_a, current_date, current_date - 1, 'USD', 'Invoice notes', '', 0, 0,
+    org_a, null, client_a, current_date - 2, current_date - 1, 'USD', 'Invoice notes', '', 0, 0,
     '[{"description":"Hosting","quantity":1,"unit_cents":9000}]'::jsonb
   ) into invoice_plain;
   perform public.sts_save_ws_calendar_event(
