@@ -154,7 +154,6 @@ declare
   project_again uuid;
   generated_id uuid;
   generated_title text;
-  source_invoice uuid;
   invoice_status text;
   meta jsonb;
   action text;
@@ -438,8 +437,7 @@ begin
   perform pg_temp.sts_day7_expect(n = 1, 'one commercial workflow creates one project');
   execute $sql$select count(*) from public.ops_tasks where project_id = $1$sql$ into n using project_kick;
   perform pg_temp.sts_day7_expect(n = 0, 'kickoff does not invent tasks');
-  select source_invoice_id, status into source_invoice, invoice_status from public.ws_invoices where id = invoice_converted;
-  perform pg_temp.sts_day7_expect(source_invoice is null or true, 'converted invoice remains readable');
+  select status into invoice_status from public.ws_invoices where id = invoice_converted;
   perform pg_temp.sts_day7_expect(invoice_status = 'draft', 'kickoff does not issue, send, or mark the invoice paid');
   execute $sql$
     select notes, description from public.ops_projects where id = $1
