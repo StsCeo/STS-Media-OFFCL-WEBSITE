@@ -270,7 +270,7 @@ Existing extra routes (inbox, tasks, notes, content studio, and so on) stay in t
 4. **Day 4** — Persist notes, private documents, internal calendar, and invoices as operational records. No live charges, email, or external calendar sync.
 5. **Day 5** — Persist customer estimates/quotes as operational records. No email send, stored PDF, e-sign, contracts, or payments.
 6. **Day 6** — Convert an accepted estimate into one draft invoice and add authenticated print views that use the browser print dialog. No email, stored PDF, e-sign, public document URLs, or payment collection.
-7. **Day 7** — Unified internal schedule and idempotent generated calendar rows for dated projects, tasks, estimates, and invoices. Explicit owner/admin project kickoff from a converted invoice. No external calendar sync, email, cron, or reminders.
+7. **Day 7** — Unified internal schedule and idempotent generated calendar rows for dated projects, tasks, estimates, and invoices. Today / upcoming / overdue views use `?schedule=` on `/dashboard/calendar`. Explicit owner/admin project kickoff from a converted invoice. No external calendar sync, email, cron, or reminders.
 8. **Accountant read center** after a real accountant membership exists.
 9. **Client portal** on a separate auth path.
 10. **Integrations** only after owner approval, credentials, and a disconnect/revoke design.

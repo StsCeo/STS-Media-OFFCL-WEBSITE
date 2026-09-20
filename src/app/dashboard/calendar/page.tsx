@@ -3,12 +3,21 @@ import { CalendarForm } from "@/components/dashboard/calendar-form";
 import { ReconcileScheduleForm } from "@/components/dashboard/reconcile-schedule-form";
 import { Card, PageHeader } from "@/components/ui";
 import { loadVisibleWorkspaceRecords } from "@/lib/org/workspace-context";
+import { isScheduleViewFilter, filterCalendarEvents } from "@/lib/org/schedule-model";
 
 export const metadata = { title: "Calendar & Automations" };
 
-export default async function CalendarPage() {
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ schedule?: string }>;
+}) {
+  const params = await searchParams;
+  const filter = isScheduleViewFilter(params.schedule) ? params.schedule : "all";
   const { events, schedule, clients, projects, source, unavailable, scheduleNote } = await loadVisibleWorkspaceRecords();
-  const manualEvents = events.filter((event) => !event.generated);
+  const today = new Date().toISOString().slice(0, 10);
+  const visibleEvents = filterCalendarEvents(events, filter, today);
+  const manualEvents = visibleEvents.filter((event) => !event.generated);
   return (
     <div>
       <PageHeader
@@ -30,7 +39,7 @@ export default async function CalendarPage() {
         <h2 className="mb-4 font-semibold">Add manual event</h2>
         <CalendarForm clients={clients} projects={projects} />
       </Card>
-      <CalendarBoard events={events} schedule={schedule} />
+      <CalendarBoard events={events} schedule={schedule} initialFilter={filter} />
       <div className="mt-6 grid gap-4">
         {manualEvents.map((event) => (
           <Card key={event.id}>
@@ -38,7 +47,7 @@ export default async function CalendarPage() {
             <CalendarForm event={event} clients={clients} projects={projects} />
           </Card>
         ))}
-        {events.filter((event) => event.generated).map((event) => (
+        {visibleEvents.filter((event) => event.generated).map((event) => (
           <Card key={event.id}>
             <CalendarForm event={event} clients={clients} projects={projects} />
           </Card>

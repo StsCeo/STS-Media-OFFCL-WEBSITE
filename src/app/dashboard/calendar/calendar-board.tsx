@@ -10,8 +10,10 @@ import {
   filterCalendarEvents,
   filterSchedule,
   scheduleBucket,
+  scheduleFilterHref,
   scheduleItemHref,
   scheduleSourceLabel,
+  SCHEDULE_VIEW_FILTERS,
 } from "@/lib/org/schedule-model";
 import type { CalendarEvent, InternalScheduleItem, ScheduleViewFilter } from "@/lib/types";
 
@@ -25,15 +27,17 @@ export function CalendarBoard({
   events,
   schedule,
   now = new Date(),
+  initialFilter = "all",
 }: {
   events: CalendarEvent[];
   schedule: InternalScheduleItem[];
   now?: Date;
+  initialFilter?: ScheduleViewFilter;
 }) {
   const [view, setView] = useState<CalendarView>("month");
-  const [filter, setFilter] = useState<ScheduleViewFilter>("all");
   const [cursor, setCursor] = useState(now);
   const today = now.toISOString().slice(0, 10);
+  const filter = initialFilter;
   const days = useMemo(
     () => (view === "agenda" ? [] : calendarDays(view, cursor)),
     [view, cursor],
@@ -56,10 +60,16 @@ export function CalendarBoard({
         <p className="text-sm font-medium" aria-live="polite">{calendarPeriodLabel(view, cursor)}</p>
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="Schedule filters">
-        <Button size="sm" variant={filter === "all" ? "primary" : "secondary"} onClick={() => setFilter("all")}>All</Button>
-        <Button size="sm" variant={filter === "today" ? "primary" : "secondary"} onClick={() => setFilter("today")}>Today</Button>
-        <Button size="sm" variant={filter === "upcoming" ? "primary" : "secondary"} onClick={() => setFilter("upcoming")}>Upcoming</Button>
-        <Button size="sm" variant={filter === "overdue" ? "primary" : "secondary"} onClick={() => setFilter("overdue")}>Overdue</Button>
+        {SCHEDULE_VIEW_FILTERS.map((item) => (
+          <Button
+            key={item}
+            href={scheduleFilterHref(item)}
+            size="sm"
+            variant={filter === item ? "primary" : "secondary"}
+          >
+            {item === "all" ? "All" : item[0].toUpperCase() + item.slice(1)}
+          </Button>
+        ))}
       </div>
       <Card className="mb-4">
         <h2 className="mb-3 font-semibold">Unified schedule</h2>

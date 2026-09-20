@@ -45,6 +45,16 @@ export function scheduleSourceLabel(value: string | null | undefined) {
   return isScheduleSourceType(value) ? SCHEDULE_SOURCE_LABELS[value] : "Unknown source";
 }
 
+export const SCHEDULE_VIEW_FILTERS: ScheduleViewFilter[] = ["all", "today", "upcoming", "overdue"];
+
+export function isScheduleViewFilter(value: string | null | undefined): value is ScheduleViewFilter {
+  return SCHEDULE_VIEW_FILTERS.includes(value as ScheduleViewFilter);
+}
+
+export function scheduleFilterHref(filter: ScheduleViewFilter) {
+  return filter === "all" ? "/dashboard/calendar" : `/dashboard/calendar?schedule=${filter}`;
+}
+
 export function isValidScheduleDate(value: string | null | undefined) {
   const date = String(value || "").slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= SCHEDULE_DATE_MIN && date <= SCHEDULE_DATE_MAX;

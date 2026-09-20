@@ -29,7 +29,6 @@ const issueAction = wrap(issueInvoiceForm);
 const payAction = wrap(recordInvoicePaymentForm);
 const voidAction = wrap(voidInvoiceForm);
 const archiveAction = wrap(archiveInvoiceForm);
-const kickoffAction = wrap(startProjectFromInvoiceForm);
 
 function linesFromInvoice(invoice?: WorkspaceInvoice): LineDraft[] {
   if (!invoice?.lines.length) return [{ description: "", quantity: "1", unit: "0.00" }];
@@ -56,7 +55,6 @@ export function InvoiceForm({
   const [payState, payFormAction, payPending] = useActionState(payAction, {});
   const [voidState, voidFormAction, voidPending] = useActionState(voidAction, {});
   const [archiveState, archiveFormAction, archivePending] = useActionState(archiveAction, {});
-  const [kickoffState, kickoffFormAction, kickoffPending] = useActionState(kickoffAction, {});
   const [lines, setLines] = useState<LineDraft[]>(() => linesFromInvoice(invoice));
   const [discount, setDiscount] = useState(invoice ? centsToDollars(invoice.discountCents).toFixed(2) : "0");
   const [tax, setTax] = useState(invoice ? centsToDollars(invoice.taxCents).toFixed(2) : "0");
@@ -184,12 +182,9 @@ export function InvoiceForm({
           {kickoffProjectId ? (
             <Button href={`/dashboard/projects/${kickoffProjectId}`} size="sm" variant="secondary">Open linked project</Button>
           ) : canKickoff ? (
-            <form action={kickoffFormAction}>
+            <form action={startProjectFromInvoiceForm}>
               <input type="hidden" name="id" value={invoice.id} />
-              <Button type="submit" size="sm" variant="secondary" disabled={kickoffPending}>
-                {kickoffPending ? "Starting…" : "Start project"}
-              </Button>
-              {kickoffState.error ? <p className="mt-2 text-sm text-danger">{kickoffState.error}</p> : null}
+              <Button type="submit" size="sm" variant="secondary">Start project</Button>
             </form>
           ) : null}
         </div>

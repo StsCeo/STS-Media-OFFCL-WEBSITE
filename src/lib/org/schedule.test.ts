@@ -9,6 +9,7 @@ import {
   draftProjectFromConvertedInvoice,
   filterSchedule,
   isValidScheduleDate,
+  isScheduleViewFilter,
   kickoffProjectIds,
   mergeCalendarEvents,
   scheduleBucket,
@@ -147,6 +148,8 @@ describe("internal schedule helpers", () => {
     expect(filterSchedule(schedule, "upcoming", "2026-09-20").some((item) => item.sourceType === "project_deadline")).toBe(true);
     expect(schedule.filter((item) => item.sourceType === "manual")).toHaveLength(1);
     expect(schedule.every((item) => !JSON.stringify(item).includes("customer facing"))).toBe(true);
+    expect(isScheduleViewFilter("overdue")).toBe(true);
+    expect(isScheduleViewFilter("weekly")).toBe(false);
   });
 
   it("starts at most one project from a converted invoice and copies only operational snapshot fields", () => {
@@ -160,6 +163,18 @@ describe("internal schedule helpers", () => {
     expect(drafted.name).toBe("Website rebuild");
     expect(drafted.deadline).toBe("2026-09-10");
     expect(kickoffProjectIds([drafted])).toEqual({ "inv-1": drafted.id });
+  });
+
+  it("seeds one converted draft invoice ready for commercial kickoff", async () => {
+    const { createSeedWorkspace } = await import("@/lib/data/seed");
+    const workspace = createSeedWorkspace();
+    const seededEstimate = workspace.workspaceEstimates[0];
+    const seededInvoice = workspace.workspaceInvoices[0];
+    expect(seededEstimate?.status).toBe("accepted");
+    expect(seededInvoice?.sourceEstimateId).toBe(seededEstimate?.id);
+    expect(seededInvoice?.status).toBe("draft");
+    expect(canStartProjectFromInvoice(seededInvoice, seededEstimate, null)).toBe(true);
+    expect(seededInvoice?.notes).toBe("");
   });
 });
 

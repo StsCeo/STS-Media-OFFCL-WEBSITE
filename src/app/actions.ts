@@ -113,8 +113,6 @@ import {
   validateEstimateLines,
 } from "@/lib/org/estimates";
 import {
-  GENERIC_KICKOFF_ERROR,
-  GENERIC_SCHEDULE_ERROR,
   canStartProjectFromInvoice,
   draftProjectFromConvertedInvoice,
 } from "@/lib/org/schedule-model";
@@ -2262,41 +2260,41 @@ export async function reconcileScheduleForm(formData: FormData) {
   const session = await getSession();
   if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
     const factory = createSupabaseServer();
-    if (!factory) return { error: GENERIC_SCHEDULE_ERROR };
+    if (!factory) return;
     const supabase = await factory();
     const saved = await reconcileWorkspaceSchedule(supabase, session.user.organizationId);
-    if ("error" in saved) return { error: GENERIC_SCHEDULE_ERROR };
+    if ("error" in saved) return;
     stampAudit("schedule_reconciled", session.user.organizationId, "Internal schedule reconciled. No external calendar was contacted.");
     revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard");
-    return { ok: true as const };
+    redirect("/dashboard/calendar");
   }
   stampAudit("schedule_reconciled", "demo", "Internal schedule derived in memory. No external calendar was contacted.");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard");
-  return { ok: true as const };
+  redirect("/dashboard/calendar");
 }
 
 export async function startProjectFromInvoiceForm(formData: FormData) {
   await assertSameOrigin();
   await requireOwnerWrite();
   const id = String(formData.get("id") || "");
-  if (!id) return { error: "Choose an invoice to start a project from." };
+  if (!id) return;
   const session = await getSession();
   if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
     await requireInvoiceWrite();
     await requireOperationsWrite();
     const factory = createSupabaseServer();
-    if (!factory) return { error: GENERIC_KICKOFF_ERROR };
+    if (!factory) return;
     const supabase = await factory();
     const saved = await startProjectFromInvoice(supabase, session.user.organizationId, id);
-    if ("error" in saved) return { error: GENERIC_KICKOFF_ERROR };
+    if ("error" in saved) return;
     stampAudit("project_started_from_invoice", saved.id, "Project started from a converted invoice. The invoice was not issued, sent, or marked paid.");
     revalidatePath("/dashboard/invoices");
     revalidatePath("/dashboard/projects");
     revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard");
-    return { ok: true as const, projectId: saved.id };
+    redirect(`/dashboard/projects/${saved.id}`);
   }
   let projectId = "";
   let denied = false;
@@ -2318,13 +2316,13 @@ export async function startProjectFromInvoiceForm(formData: FormData) {
     projectId = next.id;
     state.projects.unshift(next);
   });
-  if (denied || !projectId) return { error: GENERIC_KICKOFF_ERROR };
+  if (denied || !projectId) return;
   stampAudit("project_started_from_invoice", projectId, "Project started from a converted invoice. The invoice was not issued, sent, or marked paid.");
   revalidatePath("/dashboard/invoices");
   revalidatePath("/dashboard/projects");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard");
-  return { ok: true as const, projectId };
+  redirect(`/dashboard/projects/${projectId}`);
 }
 
 export async function saveOsTransactionForm(formData: FormData) {

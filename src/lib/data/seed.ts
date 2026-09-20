@@ -1,9 +1,53 @@
 import { defaultBusinessProfile } from "./business-defaults";
 import { defaultTaxChecklist } from "../tax";
-import type { WorkspaceState } from "../types";
+import type { WorkspaceEstimate, WorkspaceState } from "../types";
 import { legalBodies } from "../content/trust";
+import { draftInvoiceFromAcceptedEstimate } from "../org/estimates-model";
 
 const now = "2026-09-11T14:00:00.000Z";
+
+function demoKickoffEstimate(): WorkspaceEstimate {
+  return {
+    id: "est-demo-kickoff",
+    estimateNumber: "EST-0001",
+    status: "accepted",
+    title: "Day 7 commercial kickoff quote",
+    description: "",
+    clientId: "client-scp",
+    issueDate: "2026-09-20",
+    expiresOn: "2026-10-15",
+    currency: "USD",
+    internalNotes: "",
+    customerNotes: "",
+    terms: "Net 15",
+    orgLegalName: "STS Media LLC",
+    orgDisplayName: "STS Media",
+    clientBusinessName: "State Collision Pro",
+    clientContactName: "",
+    clientEmail: "",
+    subtotalCents: 300000,
+    discountCents: 5000,
+    taxCents: 0,
+    totalCents: 295000,
+    lines: [
+      {
+        position: 1,
+        description: "Website rebuild",
+        quantity: 2,
+        unitCents: 150000,
+        discountCents: 5000,
+        lineTotalCents: 295000,
+      },
+    ],
+    readyAt: "2026-09-20T12:00:00.000Z",
+    acceptedAt: "2026-09-20T12:05:00.000Z",
+    declinedAt: null,
+    expiredAt: null,
+    archived: false,
+    createdAt: now,
+    updatedAt: "2026-09-20T12:05:00.000Z",
+  };
+}
 
 export function createSeedWorkspace(): WorkspaceState {
   return {
@@ -400,8 +444,12 @@ export function createSeedWorkspace(): WorkspaceState {
         amountPaid: 0,
       },
     ],
-    workspaceInvoices: [],
-    workspaceEstimates: [],
+    workspaceInvoices: (() => {
+      const estimate = demoKickoffEstimate();
+      const invoice = draftInvoiceFromAcceptedEstimate(estimate, "winv-demo-kickoff", "2026-09-20T12:10:00.000Z");
+      return invoice ? [invoice] : [];
+    })(),
+    workspaceEstimates: [demoKickoffEstimate()],
     subscriptions: [
       {
         id: "sub-scp",
