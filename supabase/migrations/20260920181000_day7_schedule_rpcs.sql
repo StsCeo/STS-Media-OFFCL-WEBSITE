@@ -81,6 +81,7 @@ begin
         jsonb_build_object('source_type', p_source_type, 'source_id', p_source_id)
       );
     end if;
+    perform set_config('sts.schedule_reconcile', '', true);
     return;
   end if;
 
@@ -116,6 +117,7 @@ begin
         new_id,
         jsonb_build_object('source_type', p_source_type, 'source_id', p_source_id)
       );
+      perform set_config('sts.schedule_reconcile', '', true);
       return;
     exception
       when unique_violation then
@@ -125,6 +127,7 @@ begin
           and source_type = p_source_type
           and source_id = p_source_id;
         if existing.id is null then
+          perform set_config('sts.schedule_reconcile', '', true);
           raise;
         end if;
     end;
@@ -148,6 +151,7 @@ begin
       existing.id,
       jsonb_build_object('source_type', p_source_type, 'source_id', p_source_id)
     );
+    perform set_config('sts.schedule_reconcile', '', true);
     return;
   end if;
 
@@ -174,6 +178,11 @@ begin
       jsonb_build_object('source_type', p_source_type, 'source_id', p_source_id)
     );
   end if;
+  perform set_config('sts.schedule_reconcile', '', true);
+exception
+  when others then
+    perform set_config('sts.schedule_reconcile', '', true);
+    raise;
 end;
 $$;
 
