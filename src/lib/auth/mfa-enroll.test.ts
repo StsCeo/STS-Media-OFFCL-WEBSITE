@@ -71,5 +71,7 @@ describe("MFA enrollment policy", () => {
     expect(actions).toContain("unenroll");
     expect(actions).toContain("cancelled: true");
     expect(actions).toContain("factors?.all");
+    expect(actions).toContain("mfa.challenge");
+    expect(actions).not.toMatch(/format\.status === "invalid"/);
   });
 });

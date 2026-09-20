@@ -107,7 +107,7 @@ export async function confirmMfaEnrollment(
     production: process.env.NODE_ENV === "production",
     verifiedByProvider: false,
   });
-  if (!factorId || format.status === "missing" || format.status === "forged" || format.status === "invalid") {
+  if (!factorId || format.status === "missing" || format.status === "forged" || format.status === "expired" || format.status === "not_configured") {
     stampAudit("mfa_enroll_rejected", "auth", "MFA enrollment rejected. No secret was logged.");
     return { error: format.status === "missing" ? "Enter the authenticator code." : MFA_ENROLL_GENERIC_ERROR, factorId };
   }
