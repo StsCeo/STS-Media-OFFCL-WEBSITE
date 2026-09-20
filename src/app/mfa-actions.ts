@@ -18,6 +18,7 @@ export type MfaEnrollState = {
   factorId?: string;
   qrCode?: string;
   enrolled?: boolean;
+  cancelled?: boolean;
 };
 
 async function requireEnrollContext() {
@@ -151,5 +152,5 @@ export async function cancelMfaEnrollment(
   }
   await context.supabase.auth.mfa.unenroll({ factorId });
   stampAudit("mfa_enroll_cancelled", "auth", "Unverified MFA enrollment cancelled. No secret was logged.");
-  return {};
+  return { cancelled: true, factorId };
 }

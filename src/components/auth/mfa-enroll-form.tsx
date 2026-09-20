@@ -21,9 +21,12 @@ export function MfaEnrollForm() {
   const [confirmed, confirmFormAction, confirming] = useActionState(confirmAction, {});
   const [cancelled, cancelFormAction, cancelling] = useActionState(cancelAction, {});
 
-  const factorId = started.factorId;
-  const qrCode = started.qrCode;
-  const error = confirmed.error || cancelled.error || started.error;
+  const enrollmentCancelled = Boolean(
+    cancelled.cancelled && cancelled.factorId && cancelled.factorId === started.factorId,
+  );
+  const factorId = enrollmentCancelled ? undefined : started.factorId;
+  const qrCode = enrollmentCancelled ? undefined : started.qrCode;
+  const error = confirmed.error || (enrollmentCancelled ? undefined : cancelled.error) || started.error;
   const pending = starting || confirming || cancelling;
 
   if (started.enrolled) {
