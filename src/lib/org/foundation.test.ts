@@ -73,6 +73,7 @@ describe("business OS foundation migration", () => {
       "20260920170000_day6_estimate_to_invoice.sql",
       "20260920180000_day7_schedule_automations.sql",
       "20260920181000_day7_schedule_rpcs.sql",
+      "20260920190000_day8_accountant_center.sql",
     ]);
     const noDelete = readFileSync("supabase/migrations/20260920130000_day3_ops_no_hard_delete.sql", "utf8");
     expect(noDelete).toContain("revoke delete on public.ops_expenses");

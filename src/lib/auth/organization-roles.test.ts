@@ -42,6 +42,7 @@ describe("organization roles", () => {
 
   it("keeps accountants out of ownership, credentials, and unrelated sections", () => {
     expect(hasPermission("accountant", "section.accountant")).toBe(true);
+    expect(hasPermission("accountant", "section.finance")).toBe(true);
     expect(hasPermission("accountant", "settings.business.read")).toBe(true);
     expect(hasPermission("accountant", "settings.business.write")).toBe(false);
     expect(hasPermission("accountant", "security.ownership")).toBe(false);

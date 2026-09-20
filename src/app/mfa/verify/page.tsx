@@ -3,8 +3,9 @@ import { AuthFlowUnavailable } from "@/components/auth/unavailable";
 import { AuthShell } from "@/components/auth/shell";
 import { MfaVerifyForm } from "@/components/auth/recovery-forms";
 import { describeMfaPage } from "@/lib/auth/phase1-flows";
-import { getSession } from "@/lib/auth/session";
+import { canAccessAccountantCenter, canAccessDashboard, getSession } from "@/lib/auth/session";
 import { isDemoModeEnabled, isProductionEnv, isSupabaseConfigured } from "@/lib/config";
+import { isSafeRedirect } from "@/lib/utils";
 
 export const metadata = { title: "MFA challenge" };
 
@@ -22,6 +23,11 @@ export default async function MfaVerifyPage({ searchParams }: { searchParams: Pr
   });
 
   if (session.user?.mfaVerified) {
+    const next = typeof params.next === "string" && isSafeRedirect(params.next) ? params.next : "";
+    if (next) redirect(next);
+    if (canAccessAccountantCenter(session.user) && !canAccessDashboard(session.user)) {
+      redirect("/accountant");
+    }
     redirect("/dashboard");
   }
 

@@ -77,7 +77,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
       { href: "/dashboard/documents", label: "Documents & Receipts", icon: Files, status: "available", sectionId: "documents" },
       { href: "/dashboard/reports", label: "Reports", icon: FileBarChart, status: "available", sectionId: "reports" },
       { href: "/dashboard/client-portal", label: "Client Portal", icon: Briefcase, status: "planned", sectionId: "client-portal" },
-      { href: "/dashboard/accountant", label: "Accountant Center", icon: Calculator, status: "planned", sectionId: "accountant" },
+      { href: "/accountant", label: "Accountant Center", icon: Calculator, status: "available", sectionId: "accountant" },
     ],
   },
   {

@@ -38,7 +38,8 @@ This document is the Day 1 foundation audit and architecture checkpoint for the 
 | Surface | Location | Audience |
 | --- | --- | --- |
 | Public website | `src/app/(public)/*`, plus `/login` and other auth pages | Anyone |
-| Private Business OS | `/dashboard/*` | Allowlisted owner (Phase 1 and Day 1) |
+| Private Business OS | `/dashboard/*` | Active owner/administrator at AAL2 |
+| Accountant Center | `/accountant` | Active accountant, owner, or administrator at AAL2; read-only |
 | Public `/portal` | Marketing page | Anyone; **not** an authenticated client portal |
 | Future client portal | Planned at `/dashboard/client-portal` (staff view) and a later client-auth route | Clients must never use owner dashboard routes |
 
@@ -63,6 +64,7 @@ Live chrome ignores the saved lookbook palette. The public header, auth shell, a
    - a session user
    - Demo: `role === "owner"` and the `OWNER_EMAIL` allowlist
    - Supabase: an **active** owner or administrator membership and trusted AAL2
+   Day 8 adds `canAccessAccountantCenter()` for `/accountant` only. Accountants do not receive the Command Center loader.
 6. Organization role and `organizationId` come from an **active** `organization_members` row when Supabase is configured. A missing membership stays signed in but cannot open the dashboard or read org data. An email allowlist is not the production authorization model.
 7. Server actions that mutate workspace data call `assertSameOrigin()` and `requireOwnerWrite()`.
 8. Sign-out and idle expiry clear the demo cookie and call Supabase `signOut` when configured.
@@ -254,7 +256,7 @@ Manual SQL isolation plan: `supabase/tests/org_isolation.sql` (eight required sc
 | 11 | Documents & Receipts | `/dashboard/documents` | Day 4 org-documents metadata + private bucket |
 | 12 | Calendar & Automations | `/dashboard/calendar` | Day 7 internal schedule + generated entries |
 | 13 | Client Portal | `/dashboard/client-portal` | Planned staff view; public `/portal` unchanged |
-| 14 | Accountant Center | `/dashboard/accountant` | Planned |
+| 14 | Accountant Center | `/accountant` | Day 8 read-only review; `/dashboard/accountant` redirects here |
 | 15 | Reports | `/dashboard/reports` | Existing Phase 1 |
 | 16 | Integrations | `/dashboard/integrations` | Existing “needs setup” cards |
 | 17 | Security & Ownership | `/dashboard/security` | Hub to existing security settings |
@@ -271,7 +273,7 @@ Existing extra routes (inbox, tasks, notes, content studio, and so on) stay in t
 5. **Day 5** — Persist customer estimates/quotes as operational records. No email send, stored PDF, e-sign, contracts, or payments.
 6. **Day 6** — Convert an accepted estimate into one draft invoice and add authenticated print views that use the browser print dialog. No email, stored PDF, e-sign, public document URLs, or payment collection.
 7. **Day 7** — Unified internal schedule and idempotent generated calendar rows for dated projects, tasks, estimates, and invoices. Today / upcoming / overdue views use `?schedule=` on `/dashboard/calendar`. Explicit owner/admin project kickoff from a converted invoice. No external calendar sync, email, cron, or reminders.
-8. **Accountant read center** after a real accountant membership exists.
+8. **Day 8 (this checkpoint)** — Dedicated `/accountant` read-only financial review for accountant + owner/admin at AAL2. CSV exports are authenticated and audited. No production accountant invitation.
 9. **Client portal** on a separate auth path.
 10. **Integrations** only after owner approval, credentials, and a disconnect/revoke design.
 11. **Payroll / tax filing / e-sign / QuickBooks / stored invoice PDF** only as explicit later programs, never as silent add-ons.
@@ -307,7 +309,7 @@ Reserved, unused on Day 1: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_P
 
 ## 18. Tenant-isolation testing plan
 
-This Cloud Agent environment now has a disposable local Supabase stack (`project_id = "sts-media"`). Application-layer Vitest still covers in-memory and mocked sessions. Executable SQL is `supabase/tests/day1_isolation_runtime.sql`, `supabase/tests/day2_isolation_runtime.sql`, `supabase/tests/day3_isolation_runtime.sql`, `supabase/tests/day4_isolation_runtime.sql`, `supabase/tests/day4_aal2_runtime.sql`, `supabase/tests/day5_isolation_runtime.sql`, and `supabase/tests/day6_isolation_runtime.sql` (executed locally as `anon` / `authenticated`). The manual plan remains in `supabase/tests/org_isolation.sql`. Setup notes: `docs/day-1-local-supabase-setup.md`. Evidence: `docs/day-1-foundation-verification.md`, `docs/day-2-hardening-verification.md`, `docs/day-3-finance-operations-verification.md`, `docs/day-4-workspace-invoicing-verification.md`, `docs/day-5-estimates-verification.md`, `docs/day-6-commercial-workflow-verification.md`, and `docs/vercel-preview-safety.md`.
+This Cloud Agent environment now has a disposable local Supabase stack (`project_id = "sts-media"`). Application-layer Vitest still covers in-memory and mocked sessions. Executable SQL is `supabase/tests/day1_isolation_runtime.sql` through `supabase/tests/day8_isolation_runtime.sql` plus `supabase/tests/day4_aal2_runtime.sql` (executed locally as `anon` / `authenticated`). The manual plan remains in `supabase/tests/org_isolation.sql`. Setup notes: `docs/day-1-local-supabase-setup.md`. Evidence: `docs/day-1-foundation-verification.md` through `docs/day-8-accountant-center-verification.md`, and `docs/vercel-preview-safety.md`.
 
 | # | Scenario | Application evidence | SQL evidence (after migrations on a branch DB) |
 | --- | --- | --- | --- |

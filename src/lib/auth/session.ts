@@ -155,7 +155,42 @@ export function canAccessDashboard(user: SessionUser | null) {
   if (!user.mfaVerified) return false;
   // Dashboard UI is still owner/administrator + AAL2. Protected data is also
   // denied at RLS/RPC/Storage unless the JWT aal claim is exactly aal2.
+  // Accountants use canAccessAccountantCenter / /accountant, not this loader.
   return hasPrivilegedOrganizationRole(user);
+}
+
+export function hasAccountantReadRole(user: SessionUser | null) {
+  if (!user) return false;
+  if (user.membershipStatus !== "active") return false;
+  if (!user.organizationId) return false;
+  return (
+    user.organizationRole === "owner" ||
+    user.organizationRole === "administrator" ||
+    user.organizationRole === "accountant"
+  );
+}
+
+export function canAccessAccountantCenter(user: SessionUser | null) {
+  if (!user) return false;
+  if (user.source === "demo") {
+    // Demo owner may review the read-only surface for oversight. Demo never
+    // invents a disposable accountant identity.
+    return canAccessDashboard(user);
+  }
+  if (!user.mfaVerified) return false;
+  return hasAccountantReadRole(user);
+}
+
+export async function requireAccountantRead() {
+  const session = await getSession();
+  if (!canAccessAccountantCenter(session.user)) {
+    throw new Error("Unauthorized");
+  }
+  const organizationId = sessionOrganizationId(session.user);
+  if (!organizationId) {
+    throw new Error("Unauthorized");
+  }
+  return { ...session, organizationId };
 }
 
 export async function requireOwnerWrite() {

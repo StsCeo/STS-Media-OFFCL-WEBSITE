@@ -113,6 +113,8 @@ describe("production authentication fail-closed", () => {
 
     const response = await proxy(new NextRequest("http://localhost:3000/dashboard"));
     expect(response.headers.get("location")).toContain("/login");
+    const accountant = await proxy(new NextRequest("http://localhost:3000/accountant"));
+    expect(accountant.headers.get("location")).toContain("/login");
   });
 
   it("does not treat a forged supabase cookie name as authentication when supabase is unset", async () => {
