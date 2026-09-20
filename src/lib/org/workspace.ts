@@ -13,6 +13,7 @@ import type {
   WorkspaceInvoiceLine,
   WorkspaceInvoiceStatus,
 } from "@/lib/types";
+import { mapScheduleRow, PROJECT_KICKOFF_RPC, SCHEDULE_RECONCILE_RPC } from "@/lib/org/schedule-model";
 import {
   invoiceLinesPayload,
   sanitizeNoteBody,
@@ -110,6 +111,7 @@ export function mapDocumentRow(row: Record<string, unknown>): OsDocument {
 }
 
 export function mapCalendarRow(row: Record<string, unknown>): CalendarEvent {
+  const sourceType = String(row.source_type || "manual");
   return {
     id: String(row.id),
     title: String(row.title),
@@ -123,6 +125,12 @@ export function mapCalendarRow(row: Record<string, unknown>): CalendarEvent {
     timezone: String(row.timezone || "America/New_York"),
     clientId: (row.client_id as string | null) ?? null,
     projectId: (row.project_id as string | null) ?? null,
+    generated: Boolean(row.generated),
+    sourceType: sourceType === "manual" || sourceType === "project_start" || sourceType === "project_deadline"
+      || sourceType === "task_due" || sourceType === "estimate_expires" || sourceType === "invoice_due"
+      ? sourceType
+      : "manual",
+    sourceId: (row.source_id as string | null) ?? null,
   };
 }
 
@@ -385,6 +393,29 @@ export async function convertEstimateToInvoice(supabase: SupabaseClient, organiz
   return rpcId(supabase, ESTIMATE_CONVERT_RPC, {
     p_organization_id: organizationId,
     p_estimate_id: estimateId,
+  });
+}
+
+export async function listWorkspaceSchedule(supabase: SupabaseClient, organizationId: string) {
+  const { data, error } = await supabase
+    .from("sts_internal_schedule")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .order("occurs_on", { ascending: true });
+  if (error) return { error: true as const };
+  return (data ?? []).map((row) => mapScheduleRow(row as Record<string, unknown>));
+}
+
+export async function reconcileWorkspaceSchedule(supabase: SupabaseClient, organizationId: string) {
+  const { data, error } = await supabase.rpc(SCHEDULE_RECONCILE_RPC, { p_organization_id: organizationId });
+  if (error) return { error: true as const };
+  return { sourceCount: Number(data || 0) };
+}
+
+export async function startProjectFromInvoice(supabase: SupabaseClient, organizationId: string, invoiceId: string) {
+  return rpcId(supabase, PROJECT_KICKOFF_RPC, {
+    p_organization_id: organizationId,
+    p_invoice_id: invoiceId,
   });
 }
 

@@ -2,8 +2,9 @@
 
 import { useActionState } from "react";
 import { archiveCalendarForm, saveCalendarForm } from "@/app/actions";
-import { Button, inputClass, textareaClass } from "@/components/ui";
+import { Badge, Button, inputClass, textareaClass } from "@/components/ui";
 import { EVENT_KINDS, EVENT_TIMEZONES } from "@/lib/org/workspace-model";
+import { scheduleSourceLabel } from "@/lib/org/schedule-model";
 import type { CalendarEvent, ClientRecord, Project } from "@/lib/types";
 
 type State = { error?: string; ok?: boolean };
@@ -34,6 +35,23 @@ export function CalendarForm({
   const [state, formAction, pending] = useActionState(saveAction, {});
   const [archiveState, archiveFormAction, archivePending] = useActionState(archiveAction, {});
   const allDay = Boolean(event?.allDay);
+  const generated = Boolean(event?.generated);
+
+  if (generated && event) {
+    return (
+      <div className="grid gap-2 text-sm">
+        <div className="flex flex-wrap gap-1">
+          <Badge>System generated</Badge>
+          <Badge tone="info">{scheduleSourceLabel(event.sourceType)}</Badge>
+        </div>
+        <p className="font-medium">{event.title}</p>
+        <p className="text-muted">
+          This row is linked to a same-organization source and cannot be edited as a manual event. Change the source date, title, or status, or archive the source record.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-3">
       <form action={formAction} className="grid gap-3 md:grid-cols-2">

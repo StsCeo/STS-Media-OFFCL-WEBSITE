@@ -1,7 +1,7 @@
 import { defaultBusinessProfile } from "./business-defaults";
 import { defaultTaxChecklist } from "../tax";
 import { createSeedWorkspace } from "./seed";
-import type { WorkspaceState, WorkspaceInvoice } from "../types";
+import type { WorkspaceState, WorkspaceInvoice, CalendarEvent, Project } from "../types";
 
 type GlobalStore = typeof globalThis & {
   __stsWorkspace?: WorkspaceState;
@@ -20,6 +20,19 @@ function ensurePhase1(state: WorkspaceState): WorkspaceState {
     const row = invoice as WorkspaceInvoice & { sourceEstimateId?: string | null; sourceEstimateNumber?: string };
     if (row.sourceEstimateId === undefined) row.sourceEstimateId = null;
     if (row.sourceEstimateNumber === undefined) row.sourceEstimateNumber = "";
+  }
+  if (!Array.isArray(state.events)) state.events = [];
+  for (const event of state.events) {
+    const row = event as CalendarEvent;
+    if (row.generated === undefined) row.generated = false;
+    if (row.sourceType === undefined) row.sourceType = "manual";
+    if (row.sourceId === undefined) row.sourceId = null;
+  }
+  if (!Array.isArray(state.projects)) state.projects = [];
+  for (const project of state.projects) {
+    const row = project as Project;
+    if (row.sourceInvoiceId === undefined) row.sourceInvoiceId = null;
+    if (row.sourceEstimateId === undefined) row.sourceEstimateId = null;
   }
   if (!Array.isArray(state.workspaceEstimates)) state.workspaceEstimates = [];
   if (!Array.isArray(state.osTransactions)) state.osTransactions = [];

@@ -16,7 +16,7 @@ function statusTone(status: string): "neutral" | "info" | "success" | "warning" 
 }
 
 export default async function InvoicesPage() {
-  const { invoices, clients, source, unavailable, summaries } = await loadVisibleWorkspaceRecords();
+  const { invoices, clients, estimates, kickoffByInvoiceId, source, unavailable, summaries } = await loadVisibleWorkspaceRecords();
   return (
     <div>
       <PageHeader
@@ -55,6 +55,10 @@ export default async function InvoicesPage() {
       <div className="grid gap-4">
         {invoices.map((invoice) => {
           const status = derivedInvoiceStatus(invoice);
+          const kickoffProjectId = kickoffByInvoiceId[invoice.id] ?? null;
+          const estimate = estimates.find((item) => item.id === invoice.sourceEstimateId) ?? null;
+          const canKickoff = Boolean(invoice.sourceEstimateId) && !kickoffProjectId && !invoice.archived
+            && estimate?.status === "accepted" && !estimate.archived;
           return (
             <Card key={invoice.id}>
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -62,11 +66,12 @@ export default async function InvoicesPage() {
                   <p className="font-semibold">{invoice.invoiceNumber}</p>
                   <p className="text-sm">{invoice.clientBusinessName || "Client assigned on issue"}</p>
                   {invoice.sourceEstimateNumber ? <p className="text-xs text-muted">From estimate {invoice.sourceEstimateNumber}</p> : null}
+                  {kickoffProjectId ? <p className="text-xs text-muted">Linked project started from this commercial workflow.</p> : null}
                   <p className="mt-1 font-mono text-lg">{formatCents(invoice.totalCents, invoice.currency)}</p>
                 </div>
                 <Badge tone={statusTone(status)}>{status}</Badge>
               </div>
-              <InvoiceForm invoice={invoice} clients={clients} />
+              <InvoiceForm invoice={invoice} clients={clients} kickoffProjectId={kickoffProjectId} canKickoff={canKickoff} />
             </Card>
           );
         })}
