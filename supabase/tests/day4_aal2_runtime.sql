@@ -159,7 +159,7 @@ declare
   client_id uuid;
   lines jsonb := '[{"description":"AAL check","quantity":1,"unit_cents":10000}]'::jsonb;
 begin
-  if to_regclass('public.sts_session_is_aal2') is null then
+  if to_regprocedure('public.sts_session_is_aal2()') is null then
     raise exception 'day4 aal isolation aborted: sts_session_is_aal2 is missing';
   end if;
 
