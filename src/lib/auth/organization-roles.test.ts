@@ -47,6 +47,11 @@ describe("organization roles", () => {
     expect(hasPermission("accountant", "security.ownership")).toBe(false);
     expect(hasPermission("accountant", "credentials.read")).toBe(false);
     expect(hasPermission("accountant", "section.integrations")).toBe(false);
+    expect(hasPermission("accountant", "section.invoices")).toBe(true);
+    expect(hasPermission("accountant", "section.documents")).toBe(true);
+    expect(hasPermission("employee", "section.invoices")).toBe(false);
+    expect(hasPermission("employee", "section.calendar")).toBe(true);
+    expect(hasPermission("employee", "section.documents")).toBe(true);
     expect(hasPermission("accountant", "org.members.manage")).toBe(false);
   });
 

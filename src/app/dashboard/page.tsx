@@ -8,6 +8,7 @@ import { getBusinessOsContext } from "@/lib/org/context";
 import { loadVisibleOpsRecords } from "@/lib/org/operations-context";
 import { implementedBusinessOsHrefs } from "@/lib/nav";
 import { formatCurrency } from "@/lib/utils";
+import { loadVisibleWorkspaceRecords } from "@/lib/org/workspace-context";
 
 export const metadata = { title: "Command Center" };
 
@@ -15,7 +16,7 @@ const implementedLinks = [
   { href: "/dashboard/crm", label: "CRM & Sales" },
   { href: "/dashboard/projects", label: "Projects" },
   { href: "/dashboard/calendar", label: "Calendar" },
-  { href: "/dashboard/finance", label: "Finance" },
+  { href: "/dashboard/invoices", label: "Invoices" },
   { href: "/dashboard/taxes", label: "Taxes" },
   { href: "/dashboard/documents", label: "Documents" },
   { href: "/dashboard/reports", label: "Reports" },
@@ -30,6 +31,7 @@ export default async function OverviewPage() {
   const session = await getSession();
   const os = await getBusinessOsContext(session.user);
   const { totals, source, estimateNote, unavailable } = await loadVisibleOpsRecords();
+  const workspaceRecords = await loadVisibleWorkspaceRecords();
   const organization = os.organization;
   const settings = os.settings;
   const orgActivity = os.audit;
@@ -97,6 +99,57 @@ export default async function OverviewPage() {
               </div>
             </dl>
             <p className="mt-4 text-xs text-muted">{estimateNote}</p>
+          </>
+        )}
+      </Card>
+
+      <Card className="mb-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">Workspace records</h2>
+          <Badge tone="info">{workspaceRecords.source === "postgres" ? "Organization records" : "Workspace"}</Badge>
+        </div>
+        {workspaceRecords.unavailable ? (
+          <p className="text-sm text-muted">Notes, documents, calendar, and invoices could not be loaded. Totals were not taken from local fallback data.</p>
+        ) : (
+          <>
+            <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Upcoming events</dt>
+                <dd className="mt-1 font-mono text-lg">{workspaceRecords.summaries.upcomingEvents.length}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Recent notes</dt>
+                <dd className="mt-1 font-mono text-lg">{workspaceRecords.summaries.recentNotes.length}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Documents</dt>
+                <dd className="mt-1 font-mono text-lg">{workspaceRecords.summaries.documentCount}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Draft invoices</dt>
+                <dd className="mt-1 font-mono text-lg">{workspaceRecords.summaries.draftInvoices}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Outstanding invoices</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(workspaceRecords.summaries.outstandingInvoiceTotal)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Overdue invoices</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(workspaceRecords.summaries.overdueInvoiceTotal)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Paid recorded</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(workspaceRecords.summaries.paidInvoiceTotal)}</dd>
+              </div>
+            </dl>
+            <p className="mt-4 text-xs text-muted">{workspaceRecords.recordNote} Invoice figures are operational records, not formal accounting or tax reports.</p>
+            {workspaceRecords.summaries.upcomingEvents.length ? (
+              <ul className="mt-4 space-y-1 text-sm">
+                {workspaceRecords.summaries.upcomingEvents.map((event) => (
+                  <li key={event.id}>{event.title}</li>
+                ))}
+              </ul>
+            ) : null}
           </>
         )}
       </Card>

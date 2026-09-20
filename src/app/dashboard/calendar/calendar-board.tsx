@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { format, isSameDay, isSameMonth, parseISO } from "date-fns";
+import { format, isSameMonth } from "date-fns";
 import { Button, Card } from "@/components/ui";
 import { calendarDays, calendarPeriodLabel, shiftCalendarCursor, type CalendarView } from "@/lib/calendar";
+import { eventFallsOnDay, formatEventInstant } from "@/lib/org/workspace-model";
 import type { CalendarEvent } from "@/lib/types";
 
 export function CalendarBoard({ events, now = new Date() }: { events: CalendarEvent[]; now?: Date }) {
@@ -33,7 +34,9 @@ export function CalendarBoard({ events, now = new Date() }: { events: CalendarEv
           {events.map((event) => (
             <li key={event.id} className="rounded-md border border-line p-3">
               <p className="font-medium">{event.title}</p>
-              <p className="text-xs text-muted">{event.kind.replaceAll("_", " ")} · {event.start} · {event.location || "No location"}</p>
+              <p className="text-xs text-muted">
+                {event.kind.replaceAll("_", " ")} · {formatEventInstant(event.start, event.timezone || "UTC", event.allDay)} · {event.timezone || "UTC"} · {event.location || "No location"}
+              </p>
               <p className="text-sm">{event.notes}</p>
             </li>
           ))}
@@ -42,7 +45,7 @@ export function CalendarBoard({ events, now = new Date() }: { events: CalendarEv
         <div className="grid grid-cols-7 gap-1 text-xs">
           {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => <div key={d} className="p-2 text-muted">{d}</div>)}
           {days.map((day) => {
-            const dayEvents = events.filter((event) => isSameDay(parseISO(event.start), day));
+            const dayEvents = events.filter((event) => eventFallsOnDay(event, day));
             return (
               <div key={day.toISOString()} className={`min-h-24 rounded-md border border-line p-1 ${isSameMonth(day, cursor) ? "bg-card" : "bg-canvas"}`}>
                 <p className="text-[11px]">{view === "week" ? format(day, "MMM d") : format(day, "d")}</p>
@@ -55,7 +58,7 @@ export function CalendarBoard({ events, now = new Date() }: { events: CalendarEv
         </div>
       )}
       <Card className="mt-4">
-        <p className="text-sm text-muted">Zoom and Calendly remain placeholders until OAuth is approved. Recurring tasks and invoice dates appear as calendar kinds.</p>
+        <p className="text-sm text-muted">Zoom, Calendly, Google, and Outlook remain placeholders. Recurrence and reminders are future features. Calendar automations are planned for a later phase.</p>
       </Card>
     </div>
   );

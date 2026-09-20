@@ -7,7 +7,7 @@ import { CONSENT_COOKIE, DEMO_COOKIE, PALETTE_COOKIE, THEME_COOKIE, isDemoModeEn
 import { getWorkspace, mutateWorkspace, stampAudit } from "@/lib/data/store";
 import { clientKey, rateLimit } from "@/lib/security/rate-limit";
 import { allowedFile, assertSameOrigin } from "@/lib/security/origin";
-import { uploadFileError, safeUploadFileName } from "@/lib/security/files";
+import { documentUploadError, sniffDocumentContentType, uploadFileError, safeUploadFileName } from "@/lib/security/files";
 import { describeAuthFlowState, describeMfaAttempt, looksForgedToken, NOT_CONFIGURED_MESSAGE } from "@/lib/auth/phase1-flows";
 import { resolveNoteRelationship } from "@/lib/notes";
 import { applyPrivateReceiptAttachment, STORAGE_NOT_CONFIGURED_MESSAGE } from "@/lib/receipts";
@@ -18,6 +18,8 @@ import type {
   ClientRecord,
   Expense,
   Lead,
+  CalendarEvent,
+  EventKind,
   OsDocument,
   OsTransaction,
   OwnerNote,
@@ -28,7 +30,7 @@ import type {
 } from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
-import { clearCurrentAuth, createSupabaseServer, getSession, organizationRoleFor, requireBusinessSettingsWrite, requireCrmWrite, requireFinanceWrite, requireOperationsWrite, requireOwnerWrite, requireRevenueWrite, sessionOrganizationId } from "@/lib/auth/session";
+import { clearCurrentAuth, createSupabaseServer, getSession, organizationRoleFor, requireBusinessSettingsWrite, requireCrmWrite, requireFinanceWrite, requireInvoiceWrite, requireOperationsWrite, requireOwnerWrite, requireRevenueWrite, sessionOrganizationId } from "@/lib/auth/session";
 import { recordOrganizationAudit, updateOrganizationBusinessSettings } from "@/lib/org/store";
 import { saveOrganizationSettingsInDatabase } from "@/lib/org/database";
 import {
@@ -62,6 +64,34 @@ import { draftBusinessSettings, GENERIC_SETTINGS_ERROR, parseBusinessSettingsFor
 import { demoSessionCookieOptions, getDemoSessionSecret, signDemoSession } from "@/lib/auth/demo-session";
 import { GENERIC_AUTH_ERROR, normalizeEmail } from "@/lib/auth/owner";
 import { parseDollarsToCents } from "@/lib/money";
+import {
+  DOCUMENT_CATEGORIES,
+  EVENT_KINDS,
+  EVENT_TIMEZONES,
+  GENERIC_WORKSPACE_ERROR,
+  ORG_DOCUMENTS_BUCKET,
+  archiveWorkspaceDocument,
+  archiveWorkspaceEvent,
+  archiveWorkspaceInvoice,
+  archiveWorkspaceNote,
+  computeInvoiceTotals,
+  generatedDocumentPath,
+  issueWorkspaceInvoice,
+  loadWorkspaceDocument,
+  loadWorkspaceEvent,
+  loadWorkspaceNote,
+  newDocumentId,
+  parseCalendarBounds,
+  parseInvoiceLinesFromForm,
+  recordWorkspaceInvoicePayment,
+  saveWorkspaceDocument,
+  saveWorkspaceEvent,
+  saveWorkspaceInvoice,
+  saveWorkspaceNote,
+  shouldUseWorkspaceDatabase,
+  validateInvoiceLines,
+  voidWorkspaceInvoice,
+} from "@/lib/org/workspace";
 
 function isSafePath(path: string) {
   return isSafeRedirect(path);
@@ -1095,17 +1125,50 @@ export async function archiveRevenueForm(formData: FormData) {
 export async function saveNoteForm(formData: FormData) {
   await assertSameOrigin();
   await requireOwnerWrite();
+  const session = await getSession();
   const id = String(formData.get("id") || "");
+  const title = sanitizeText(String(formData.get("title") || "")).slice(0, 160);
+  const body = sanitizeText(String(formData.get("body") || "")).slice(0, 8000);
+  if (!title) return { error: "Enter a title up to 160 characters." };
+  if (!body) return { error: "Enter a note up to 8,000 characters." };
+  const pinField = formData.get("pinned");
+  const pinned = pinField === "on" || pinField === "true" || pinField === "1";
+
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
+    const supabase = await factory();
+    const current = id ? await loadWorkspaceNote(supabase, session.user.organizationId, id) : null;
+    if (current && "error" in current) return { error: GENERIC_WORKSPACE_ERROR };
+    const relationship = resolveNoteRelationship(formData, current);
+    if (relationship.relatedType !== "none" && !relationship.relatedId) {
+      return { error: "Choose a related record in this organization." };
+    }
+    const saved = await saveWorkspaceNote(supabase, session.user.organizationId, {
+      id: id || undefined,
+      title,
+      body,
+      relatedType: relationship.relatedType,
+      relatedId: relationship.relatedId,
+      pinned,
+    });
+    if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+    stampAudit("note_upsert", saved.id, "Note saved.");
+    revalidatePath("/dashboard/notes");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+
   mutateWorkspace((state) => {
     const current = id ? state.notes.find((item) => item.id === id) : undefined;
     const relationship = resolveNoteRelationship(formData, current);
     const payload: OwnerNote = {
       id: id || `note-${Date.now()}`,
-      title: sanitizeText(String(formData.get("title") || "Untitled note")),
-      body: sanitizeText(String(formData.get("body") || "")),
+      title,
+      body,
       relatedType: relationship.relatedType,
       relatedId: relationship.relatedId,
-      pinned: formData.get("pinned") === "on",
+      pinned,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -1117,6 +1180,34 @@ export async function saveNoteForm(formData: FormData) {
   });
   stampAudit("note_upsert", id || "new", "Note saved.");
   revalidatePath("/dashboard/notes");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+export async function archiveNoteForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Choose a note to archive." };
+  const session = await getSession();
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
+    const supabase = await factory();
+    const saved = await archiveWorkspaceNote(supabase, session.user.organizationId, id);
+    if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+    stampAudit("note_archived", saved.id, "Note archived.");
+    revalidatePath("/dashboard/notes");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  mutateWorkspace((state) => {
+    state.notes = state.notes.filter((item) => item.id !== id);
+  });
+  stampAudit("note_archived", id, "Note archived.");
+  revalidatePath("/dashboard/notes");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
 }
 
 export async function uploadExpenseReceipt(formData: FormData) {
@@ -1316,27 +1407,125 @@ async function verifiedRecoveryFlow() {
 export async function saveDocumentForm(formData: FormData) {
   await assertSameOrigin();
   await requireOwnerWrite();
+  const session = await getSession();
+  const id = String(formData.get("id") || "");
   const file = formData.get("file");
-  const fileName = file instanceof File && file.size > 0 ? file.name : null;
-  if (file instanceof File && file.size > 0 && !allowedFile(file)) {
-    return { error: "Upload a PDF or image up to 8MB." };
+  const upload = file instanceof File && file.size > 0 ? file : null;
+  const name = sanitizeText(String(formData.get("name") || upload?.name || "")).slice(0, 180);
+  const notes = sanitizeText(String(formData.get("notes") || "")).slice(0, 2000);
+  const categoryRaw = String(formData.get("category") || "other");
+  const category = DOCUMENT_CATEGORIES.includes(categoryRaw as OsDocument["category"])
+    ? (categoryRaw as OsDocument["category"])
+    : "other";
+  const relatedType = String(formData.get("relatedType") || "none");
+  const relatedId = String(formData.get("relatedId") || "") || null;
+  const clientId = relatedType === "client" ? relatedId : null;
+  const projectId = relatedType === "project" ? relatedId : null;
+
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    if (!id && !upload) return { error: "Choose a PDF, PNG, JPEG, or text file up to 8MB." };
+    if (upload) {
+      const validationError = documentUploadError(upload);
+      if (validationError) return { error: validationError };
+    }
+    if (!isObjectStorageConfigured()) {
+      stampAudit("document_upload_blocked", id || "new", "Document upload blocked because private storage is not configured.");
+      return { error: STORAGE_NOT_CONFIGURED_MESSAGE, status: "storage_not_configured" as const };
+    }
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
+    const supabase = await factory();
+    const organizationId = session.user.organizationId;
+    const current = id ? await loadWorkspaceDocument(supabase, organizationId, id) : null;
+    if (current && "error" in current) return { error: GENERIC_WORKSPACE_ERROR };
+    if (id && !current) return { error: GENERIC_WORKSPACE_ERROR };
+
+    let storagePath = current?.storagePath || "";
+    let contentType = current?.contentType || "";
+    let byteSize = current?.byteSize || 0;
+    const displayName = name || current?.name || "document";
+
+    if (upload) {
+      const bytes = new Uint8Array(await upload.arrayBuffer());
+      const sniffed = sniffDocumentContentType(bytes, upload.type, upload.name);
+      if (!sniffed || (upload.type && upload.type !== sniffed)) {
+        return { error: "Upload a PDF, PNG, JPEG, or plain text file up to 8MB." };
+      }
+      const documentId = current?.id || newDocumentId();
+      storagePath = generatedDocumentPath(organizationId, documentId, upload.name);
+      const { error } = await supabase.storage.from(ORG_DOCUMENTS_BUCKET).upload(storagePath, bytes, {
+        upsert: false,
+        contentType: sniffed,
+      });
+      if (error) {
+        stampAudit("document_upload_failed", documentId, "Document upload failed. Metadata was not saved.");
+        return { error: "The file could not be stored." };
+      }
+      contentType = sniffed;
+      byteSize = bytes.byteLength;
+      const saved = await saveWorkspaceDocument(supabase, organizationId, {
+        id: documentId,
+        storagePath,
+        displayFilename: displayName,
+        contentType,
+        byteSize,
+        description: notes,
+        category,
+        clientId,
+        projectId,
+      });
+      if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+      stampAudit("document_created", saved.id, "Document metadata saved. Files stay private.");
+      revalidatePath("/dashboard/documents");
+      revalidatePath("/dashboard");
+      return { ok: true as const };
+    }
+
+    const saved = await saveWorkspaceDocument(supabase, organizationId, {
+      id,
+      storagePath,
+      displayFilename: displayName,
+      contentType,
+      byteSize,
+      description: notes,
+      category,
+      clientId,
+      projectId,
+    });
+    if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+    stampAudit("document_updated", saved.id, "Document metadata saved. Files stay private.");
+    revalidatePath("/dashboard/documents");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+
+  if (upload) {
+    const validationError = documentUploadError(upload);
+    if (validationError) return { error: validationError };
   }
   mutateWorkspace((state) => {
     const item: OsDocument = {
-      id: `doc-${Date.now()}`,
-      name: sanitizeText(String(formData.get("name") || fileName || "Untitled document")),
-      category: (String(formData.get("category") || "other") as OsDocument["category"]),
-      relatedType: (String(formData.get("relatedType") || "none") as OsDocument["relatedType"]),
-      relatedId: String(formData.get("relatedId") || "") || null,
-      notes: sanitizeText(String(formData.get("notes") || "")),
-      storagePath: fileName,
+      id: id || `doc-${Date.now()}`,
+      name: name || "Untitled document",
+      category,
+      relatedType: relatedType === "client" || relatedType === "project" ? relatedType : "none",
+      relatedId: relatedType === "client" || relatedType === "project" ? relatedId : null,
+      notes,
+      storagePath: upload ? upload.name : null,
+      contentType: upload?.type,
+      byteSize: upload?.size,
       createdAt: new Date().toISOString(),
     };
-    state.osDocuments.unshift(item);
-    if (fileName) {
+    if (id) {
+      const current = state.osDocuments.find((row) => row.id === id);
+      if (current) Object.assign(current, item, { createdAt: current.createdAt, storagePath: item.storagePath ?? current.storagePath });
+    } else {
+      state.osDocuments.unshift(item);
+    }
+    if (upload) {
       state.files.unshift({
         id: `f-${Date.now()}`,
-        name: fileName,
+        name: upload.name,
         kind: "internal",
         relatedTo: item.id,
         visibility: "private",
@@ -1347,7 +1536,378 @@ export async function saveDocumentForm(formData: FormData) {
   stampAudit("document_created", "documents", "Document metadata saved. Files stay private.");
   revalidatePath("/dashboard/documents");
   revalidatePath("/dashboard/files");
-  return { ok: true };
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+export async function archiveDocumentForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Choose a document to archive." };
+  const session = await getSession();
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
+    const supabase = await factory();
+    const saved = await archiveWorkspaceDocument(supabase, session.user.organizationId, id);
+    if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+    stampAudit("document_archived", saved.id, "Document metadata archived. The private object was not deleted.");
+    revalidatePath("/dashboard/documents");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  mutateWorkspace((state) => {
+    state.osDocuments = state.osDocuments.filter((item) => item.id !== id);
+  });
+  stampAudit("document_archived", id, "Document metadata archived.");
+  revalidatePath("/dashboard/documents");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+export async function archiveDocumentPageForm(formData: FormData): Promise<void> {
+  await archiveDocumentForm(formData);
+}
+
+export async function saveCalendarForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const session = await getSession();
+  const id = String(formData.get("id") || "");
+  const title = sanitizeText(String(formData.get("title") || "")).slice(0, 160);
+  const description = sanitizeText(String(formData.get("description") || "")).slice(0, 4000);
+  const location = sanitizeText(String(formData.get("location") || "")).slice(0, 240);
+  const allDay = formData.get("allDay") === "on";
+  const timezoneRaw = String(formData.get("timezone") || "America/New_York");
+  const timezone = EVENT_TIMEZONES.includes(timezoneRaw as (typeof EVENT_TIMEZONES)[number])
+    ? timezoneRaw
+    : "";
+  const kindRaw = String(formData.get("kind") || "team_meeting");
+  const kind = EVENT_KINDS.includes(kindRaw as EventKind) ? (kindRaw as EventKind) : "team_meeting";
+  const clientId = String(formData.get("clientId") || "") || null;
+  const projectId = String(formData.get("projectId") || "") || null;
+  if (title.length < 2) return { error: "Enter a title of at least 2 characters." };
+  if (!timezone) return { error: "Choose a supported timezone." };
+  const bounds = parseCalendarBounds({
+    start: String(formData.get("start") || ""),
+    end: String(formData.get("end") || ""),
+    allDay,
+    timezone,
+  });
+  if ("error" in bounds) return { error: bounds.error };
+
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
+    const supabase = await factory();
+    const current = id ? await loadWorkspaceEvent(supabase, session.user.organizationId, id) : null;
+    if (current && "error" in current) return { error: GENERIC_WORKSPACE_ERROR };
+    const saved = await saveWorkspaceEvent(supabase, session.user.organizationId, {
+      id: id || undefined,
+      title,
+      description,
+      startAt: bounds.startAt,
+      endAt: bounds.endAt,
+      allDay,
+      timezone,
+      clientId,
+      projectId,
+      location,
+      kind,
+    });
+    if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+    stampAudit("calendar_upsert", saved.id, "Internal calendar event saved. No email or external sync was sent.");
+    revalidatePath("/dashboard/calendar");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+
+  mutateWorkspace((state) => {
+    const payload: CalendarEvent = {
+      id: id || `evt-${Date.now()}`,
+      title,
+      kind,
+      start: bounds.startAt,
+      end: bounds.endAt,
+      notes: description,
+      relatedId: projectId || clientId,
+      location,
+      allDay,
+      timezone,
+      clientId,
+      projectId,
+    };
+    if (id) {
+      const current = state.events.find((item) => item.id === id);
+      if (current) Object.assign(current, payload);
+    } else {
+      state.events.unshift(payload);
+    }
+  });
+  stampAudit("calendar_upsert", id || "new", "Internal calendar event saved. No email or external sync was sent.");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+export async function archiveCalendarForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Choose an event to archive." };
+  const session = await getSession();
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
+    const supabase = await factory();
+    const saved = await archiveWorkspaceEvent(supabase, session.user.organizationId, id);
+    if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+    stampAudit("calendar_archived", saved.id, "Calendar event archived.");
+    revalidatePath("/dashboard/calendar");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  mutateWorkspace((state) => {
+    state.events = state.events.filter((item) => item.id !== id);
+  });
+  stampAudit("calendar_archived", id, "Calendar event archived.");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+function invoiceFormPayload(formData: FormData) {
+  const lines = parseInvoiceLinesFromForm(formData);
+  const lineError = validateInvoiceLines(lines);
+  if (lineError) return { error: lineError };
+  const discountCents = parseDollarsToCents(String(formData.get("discount") || "0"));
+  const taxCents = parseDollarsToCents(String(formData.get("tax") || "0"));
+  const totals = computeInvoiceTotals(lines, discountCents, taxCents);
+  if (totals.discountCents > totals.subtotalCents) return { error: "Discount cannot exceed the subtotal." };
+  if (totals.totalCents < 0) return { error: "Invoice total cannot be negative." };
+  return {
+    clientId: String(formData.get("clientId") || "") || null,
+    issueDate: String(formData.get("issueDate") || "") || null,
+    dueDate: String(formData.get("dueDate") || "") || null,
+    currency: String(formData.get("currency") || "USD").toUpperCase().slice(0, 3),
+    notes: sanitizeText(String(formData.get("notes") || "")).slice(0, 4000),
+    paymentInstructions: sanitizeText(String(formData.get("paymentInstructions") || "")).slice(0, 2000),
+    discountCents: totals.discountCents,
+    taxCents: totals.taxCents,
+    lines,
+    totals,
+  };
+}
+
+export async function saveInvoiceForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const payload = invoiceFormPayload(formData);
+  if ("error" in payload) return payload;
+  const id = String(formData.get("id") || "");
+  const session = await getSession();
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    await requireInvoiceWrite();
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
+    const supabase = await factory();
+    const saved = await saveWorkspaceInvoice(supabase, session.user.organizationId, {
+      id: id || undefined,
+      clientId: payload.clientId,
+      issueDate: payload.issueDate,
+      dueDate: payload.dueDate,
+      currency: payload.currency,
+      notes: payload.notes,
+      paymentInstructions: payload.paymentInstructions,
+      discountCents: payload.discountCents,
+      taxCents: payload.taxCents,
+      lines: payload.lines,
+    });
+    if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+    stampAudit("invoice_upsert", saved.id, "Invoice draft saved. Totals were calculated on the server.");
+    revalidatePath("/dashboard/invoices");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  mutateWorkspace((state) => {
+    const now = new Date().toISOString();
+    const current = id ? state.workspaceInvoices.find((item) => item.id === id) : undefined;
+    if (current && current.status !== "draft") return;
+    const next = {
+      id: current?.id || `winv-${Date.now()}`,
+      invoiceNumber: current?.invoiceNumber || `DRAFT-${Date.now()}`,
+      status: "draft" as const,
+      clientId: payload.clientId,
+      issueDate: payload.issueDate,
+      dueDate: payload.dueDate,
+      currency: payload.currency || "USD",
+      notes: payload.notes,
+      paymentInstructions: payload.paymentInstructions,
+      orgLegalName: "",
+      orgDisplayName: "",
+      clientBusinessName: "",
+      clientContactName: "",
+      clientEmail: "",
+      subtotalCents: payload.totals.subtotalCents,
+      discountCents: payload.totals.discountCents,
+      taxCents: payload.totals.taxCents,
+      totalCents: payload.totals.totalCents,
+      amountPaidCents: 0,
+      lines: payload.lines.map((line, index) => ({
+        position: index + 1,
+        description: line.description,
+        quantity: line.quantity,
+        unitCents: line.unitCents,
+        lineTotalCents: line.quantity * line.unitCents,
+      })),
+      issuedAt: null,
+      paidAt: null,
+      voidedAt: null,
+      archived: false,
+      createdAt: current?.createdAt || now,
+      updatedAt: now,
+    };
+    if (current) Object.assign(current, next);
+    else state.workspaceInvoices.unshift(next);
+  });
+  stampAudit("invoice_upsert", id || "new", "Invoice draft saved. Totals were calculated on the server.");
+  revalidatePath("/dashboard/invoices");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+export async function issueInvoiceForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Choose an invoice to issue." };
+  const session = await getSession();
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    await requireInvoiceWrite();
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
+    const supabase = await factory();
+    const saved = await issueWorkspaceInvoice(supabase, session.user.organizationId, id);
+    if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+    stampAudit("invoice_issued", saved.id, "Invoice marked issued in the system. No email was sent.");
+    revalidatePath("/dashboard/invoices");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  mutateWorkspace((state) => {
+    const invoice = state.workspaceInvoices.find((item) => item.id === id);
+    if (!invoice || invoice.status !== "draft" || invoice.archived) return;
+    const client = state.clients.find((item) => item.id === invoice.clientId);
+    const issuedCount = state.workspaceInvoices.filter((item) => item.status !== "draft").length + 1;
+    invoice.status = "issued";
+    invoice.invoiceNumber = `STS-${String(issuedCount).padStart(4, "0")}`;
+    invoice.issueDate = invoice.issueDate || new Date().toISOString().slice(0, 10);
+    invoice.dueDate = invoice.dueDate || invoice.issueDate;
+    invoice.issuedAt = new Date().toISOString();
+    invoice.orgLegalName = state.brand.legalName;
+    invoice.orgDisplayName = state.brand.shortName;
+    invoice.clientBusinessName = client?.businessName || "";
+    invoice.clientContactName = client?.contactName || "";
+    invoice.clientEmail = client?.email || "";
+    invoice.updatedAt = new Date().toISOString();
+  });
+  stampAudit("invoice_issued", id, "Invoice marked issued in the system. No email was sent.");
+  revalidatePath("/dashboard/invoices");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+export async function recordInvoicePaymentForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Choose an invoice." };
+  const session = await getSession();
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    await requireInvoiceWrite();
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
+    const supabase = await factory();
+    const saved = await recordWorkspaceInvoicePayment(supabase, session.user.organizationId, id);
+    if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+    stampAudit("invoice_payment_recorded", saved.id, "Payment recorded manually. No processor is connected.");
+    revalidatePath("/dashboard/invoices");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  mutateWorkspace((state) => {
+    const invoice = state.workspaceInvoices.find((item) => item.id === id);
+    if (!invoice || invoice.status !== "issued" || invoice.archived) return;
+    invoice.status = "paid";
+    invoice.paidAt = new Date().toISOString();
+    invoice.amountPaidCents = invoice.totalCents;
+    invoice.updatedAt = new Date().toISOString();
+  });
+  stampAudit("invoice_payment_recorded", id, "Payment recorded manually. No processor is connected.");
+  revalidatePath("/dashboard/invoices");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+export async function voidInvoiceForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Choose an invoice to void." };
+  const session = await getSession();
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    await requireInvoiceWrite();
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
+    const supabase = await factory();
+    const saved = await voidWorkspaceInvoice(supabase, session.user.organizationId, id);
+    if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+    stampAudit("invoice_voided", saved.id, "Invoice voided. This is not a tax or legal filing.");
+    revalidatePath("/dashboard/invoices");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  mutateWorkspace((state) => {
+    const invoice = state.workspaceInvoices.find((item) => item.id === id);
+    if (!invoice || invoice.archived || invoice.status === "paid") return;
+    invoice.status = "void";
+    invoice.voidedAt = new Date().toISOString();
+    invoice.amountPaidCents = 0;
+    invoice.updatedAt = new Date().toISOString();
+  });
+  stampAudit("invoice_voided", id, "Invoice voided. This is not a tax or legal filing.");
+  revalidatePath("/dashboard/invoices");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+export async function archiveInvoiceForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Choose an invoice to archive." };
+  const session = await getSession();
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    await requireInvoiceWrite();
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
+    const supabase = await factory();
+    const saved = await archiveWorkspaceInvoice(supabase, session.user.organizationId, id);
+    if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
+    stampAudit("invoice_archived", saved.id, "Invoice archived.");
+    revalidatePath("/dashboard/invoices");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  mutateWorkspace((state) => {
+    const invoice = state.workspaceInvoices.find((item) => item.id === id);
+    if (invoice) invoice.archived = true;
+  });
+  stampAudit("invoice_archived", id, "Invoice archived.");
+  revalidatePath("/dashboard/invoices");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
 }
 
 export async function saveOsTransactionForm(formData: FormData) {

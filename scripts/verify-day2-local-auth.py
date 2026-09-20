@@ -10,6 +10,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from local_aal import enroll_totp_aal2, expect_denied_or_empty, jwt_aal
+
 ENV_FILE = Path("/tmp/sts-local/status.env")
 LEAD_MARK = Path("/tmp/sts-local/day2-lead.id")
 ORG_A = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
@@ -236,13 +239,33 @@ def main() -> None:
     ensure_membership(env, ORG_A, ids[ADMIN_A_EMAIL], "administrator")
     ensure_membership(env, ORG_A, ids[MEMBER_A_EMAIL], "employee")
 
-    tokens: dict[str, str] = {}
+    aal1_tokens: dict[str, str] = {}
     for email in (OWNER_A_EMAIL, OWNER_B_EMAIL, ADMIN_A_EMAIL, MEMBER_A_EMAIL, STRANGER_EMAIL):
         status, token = password_login(env, email, passwords[email])
         if status != 200 or not token:
             fail(f"password login failed for a synthetic user (http {status})")
-        tokens[email] = token
-    pass_("owner, admin, member, other-org, and stranger password logins succeeded")
+        if jwt_aal(token) != "aal1":
+            fail("password session was not AAL1")
+        aal1_tokens[email] = token
+    pass_("owner, admin, member, other-org, and stranger password logins succeeded at AAL1")
+
+    s_status, s_count = rest_count(env, aal1_tokens[STRANGER_EMAIL], "crm_leads")
+    expect_denied_or_empty(s_status, s_count, "authenticated user without membership sees zero leads")
+    o1_status, o1_count = rest_count(env, aal1_tokens[OWNER_A_EMAIL], "crm_leads")
+    expect_denied_or_empty(o1_status, o1_count, "owner A AAL1 REST cannot read crm_leads")
+    save_aal1, _ = save_lead(env, aal1_tokens[OWNER_A_EMAIL], ORG_A, "AAL1 Lead")
+    if save_aal1 in (200, 201):
+        fail("owner A AAL1 CRM save unexpectedly succeeded")
+    pass_(f"owner A AAL1 REST CRM save denied (http {save_aal1})")
+
+    tokens: dict[str, str] = {
+        STRANGER_EMAIL: aal1_tokens[STRANGER_EMAIL],
+    }
+    for email in (OWNER_A_EMAIL, OWNER_B_EMAIL, ADMIN_A_EMAIL, MEMBER_A_EMAIL):
+        tokens[email] = enroll_totp_aal2(env, aal1_tokens[email])
+        if jwt_aal(tokens[email]) != "aal2":
+            fail("MFA verify did not raise AAL2")
+    pass_("member sessions upgraded to AAL2")
 
     anon_status, anon_count = rest_count(env, None, "crm_leads")
     if anon_status in (401, 403) or (anon_status == 200 and anon_count == 0):

@@ -29,6 +29,19 @@ export async function loadVisibleOpsRecords(): Promise<{
 }> {
   const session = await getSession();
   const workspace = getWorkspace();
+  if (session.user?.source === "supabase" && !session.user.mfaVerified) {
+    return {
+      expenses: [],
+      revenue: [],
+      projects: [],
+      tasks: [],
+      clients: [],
+      source: "postgres",
+      unavailable: true,
+      totals: emptyTotals(),
+      estimateNote: OPS_ESTIMATE_NOTE,
+    };
+  }
   if (!shouldUseOpsDatabase(session.user) || !session.user?.organizationId) {
     return {
       expenses: workspace.expenses,

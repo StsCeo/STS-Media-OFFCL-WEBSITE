@@ -153,6 +153,8 @@ export function canAccessDashboard(user: SessionUser | null) {
     return user.mfaVerified || isDemoModeEnabled();
   }
   if (!user.mfaVerified) return false;
+  // Dashboard UI is still owner/administrator + AAL2. Protected data is also
+  // denied at RLS/RPC/Storage unless the JWT aal claim is exactly aal2.
   return hasPrivilegedOrganizationRole(user);
 }
 
@@ -266,6 +268,23 @@ export async function requireOperationsWrite() {
     throw new Error("Unauthorized");
   }
   if (!canUseOrganizationPermission(user, "section.projects", organizationId)) {
+    throw new Error("Unauthorized");
+  }
+  return { ...session, organizationId };
+}
+
+export async function requireInvoiceWrite() {
+  const session = await requireOwnerWrite();
+  const user = session.user!;
+  const organizationId = sessionOrganizationId(user);
+  if (!organizationId) {
+    throw new Error("Unauthorized");
+  }
+  if (!canUseOrganizationPermission(user, "section.invoices", organizationId)) {
+    throw new Error("Unauthorized");
+  }
+  const role = organizationRoleFor(user);
+  if (role !== "owner" && role !== "administrator") {
     throw new Error("Unauthorized");
   }
   return { ...session, organizationId };

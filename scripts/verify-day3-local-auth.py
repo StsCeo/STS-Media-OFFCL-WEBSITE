@@ -10,6 +10,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from local_aal import enroll_totp_aal2, expect_denied_or_empty, jwt_aal
+
 ENV_FILE = Path("/tmp/sts-local/status.env")
 EXPENSE_MARK = Path("/tmp/sts-local/day3-expense.id")
 REVENUE_MARK = Path("/tmp/sts-local/day3-revenue.id")
@@ -353,14 +356,29 @@ def main() -> None:
     ensure_membership(env, ORG_A, ids[MEMBER_A_EMAIL], "employee")
     ensure_membership(env, ORG_A, ids[ACCOUNTANT_A_EMAIL], "accountant")
 
-    tokens: dict[str, str] = {}
+    aal1_tokens: dict[str, str] = {}
     for email in emails:
         status, token = password_login(env, email, passwords[email])
         if status != 200 or not token:
             fail(f"password login failed for a synthetic user (http {status})")
-        tokens[email] = token
-    pass_("owner, admin, member, accountant, other-org, and stranger password logins succeeded")
-    pass_("password sessions are AAL1; dashboard AAL2 remains an application gate from Day 1/2")
+        if jwt_aal(token) != "aal1":
+            fail("password session was not AAL1")
+        aal1_tokens[email] = token
+    pass_("owner, admin, member, accountant, other-org, and stranger password logins succeeded at AAL1")
+
+    o1_status, o1_count = rest_count(env, aal1_tokens[OWNER_A_EMAIL], "ops_expenses")
+    expect_denied_or_empty(o1_status, o1_count, "owner A AAL1 REST cannot read expenses")
+    project_aal1, _ = save_project(env, aal1_tokens[OWNER_A_EMAIL], ORG_A, "AAL1 Project")
+    if project_aal1 in (200, 201):
+        fail("owner A AAL1 project save unexpectedly succeeded")
+    pass_(f"owner A AAL1 REST project save denied (http {project_aal1})")
+
+    tokens: dict[str, str] = {STRANGER_EMAIL: aal1_tokens[STRANGER_EMAIL]}
+    for email in (OWNER_A_EMAIL, OWNER_B_EMAIL, ADMIN_A_EMAIL, MEMBER_A_EMAIL, ACCOUNTANT_A_EMAIL):
+        tokens[email] = enroll_totp_aal2(env, aal1_tokens[email])
+        if jwt_aal(tokens[email]) != "aal2":
+            fail("MFA verify did not raise AAL2")
+    pass_("member sessions upgraded to AAL2")
 
     for table in ("ops_expenses", "ops_revenue", "ops_projects", "ops_tasks"):
         anon_status, anon_count = rest_count(env, None, table)

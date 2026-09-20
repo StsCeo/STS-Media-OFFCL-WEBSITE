@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GENERIC_AUTH_ERROR } from "@/lib/auth/owner";
 import { canAccessDashboard, getSession } from "@/lib/auth/session";
+import { shouldUseWorkspaceDatabase } from "@/lib/org/workspace";
 import { verifyMfaCode } from "@/app/actions";
 
 const OWNER_EMAIL = "info@stsmedia.co";
@@ -105,6 +106,7 @@ describe("trusted AAL MFA session", () => {
     expect(session.status).toBe("needs_mfa");
     expect(session.user?.mfaVerified).toBe(false);
     expect(canAccessDashboard(session.user)).toBe(false);
+    expect(shouldUseWorkspaceDatabase(session.user)).toBe(false);
   });
 
   it("grants dashboard access only after the provider reports aal2", async () => {
