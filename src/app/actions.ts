@@ -27,10 +27,12 @@ import type {
   RevenueEntry,
   TaskItem,
   TaxChecklistItem,
+  WorkspaceEstimate,
+  WorkspaceEstimateStatus,
 } from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
-import { clearCurrentAuth, createSupabaseServer, getSession, organizationRoleFor, requireBusinessSettingsWrite, requireCrmWrite, requireFinanceWrite, requireInvoiceWrite, requireOperationsWrite, requireOwnerWrite, requireRevenueWrite, sessionOrganizationId } from "@/lib/auth/session";
+import { clearCurrentAuth, createSupabaseServer, getSession, organizationRoleFor, requireBusinessSettingsWrite, requireCrmWrite, requireEstimateWrite, requireFinanceWrite, requireInvoiceWrite, requireOperationsWrite, requireOwnerWrite, requireRevenueWrite, sessionOrganizationId } from "@/lib/auth/session";
 import { recordOrganizationAudit, updateOrganizationBusinessSettings } from "@/lib/org/store";
 import { saveOrganizationSettingsInDatabase } from "@/lib/org/database";
 import {
@@ -92,6 +94,18 @@ import {
   validateInvoiceLines,
   voidWorkspaceInvoice,
 } from "@/lib/org/workspace";
+import {
+  GENERIC_ESTIMATE_ERROR,
+  archiveWorkspaceEstimate,
+  canTransitionEstimateStatus,
+  computeEstimateTotals,
+  parseEstimateLinesFromForm,
+  restoreWorkspaceEstimate,
+  saveWorkspaceEstimate,
+  setWorkspaceEstimateStatus,
+  shouldUseEstimateDatabase,
+  validateEstimateLines,
+} from "@/lib/org/estimates";
 
 function isSafePath(path: string) {
   return isSafeRedirect(path);
@@ -1906,6 +1920,254 @@ export async function archiveInvoiceForm(formData: FormData) {
   });
   stampAudit("invoice_archived", id, "Invoice archived.");
   revalidatePath("/dashboard/invoices");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+function estimateFormPayload(formData: FormData) {
+  const lines = parseEstimateLinesFromForm(formData);
+  const lineError = validateEstimateLines(lines);
+  if (lineError) return { error: lineError };
+  const taxCents = parseDollarsToCents(String(formData.get("tax") || "0"));
+  const totals = computeEstimateTotals(lines, taxCents);
+  if (totals.discountCents > totals.subtotalCents) return { error: "Discount cannot exceed the subtotal." };
+  if (totals.totalCents < 0) return { error: "Estimate total cannot be negative." };
+  const title = sanitizeText(String(formData.get("title") || "")).slice(0, 160);
+  if (title.length < 2) return { error: "Add a title for this estimate." };
+  const issueDate = String(formData.get("issueDate") || "") || null;
+  const expiresOn = String(formData.get("expiresOn") || "") || null;
+  if (issueDate && expiresOn && expiresOn < issueDate) return { error: "The expiration date cannot be before the issue date." };
+  return {
+    clientId: String(formData.get("clientId") || "") || null,
+    title,
+    description: sanitizeText(String(formData.get("description") || "")).slice(0, 4000),
+    issueDate,
+    expiresOn,
+    currency: String(formData.get("currency") || "USD").toUpperCase().slice(0, 3),
+    internalNotes: sanitizeText(String(formData.get("internalNotes") || "")).slice(0, 4000),
+    customerNotes: sanitizeText(String(formData.get("customerNotes") || "")).slice(0, 4000),
+    terms: sanitizeText(String(formData.get("terms") || "")).slice(0, 4000),
+    clientBusinessName: sanitizeText(String(formData.get("clientBusinessName") || "")).slice(0, 160),
+    clientContactName: sanitizeText(String(formData.get("clientContactName") || "")).slice(0, 160),
+    clientEmail: sanitizeText(String(formData.get("clientEmail") || "")).slice(0, 254),
+    taxCents: totals.taxCents,
+    lines,
+    totals,
+  };
+}
+
+export async function saveEstimateForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const payload = estimateFormPayload(formData);
+  if ("error" in payload) return payload;
+  const id = String(formData.get("id") || "");
+  const session = await getSession();
+  if (shouldUseEstimateDatabase(session.user) && session.user?.organizationId) {
+    await requireEstimateWrite();
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_ESTIMATE_ERROR };
+    const supabase = await factory();
+    const saved = await saveWorkspaceEstimate(supabase, session.user.organizationId, {
+      id: id || undefined,
+      clientId: payload.clientId,
+      title: payload.title,
+      description: payload.description,
+      issueDate: payload.issueDate,
+      expiresOn: payload.expiresOn,
+      currency: payload.currency,
+      internalNotes: payload.internalNotes,
+      customerNotes: payload.customerNotes,
+      terms: payload.terms,
+      clientBusinessName: payload.clientBusinessName,
+      clientContactName: payload.clientContactName,
+      clientEmail: payload.clientEmail,
+      taxCents: payload.taxCents,
+      lines: payload.lines,
+    });
+    if ("error" in saved) return { error: GENERIC_ESTIMATE_ERROR };
+    stampAudit("estimate_upsert", saved.id, "Estimate draft saved. Totals were calculated on the server.");
+    revalidatePath("/dashboard/estimates");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  mutateWorkspace((state) => {
+    const now = new Date().toISOString();
+    const current = id ? state.workspaceEstimates.find((item) => item.id === id) : undefined;
+    if (current && (current.status !== "draft" || current.archived)) return;
+    const next: WorkspaceEstimate = {
+      id: current?.id || `est-${Date.now()}`,
+      estimateNumber: current?.estimateNumber || `EST-${String(state.workspaceEstimates.length + 1).padStart(4, "0")}`,
+      status: "draft",
+      title: payload.title,
+      description: payload.description,
+      clientId: payload.clientId,
+      issueDate: payload.issueDate,
+      expiresOn: payload.expiresOn,
+      currency: payload.currency || "USD",
+      internalNotes: payload.internalNotes,
+      customerNotes: payload.customerNotes,
+      terms: payload.terms,
+      orgLegalName: "",
+      orgDisplayName: "",
+      clientBusinessName: payload.clientBusinessName,
+      clientContactName: payload.clientContactName,
+      clientEmail: payload.clientEmail,
+      subtotalCents: payload.totals.subtotalCents,
+      discountCents: payload.totals.discountCents,
+      taxCents: payload.totals.taxCents,
+      totalCents: payload.totals.totalCents,
+      lines: payload.lines.map((line, index) => ({
+        position: index + 1,
+        description: line.description,
+        quantity: line.quantity,
+        unitCents: line.unitCents,
+        discountCents: line.discountCents,
+        lineTotalCents: line.quantity * line.unitCents - line.discountCents,
+      })),
+      readyAt: null,
+      acceptedAt: null,
+      declinedAt: null,
+      expiredAt: null,
+      archived: false,
+      createdAt: current?.createdAt || now,
+      updatedAt: now,
+    };
+    if (current) Object.assign(current, next);
+    else state.workspaceEstimates.unshift(next);
+  });
+  stampAudit("estimate_upsert", id || "new", "Estimate draft saved. Totals were calculated on the server.");
+  revalidatePath("/dashboard/estimates");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+export async function setEstimateStatusForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  const status = String(formData.get("status") || "") as WorkspaceEstimateStatus;
+  if (!id) return { error: "Choose an estimate." };
+  if (!["draft", "ready", "accepted", "declined", "expired"].includes(status)) {
+    return { error: "That status change is not allowed." };
+  }
+  const session = await getSession();
+  if (shouldUseEstimateDatabase(session.user) && session.user?.organizationId) {
+    await requireEstimateWrite();
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_ESTIMATE_ERROR };
+    const supabase = await factory();
+    const saved = await setWorkspaceEstimateStatus(supabase, session.user.organizationId, id, status);
+    if ("error" in saved) return { error: GENERIC_ESTIMATE_ERROR };
+    stampAudit("estimate_status_changed", saved.id, `Estimate marked ${status}. No email or PDF was created.`);
+    revalidatePath("/dashboard/estimates");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  let denied = false;
+  mutateWorkspace((state) => {
+    const estimate = state.workspaceEstimates.find((item) => item.id === id);
+    if (!estimate || estimate.archived) {
+      denied = true;
+      return;
+    }
+    if (!canTransitionEstimateStatus(estimate.status, status)) {
+      denied = true;
+      return;
+    }
+    const now = new Date().toISOString();
+    if (status === "ready") {
+      estimate.status = "ready";
+      estimate.readyAt = now;
+      estimate.acceptedAt = null;
+      estimate.declinedAt = null;
+      estimate.expiredAt = null;
+      estimate.issueDate = estimate.issueDate || now.slice(0, 10);
+      estimate.orgLegalName = state.brand.legalName;
+      estimate.orgDisplayName = state.brand.shortName;
+    } else if (status === "draft") {
+      estimate.status = "draft";
+      estimate.readyAt = null;
+      estimate.acceptedAt = null;
+      estimate.declinedAt = null;
+      estimate.expiredAt = null;
+    } else if (status === "accepted") {
+      estimate.status = "accepted";
+      estimate.acceptedAt = now;
+      estimate.declinedAt = null;
+      estimate.expiredAt = null;
+    } else if (status === "declined") {
+      estimate.status = "declined";
+      estimate.declinedAt = now;
+      estimate.acceptedAt = null;
+      estimate.expiredAt = null;
+    } else {
+      estimate.status = "expired";
+      estimate.expiredAt = now;
+      estimate.acceptedAt = null;
+      estimate.declinedAt = null;
+    }
+    estimate.updatedAt = now;
+  });
+  if (denied) return { error: GENERIC_ESTIMATE_ERROR };
+  stampAudit("estimate_status_changed", id, `Estimate marked ${status}. No email or PDF was created.`);
+  revalidatePath("/dashboard/estimates");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+export async function archiveEstimateForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Choose an estimate to archive." };
+  const session = await getSession();
+  if (shouldUseEstimateDatabase(session.user) && session.user?.organizationId) {
+    await requireEstimateWrite();
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_ESTIMATE_ERROR };
+    const supabase = await factory();
+    const saved = await archiveWorkspaceEstimate(supabase, session.user.organizationId, id);
+    if ("error" in saved) return { error: GENERIC_ESTIMATE_ERROR };
+    stampAudit("estimate_archived", saved.id, "Estimate archived.");
+    revalidatePath("/dashboard/estimates");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  mutateWorkspace((state) => {
+    const estimate = state.workspaceEstimates.find((item) => item.id === id);
+    if (estimate) estimate.archived = true;
+  });
+  stampAudit("estimate_archived", id, "Estimate archived.");
+  revalidatePath("/dashboard/estimates");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+export async function restoreEstimateForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Choose an estimate to restore." };
+  const session = await getSession();
+  if (shouldUseEstimateDatabase(session.user) && session.user?.organizationId) {
+    await requireEstimateWrite();
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_ESTIMATE_ERROR };
+    const supabase = await factory();
+    const saved = await restoreWorkspaceEstimate(supabase, session.user.organizationId, id);
+    if ("error" in saved) return { error: GENERIC_ESTIMATE_ERROR };
+    stampAudit("estimate_restored", saved.id, "Estimate restored.");
+    revalidatePath("/dashboard/estimates");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
+  }
+  mutateWorkspace((state) => {
+    const estimate = state.workspaceEstimates.find((item) => item.id === id);
+    if (estimate) estimate.archived = false;
+  });
+  stampAudit("estimate_restored", id, "Estimate restored.");
+  revalidatePath("/dashboard/estimates");
   revalidatePath("/dashboard");
   return { ok: true as const };
 }

@@ -9,6 +9,7 @@ import { loadVisibleOpsRecords } from "@/lib/org/operations-context";
 import { implementedBusinessOsHrefs } from "@/lib/nav";
 import { formatCurrency } from "@/lib/utils";
 import { loadVisibleWorkspaceRecords } from "@/lib/org/workspace-context";
+import { loadVisibleEstimates } from "@/lib/org/estimates-context";
 
 export const metadata = { title: "Command Center" };
 
@@ -16,6 +17,7 @@ const implementedLinks = [
   { href: "/dashboard/crm", label: "CRM & Sales" },
   { href: "/dashboard/projects", label: "Projects" },
   { href: "/dashboard/calendar", label: "Calendar" },
+  { href: "/dashboard/estimates", label: "Estimates" },
   { href: "/dashboard/invoices", label: "Invoices" },
   { href: "/dashboard/taxes", label: "Taxes" },
   { href: "/dashboard/documents", label: "Documents" },
@@ -32,6 +34,7 @@ export default async function OverviewPage() {
   const os = await getBusinessOsContext(session.user);
   const { totals, source, estimateNote, unavailable } = await loadVisibleOpsRecords();
   const workspaceRecords = await loadVisibleWorkspaceRecords();
+  const estimates = await loadVisibleEstimates();
   const organization = os.organization;
   const settings = os.settings;
   const orgActivity = os.audit;
@@ -140,6 +143,14 @@ export default async function OverviewPage() {
               <div>
                 <dt className="text-xs uppercase tracking-wide text-muted">Paid recorded</dt>
                 <dd className="mt-1 font-mono text-lg">{formatCurrency(workspaceRecords.summaries.paidInvoiceTotal)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Draft estimates</dt>
+                <dd className="mt-1 font-mono text-lg">{estimates.unavailable ? "—" : estimates.summaries.draftEstimates}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Ready estimates</dt>
+                <dd className="mt-1 font-mono text-lg">{estimates.unavailable ? "—" : estimates.summaries.readyEstimates}</dd>
               </div>
             </dl>
             <p className="mt-4 text-xs text-muted">{workspaceRecords.recordNote} Invoice figures are operational records, not formal accounting or tax reports.</p>

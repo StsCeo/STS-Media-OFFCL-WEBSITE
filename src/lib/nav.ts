@@ -53,7 +53,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     items: [
       { href: "/dashboard", label: "Command Center", icon: LayoutDashboard, status: "available", sectionId: "command-center" },
       { href: "/dashboard/crm", label: "CRM & Sales", icon: Users, status: "available", sectionId: "crm" },
-      { href: "/dashboard/estimates", label: "Estimates & Proposals", icon: ClipboardList, status: "planned", sectionId: "estimates" },
+      { href: "/dashboard/estimates", label: "Estimates & Quotes", icon: ClipboardList, status: "available", sectionId: "estimates" },
       { href: "/dashboard/contracts", label: "Contracts & Signatures", icon: FileSignature, status: "planned", sectionId: "contracts" },
       { href: "/dashboard/projects", label: "Projects", icon: FolderKanban, status: "available", sectionId: "projects" },
       { href: "/dashboard/calendar", label: "Calendar & Automations", icon: CalendarDays, status: "available", sectionId: "calendar" },

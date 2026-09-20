@@ -369,6 +369,7 @@ export interface CalendarEvent {
 }
 
 export type WorkspaceInvoiceStatus = "draft" | "issued" | "paid" | "void";
+export type WorkspaceEstimateStatus = "draft" | "ready" | "accepted" | "declined" | "expired";
 
 export interface WorkspaceInvoiceLine {
   id?: string;
@@ -403,6 +404,48 @@ export interface WorkspaceInvoice {
   issuedAt: string | null;
   paidAt: string | null;
   voidedAt: string | null;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkspaceEstimateLine {
+  id?: string;
+  position: number;
+  description: string;
+  quantity: number;
+  unitCents: number;
+  discountCents: number;
+  lineTotalCents: number;
+}
+
+export interface WorkspaceEstimate {
+  id: string;
+  estimateNumber: string;
+  status: WorkspaceEstimateStatus;
+  title: string;
+  description: string;
+  clientId: string | null;
+  issueDate: string | null;
+  expiresOn: string | null;
+  currency: string;
+  internalNotes: string;
+  customerNotes: string;
+  terms: string;
+  orgLegalName: string;
+  orgDisplayName: string;
+  clientBusinessName: string;
+  clientContactName: string;
+  clientEmail: string;
+  subtotalCents: number;
+  discountCents: number;
+  taxCents: number;
+  totalCents: number;
+  lines: WorkspaceEstimateLine[];
+  readyAt: string | null;
+  acceptedAt: string | null;
+  declinedAt: string | null;
+  expiredAt: string | null;
   archived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -680,6 +723,7 @@ export interface WorkspaceState {
   revenue: RevenueEntry[];
   invoices: Invoice[];
   workspaceInvoices: WorkspaceInvoice[];
+  workspaceEstimates: WorkspaceEstimate[];
   subscriptions: SubscriptionRecord[];
   content: ContentItem[];
   emailTemplates: EmailTemplate[];

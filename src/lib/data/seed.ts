@@ -401,6 +401,7 @@ export function createSeedWorkspace(): WorkspaceState {
       },
     ],
     workspaceInvoices: [],
+    workspaceEstimates: [],
     subscriptions: [
       {
         id: "sub-scp",
