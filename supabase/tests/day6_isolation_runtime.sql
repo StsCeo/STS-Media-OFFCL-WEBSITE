@@ -311,11 +311,11 @@ begin
     'authenticated hard-delete of converted invoice denied'
   );
 
-  select action, metadata into action, meta
+  select audit_events.action, audit_events.metadata into action, meta
   from public.audit_events
-  where entity_id = estimate_accepted::text
-    and action = 'estimate.converted_to_invoice'
-  order by created_at desc
+  where audit_events.entity_id = estimate_accepted::text
+    and audit_events.action = 'estimate.converted_to_invoice'
+  order by audit_events.created_at desc
   limit 1;
   perform pg_temp.sts_day6_expect(action = 'estimate.converted_to_invoice', 'conversion audit exists');
   perform pg_temp.sts_day6_expect(meta ? 'invoice_id' and meta ? 'result', 'conversion audit stores identifiers');
