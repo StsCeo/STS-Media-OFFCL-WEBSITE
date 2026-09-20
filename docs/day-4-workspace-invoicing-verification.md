@@ -2,7 +2,7 @@
 
 This report is the evidence log for Day 4 work on top of the completed isolated Day 3 closure. It does not claim production readiness, accounting compliance, tax compliance, legal compliance, malware-scanning coverage, or electronic-signature validity.
 
-**Verdict: DAY 4 SECURITY CLOSURE IN PROGRESS IN ISOLATED TEST ENV — JWT `aal=aal2` is now required at RLS/RPC/Storage, not only the dashboard. Verification results follow in §8. Not production-ready.**
+**Verdict: DAY 4 SECURITY CLOSURE COMPLETE IN ISOLATED TEST ENV — JWT `aal=aal2` is required at RLS/RPC/Storage as well as the dashboard; Day 1–4 regression, interactive MFA, lint, tests, and production build PASS. Not production-ready.**
 
 Target used: disposable local stack `supabase/config.toml` `project_id = "sts-media"`. No hosted or production project was linked, queried, reset, or migrated. PR #5, PR #6, and PR #7 were not merged. Day 4 lives on draft PR #8 whose base branch is `cursor/sts-business-os-day3-finance-ops-a5ed`.
 
@@ -115,20 +115,22 @@ After `npx supabase stop` then `npx supabase start`, Day 4 note, calendar event,
 
 | Check | Result |
 | --- | --- |
-| isolated local `db reset` | PASS (all timestamped migrations through Day 4 storage extension guard) |
+| isolated local `db reset` | PASS (migrations through `20260920150000_day4_aal2_session_gate.sql`) |
 | Day 1 local SQL | PASS |
 | Day 2 local SQL | PASS |
 | Day 3 local SQL | PASS |
 | Day 4 local SQL | PASS |
-| Day 1 local Auth/REST | PASS (known Day 1 gap: logout does not invalidate an existing access token) |
-| Day 2 local Auth/REST | PASS |
-| Day 3 local Auth/REST | PASS |
-| Day 4 local Auth/REST/Storage | PASS |
-| AAL1 password sessions vs dashboard AAL2 | PASS (documented; dashboard gate unchanged) |
-| Interactive MFA UI | Not re-enrolled after the isolated reset. Day 4 did not change MFA code from Day 3 closure. |
+| Day 4 AAL1 vs AAL2 SQL | PASS |
+| Day 1 local Auth/REST | PASS (known Day 1 gap: logout does not invalidate an existing access token; AAL1 still cannot read organizations) |
+| Day 2 local Auth/REST | PASS (AAL1 CRM denied; AAL2 member writes remain role-scoped) |
+| Day 3 local Auth/REST | PASS (AAL1 finance/ops denied) |
+| Day 4 local Auth/REST/Storage | PASS (AAL1 notes/invoices/storage denied; AAL2 role matrix unchanged) |
+| Interactive MFA UI | PASS after the isolated reset. Enrollment QR was decoded in memory only; no QR, TOTP secret, cookie, or token was logged or committed. Disposable Auth user and factors were removed. |
+| Persistence after `supabase stop/start` | PASS |
+| Persistence after Next.js restart | PASS (signed-out `/dashboard` still 307 to login; Postgres remains the system of record) |
 | lint | PASS, zero warnings |
 | type-check | PASS |
-| automated tests | PASS, 143 |
+| automated tests | PASS, 144 |
 | production build | PASS |
 
 Commands (local stack only):
@@ -143,6 +145,7 @@ python3 scripts/verify-day2-local-auth.py
 python3 scripts/verify-day3-local-auth.py
 python3 scripts/verify-day4-local-auth.py
 DAY4_AUTH_PHASE=persist python3 scripts/verify-day4-local-auth.py
+python3 scripts/verify-day4-mfa-ui.py
 npx eslint . --max-warnings 0
 npx tsc --noEmit
 npx vitest run
@@ -167,4 +170,5 @@ Do not apply these migrations to production from this work.
 2. Apply Day 1, then Day 2, then Day 3, then Day 4 only after each prior day is reviewed.
 3. Provision Storage policies and the private `org-documents` bucket on the intended project only after review.
 4. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only. Do not copy `@day*.test` users or disposable UUIDs into production SQL.
-5. Do not merge PR #5, #6, #7, or #8 as a production cutover from this agent.
+5. Confirm Vercel Preview is isolated from production Supabase, or remove stacked-branch Previews. See `docs/vercel-preview-safety.md`.
+6. Do not merge PR #5, #6, #7, or #8 as a production cutover from this agent.
