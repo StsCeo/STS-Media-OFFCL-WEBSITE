@@ -142,7 +142,6 @@ declare
   org_a uuid := 'a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7';
   org_b uuid := 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7';
   n integer;
-  n2 integer;
   client_a uuid;
   client_b uuid;
   project_a uuid;
@@ -151,12 +150,10 @@ declare
   estimate_accepted uuid;
   invoice_plain uuid;
   invoice_converted uuid;
-  invoice_again uuid;
   project_kick uuid;
   project_again uuid;
   generated_id uuid;
   generated_title text;
-  archived_at timestamptz;
   source_invoice uuid;
   invoice_status text;
   meta jsonb;
@@ -448,8 +445,8 @@ begin
   );
 
   perform pg_temp.sts_day7_impersonate(admin_a, 'admin-a@day7.test', 'aal2');
-  select public.sts_start_project_from_invoice(org_a, invoice_converted) into invoice_again;
-  perform pg_temp.sts_day7_expect(invoice_again = project_kick, 'administrator kickoff returns the existing project');
+  select public.sts_start_project_from_invoice(org_a, invoice_converted) into project_again;
+  perform pg_temp.sts_day7_expect(project_again = project_kick, 'administrator kickoff returns the existing project');
 
   perform pg_temp.sts_day7_impersonate(owner_b, 'owner-b@day7.test', 'aal2');
   perform pg_temp.sts_day7_expect_denied_or_zero(
