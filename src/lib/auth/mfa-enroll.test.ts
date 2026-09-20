@@ -70,5 +70,6 @@ describe("MFA enrollment policy", () => {
     expect(actions).toContain("No secret was logged");
     expect(actions).toContain("unenroll");
     expect(actions).toContain("cancelled: true");
+    expect(actions).toContain("factors?.all");
   });
 });
