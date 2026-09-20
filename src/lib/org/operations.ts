@@ -135,6 +135,8 @@ export function mapOpsProjectRow(row: Record<string, unknown>): Project {
     credentialsReference: "Stored outside this system. Record only the location of the vault, never the secret.",
     notes: String(row.notes || row.description || ""),
     atRisk: Boolean(row.at_risk),
+    sourceInvoiceId: (row.source_invoice_id as string | null) ?? null,
+    sourceEstimateId: (row.source_estimate_id as string | null) ?? null,
   };
 }
 

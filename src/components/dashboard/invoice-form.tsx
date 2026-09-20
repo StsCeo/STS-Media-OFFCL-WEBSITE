@@ -6,6 +6,7 @@ import {
   issueInvoiceForm,
   recordInvoicePaymentForm,
   saveInvoiceForm,
+  startProjectFromInvoiceForm,
   voidInvoiceForm,
 } from "@/app/actions";
 import { Button, inputClass, textareaClass } from "@/components/ui";
@@ -41,9 +42,13 @@ function linesFromInvoice(invoice?: WorkspaceInvoice): LineDraft[] {
 export function InvoiceForm({
   invoice,
   clients,
+  kickoffProjectId,
+  canKickoff = false,
 }: {
   invoice?: WorkspaceInvoice;
   clients: Pick<ClientRecord, "id" | "businessName">[];
+  kickoffProjectId?: string | null;
+  canKickoff?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(saveAction, {});
   const [issueState, issueFormAction, issuePending] = useActionState(issueAction, {});
@@ -174,6 +179,14 @@ export function InvoiceForm({
             {archiveState.error ? <p className="mt-2 text-sm text-danger">{archiveState.error}</p> : null}
           </form>
           <Button href={`/dashboard/invoices/${invoice.id}/print`} size="sm" variant="secondary">Print view</Button>
+          {kickoffProjectId ? (
+            <Button href={`/dashboard/projects/${kickoffProjectId}`} size="sm" variant="secondary">Open linked project</Button>
+          ) : canKickoff ? (
+            <form action={startProjectFromInvoiceForm}>
+              <input type="hidden" name="id" value={invoice.id} />
+              <Button type="submit" size="sm" variant="secondary">Start project</Button>
+            </form>
+          ) : null}
         </div>
       ) : null}
     </div>

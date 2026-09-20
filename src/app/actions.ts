@@ -87,11 +87,13 @@ import {
   parseCalendarBounds,
   parseInvoiceLinesFromForm,
   recordWorkspaceInvoicePayment,
+  reconcileWorkspaceSchedule,
   saveWorkspaceDocument,
   saveWorkspaceEvent,
   saveWorkspaceInvoice,
   saveWorkspaceNote,
   shouldUseWorkspaceDatabase,
+  startProjectFromInvoice,
   validateInvoiceLines,
   voidWorkspaceInvoice,
 } from "@/lib/org/workspace";
@@ -110,6 +112,10 @@ import {
   shouldUseEstimateDatabase,
   validateEstimateLines,
 } from "@/lib/org/estimates";
+import {
+  canStartProjectFromInvoice,
+  draftProjectFromConvertedInvoice,
+} from "@/lib/org/schedule-model";
 
 function isSafePath(path: string) {
   return isSafeRedirect(path);
@@ -1621,6 +1627,7 @@ export async function saveCalendarForm(formData: FormData) {
     const supabase = await factory();
     const current = id ? await loadWorkspaceEvent(supabase, session.user.organizationId, id) : null;
     if (current && "error" in current) return { error: GENERIC_WORKSPACE_ERROR };
+    if (current && current.generated) return { error: "System-generated events cannot be edited as manual events." };
     const saved = await saveWorkspaceEvent(supabase, session.user.organizationId, {
       id: id || undefined,
       title,
@@ -1641,6 +1648,12 @@ export async function saveCalendarForm(formData: FormData) {
     return { ok: true as const };
   }
 
+  if (id.startsWith("generated:")) {
+    return { error: "System-generated events cannot be edited as manual events." };
+  }
+  if (getWorkspace().events.find((item) => item.id === id)?.generated) {
+    return { error: "System-generated events cannot be edited as manual events." };
+  }
   mutateWorkspace((state) => {
     const payload: CalendarEvent = {
       id: id || `evt-${Date.now()}`,
@@ -1655,9 +1668,13 @@ export async function saveCalendarForm(formData: FormData) {
       timezone,
       clientId,
       projectId,
+      generated: false,
+      sourceType: "manual",
+      sourceId: null,
     };
     if (id) {
       const current = state.events.find((item) => item.id === id);
+      if (current?.generated) return;
       if (current) Object.assign(current, payload);
     } else {
       state.events.unshift(payload);
@@ -1679,12 +1696,18 @@ export async function archiveCalendarForm(formData: FormData) {
     const factory = createSupabaseServer();
     if (!factory) return { error: GENERIC_WORKSPACE_ERROR };
     const supabase = await factory();
+    const current = await loadWorkspaceEvent(supabase, session.user.organizationId, id);
+    if (current && "error" in current) return { error: GENERIC_WORKSPACE_ERROR };
+    if (current?.generated) return { error: "System-generated events cannot be archived as unrelated manual events." };
     const saved = await archiveWorkspaceEvent(supabase, session.user.organizationId, id);
     if ("error" in saved) return { error: GENERIC_WORKSPACE_ERROR };
     stampAudit("calendar_archived", saved.id, "Calendar event archived.");
     revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard");
     return { ok: true as const };
+  }
+  if (id.startsWith("generated:") || getWorkspace().events.find((item) => item.id === id)?.generated) {
+    return { error: "System-generated events cannot be archived as unrelated manual events." };
   }
   mutateWorkspace((state) => {
     state.events = state.events.filter((item) => item.id !== id);
@@ -2228,6 +2251,78 @@ export async function convertEstimateToInvoiceForm(formData: FormData) {
   revalidatePath("/dashboard/invoices");
   revalidatePath("/dashboard");
   return { ok: true as const, invoiceId };
+}
+
+export async function reconcileScheduleForm(formData: FormData) {
+  void formData;
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    const factory = createSupabaseServer();
+    if (!factory) return;
+    const supabase = await factory();
+    const saved = await reconcileWorkspaceSchedule(supabase, session.user.organizationId);
+    if ("error" in saved) return;
+    stampAudit("schedule_reconciled", session.user.organizationId, "Internal schedule reconciled. No external calendar was contacted.");
+    revalidatePath("/dashboard/calendar");
+    revalidatePath("/dashboard");
+    redirect("/dashboard/calendar");
+  }
+  stampAudit("schedule_reconciled", "demo", "Internal schedule derived in memory. No external calendar was contacted.");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard");
+  redirect("/dashboard/calendar");
+}
+
+export async function startProjectFromInvoiceForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  const session = await getSession();
+  if (shouldUseWorkspaceDatabase(session.user) && session.user?.organizationId) {
+    await requireInvoiceWrite();
+    await requireOperationsWrite();
+    const factory = createSupabaseServer();
+    if (!factory) return;
+    const supabase = await factory();
+    const saved = await startProjectFromInvoice(supabase, session.user.organizationId, id);
+    if ("error" in saved) return;
+    stampAudit("project_started_from_invoice", saved.id, "Project started from a converted invoice. The invoice was not issued, sent, or marked paid.");
+    revalidatePath("/dashboard/invoices");
+    revalidatePath("/dashboard/projects");
+    revalidatePath("/dashboard/calendar");
+    revalidatePath("/dashboard");
+    redirect(`/dashboard/projects/${saved.id}`);
+  }
+  let projectId = "";
+  let denied = false;
+  mutateWorkspace((state) => {
+    const existing = state.projects.find((item) => item.sourceInvoiceId === id);
+    if (existing) {
+      projectId = existing.id;
+      return;
+    }
+    const invoice = state.workspaceInvoices.find((item) => item.id === id);
+    const estimate = invoice?.sourceEstimateId
+      ? state.workspaceEstimates.find((item) => item.id === invoice.sourceEstimateId)
+      : null;
+    if (!invoice || !canStartProjectFromInvoice(invoice, estimate, null)) {
+      denied = true;
+      return;
+    }
+    const next = draftProjectFromConvertedInvoice(invoice, estimate!);
+    projectId = next.id;
+    state.projects.unshift(next);
+  });
+  if (denied || !projectId) return;
+  stampAudit("project_started_from_invoice", projectId, "Project started from a converted invoice. The invoice was not issued, sent, or marked paid.");
+  revalidatePath("/dashboard/invoices");
+  revalidatePath("/dashboard/projects");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard");
+  redirect(`/dashboard/projects/${projectId}`);
 }
 
 export async function saveOsTransactionForm(formData: FormData) {

@@ -311,6 +311,16 @@ export interface Lead {
   createdAt: string;
 }
 
+export type ScheduleSourceType =
+  | "manual"
+  | "project_start"
+  | "project_deadline"
+  | "task_due"
+  | "estimate_expires"
+  | "invoice_due";
+
+export type ScheduleViewFilter = "all" | "today" | "upcoming" | "overdue";
+
 export interface Project {
   id: string;
   name: string;
@@ -331,6 +341,8 @@ export interface Project {
   credentialsReference: string;
   notes: string;
   atRisk: boolean;
+  sourceInvoiceId?: string | null;
+  sourceEstimateId?: string | null;
 }
 
 export interface TaskItem {
@@ -366,6 +378,19 @@ export interface CalendarEvent {
   timezone?: string;
   clientId?: string | null;
   projectId?: string | null;
+  generated?: boolean;
+  sourceType?: ScheduleSourceType;
+  sourceId?: string | null;
+}
+
+export interface InternalScheduleItem {
+  id: string;
+  sourceType: ScheduleSourceType;
+  sourceId: string;
+  title: string;
+  occursOn: string;
+  sourceStatus: string;
+  generated: boolean;
 }
 
 export type WorkspaceInvoiceStatus = "draft" | "issued" | "paid" | "void";

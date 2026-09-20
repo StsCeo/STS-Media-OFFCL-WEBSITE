@@ -23,6 +23,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <h2 className="font-semibold">Delivery</h2>
           <p className="mt-2 text-sm">Stage: {project.stage.replaceAll("_", " ")}</p>
           <p className="text-sm">Start {project.startDate || "n/a"} · Deadline {project.deadline || "n/a"}</p>
+          {project.sourceInvoiceId ? (
+            <p className="mt-2 text-xs text-muted">Started from converted invoice {project.sourceInvoiceId}. Kickoff does not mark that invoice issued, sent, or paid.</p>
+          ) : null}
           <ul className="mt-4 space-y-2 text-sm">
             {projectTasks.map((task) => (
               <li key={task.id} className="flex justify-between gap-2">

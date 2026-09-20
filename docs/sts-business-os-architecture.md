@@ -104,6 +104,7 @@ If the legacy `organizations` table from init.sql already exists, the Day 1 migr
 - Day 3 expenses, revenue, projects, and tasks persist through `sts_save_ops_*` / `sts_archive_ops_*` on `ops_*` tables. Authenticated sessions cannot hard-delete those rows; archival is the supported removal path. Demo sessions stay in-memory.
 - Day 4 notes, documents, calendar events, and invoices persist through `sts_save_ws_*` / archive / issue / pay / void RPCs. Invoice money is integer cents with server-calculated totals. Private files use the `org-documents` bucket. Demo sessions stay in-memory.
 - Day 5 estimates persist through `sts_save_ws_estimate` / `sts_set_ws_estimate_status` / archive / restore. Quote money is integer cents with server-calculated totals. Ready does not send email or store a PDF. Day 6 converts an accepted estimate through `sts_convert_ws_estimate_to_invoice` into one draft invoice. Demo sessions stay in-memory.
+- Day 7 reconciles internal calendar rows for dated projects, tasks, estimates, and invoices through `sts_reconcile_ws_schedule` and source-row triggers. Owner/administrator may start one project from a converted invoice through `sts_start_project_from_invoice`. Demo sessions derive generated rows in memory.
 
 Manual owner membership insert: `supabase/manual/provision-owner-membership.sql` (blocked until the owner supplies the Auth user UUID).
 
@@ -148,7 +149,7 @@ Application helpers: `hasPermission`, `canAccessOrganizationResource`, `canAcces
 
 ## 9. Planned financial-data model
 
-Day 3 persists organization-owned expense, revenue, project, and task records in `ops_*` tables using integer cents, forced RLS, and recoverable `archived_at`. Day 4 adds notes, private documents, internal calendar events, and invoices (`ws_*`) with the same archival rule. Day 5 adds customer estimates/quotes (`ws_estimates`) with integer-cent line items, a `draft → ready → accepted|declined|expired` lifecycle, and authorized restore. Day 6 adds an atomic accepted-estimate-to-draft-invoice conversion (`source_estimate_id`) and authenticated print views that use the browser print dialog. Invoice and estimate totals are calculated on the server in integer cents. Issued, paid, and ready statuses are recorded only; no processor, email, stored PDF, e-sign, or tax filing is connected. Dashboard and Finance totals from those ledgers are **operational estimates / operational invoice and quote records**, not formal accounting or tax reports.
+Day 3 persists organization-owned expense, revenue, project, and task records in `ops_*` tables using integer cents, forced RLS, and recoverable `archived_at`. Day 4 adds notes, private documents, internal calendar events, and invoices (`ws_*`) with the same archival rule. Day 5 adds customer estimates/quotes (`ws_estimates`) with integer-cent line items, a `draft → ready → accepted|declined|expired` lifecycle, and authorized restore. Day 6 adds an atomic accepted-estimate-to-draft-invoice conversion (`source_estimate_id`) and authenticated print views that use the browser print dialog. Day 7 adds an organization-scoped internal schedule (`sts_internal_schedule`) and idempotent generated calendar rows linked to the same-organization source. Invoice and estimate totals are calculated on the server in integer cents. Issued, paid, and ready statuses are recorded only; no processor, email, stored PDF, e-sign, or tax filing is connected. Dashboard and Finance totals from those ledgers are **operational estimates / operational invoice and quote records**, not formal accounting or tax reports.
 
 Still later:
 
@@ -167,11 +168,11 @@ Deny by default. The browser never supplies a trusted role or organization id.
 2. `src/app/dashboard/layout.tsx` calls `getSession()` then `canAccessDashboard()`. Invalid sessions, non-owners, emails outside `OWNER_EMAIL`, and unverified MFA (except demo) redirect to login or MFA.
 3. Mutating server actions call `assertSameOrigin()` and `requireOwnerWrite()`. Business Settings also calls `requireBusinessSettingsWrite()`, which checks `settings.business.write` against the **session** organization id (`sessionOrganizationId`).
 4. `canAccessOrganizationResource` rejects missing membership, inactive membership, and cross-organization ids.
-5. PostgreSQL `sts_session_is_aal2()` fail-closes unless the authenticated JWT `aal` claim is exactly `aal2` (or the caller is `service_role` for maintenance). `sts_has_organization_role()`, `is_phase1_owner()`, organization SELECT, audit writes, Day 1–5 RLS, SECURITY DEFINER RPCs, and `org-documents` Storage policies inherit that gate.
+5. PostgreSQL `sts_session_is_aal2()` fail-closes unless the authenticated JWT `aal` claim is exactly `aal2` (or the caller is `service_role` for maintenance). `sts_has_organization_role()`, `is_phase1_owner()`, organization SELECT, audit writes, Day 1–7 RLS, SECURITY DEFINER RPCs, and `org-documents` Storage policies inherit that gate.
 6. AAL1 remains able to authenticate, read **own** `organization_members` row, and complete MFA enrollment/verify. It cannot load CRM, finance, operations, notes, documents, calendar, invoices, settings, or audit rows.
 7. Application clients use the session-bound anon key. `SUPABASE_SERVICE_ROLE_KEY` is server-only and is not shipped to the browser.
 8. Roles and organization ids on forms, query strings, or localStorage are ignored.
-9. Day 3 `ops_*` ledgers, Day 4 `ws_*` records, and Day 5 `ws_estimates` have no authenticated `DELETE` policy or grant. Application sessions archive through `sts_archive_*`. Day 5 estimates may be restored through `sts_restore_ws_estimate`. Day 6 conversion does not add DELETE. `service_role` may delete for maintenance only and is never given to the browser.
+9. Day 3 `ops_*` ledgers, Day 4 `ws_*` records, and Day 5 `ws_estimates` have no authenticated `DELETE` policy or grant. Application sessions archive through `sts_archive_*`. Day 5 estimates may be restored through `sts_restore_ws_estimate`. Day 6 conversion and Day 7 generated calendar rows do not add DELETE. `service_role` may delete for maintenance only and is never given to the browser.
 10. MFA enrollment lists unfinished factors from `listFactors().all` (the Auth client keeps unverified TOTP out of `.totp`). Cancel unenrolls unverified factors only. Confirm sends well-formed codes to the Auth provider; `describeMfaAttempt(..., verifiedByProvider: false)` is not treated as a hard failure.
 
 ## 10.1 Row-level security
@@ -251,7 +252,7 @@ Manual SQL isolation plan: `supabase/tests/org_isolation.sql` (eight required sc
 | 9 | Taxes | `/dashboard/taxes` | Existing checklist; not a filing product |
 | 10 | Payroll & Contractors | `/dashboard/payroll` | Planned; payroll processing not activated |
 | 11 | Documents & Receipts | `/dashboard/documents` | Day 4 org-documents metadata + private bucket |
-| 12 | Calendar & Automations | `/dashboard/calendar` | Day 4 internal calendar; automations planned |
+| 12 | Calendar & Automations | `/dashboard/calendar` | Day 7 internal schedule + generated entries |
 | 13 | Client Portal | `/dashboard/client-portal` | Planned staff view; public `/portal` unchanged |
 | 14 | Accountant Center | `/dashboard/accountant` | Planned |
 | 15 | Reports | `/dashboard/reports` | Existing Phase 1 |
@@ -269,7 +270,7 @@ Existing extra routes (inbox, tasks, notes, content studio, and so on) stay in t
 4. **Day 4** — Persist notes, private documents, internal calendar, and invoices as operational records. No live charges, email, or external calendar sync.
 5. **Day 5** — Persist customer estimates/quotes as operational records. No email send, stored PDF, e-sign, contracts, or payments.
 6. **Day 6** — Convert an accepted estimate into one draft invoice and add authenticated print views that use the browser print dialog. No email, stored PDF, e-sign, public document URLs, or payment collection.
-7. **Projects + calendar automations** — Assigned-work rules for contractors; recurrence/reminders later.
+7. **Day 7** — Unified internal schedule and idempotent generated calendar rows for dated projects, tasks, estimates, and invoices. Today / upcoming / overdue views use `?schedule=` on `/dashboard/calendar`. Explicit owner/admin project kickoff from a converted invoice. No external calendar sync, email, cron, or reminders.
 8. **Accountant read center** after a real accountant membership exists.
 9. **Client portal** on a separate auth path.
 10. **Integrations** only after owner approval, credentials, and a disconnect/revoke design.
