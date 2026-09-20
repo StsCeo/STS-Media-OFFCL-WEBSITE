@@ -245,21 +245,68 @@ def persist_phase(env: dict[str, str]) -> None:
     record_id = ESTIMATE_MARK.read_text().strip()
     status, payload, _ = request(
         "GET",
-        f"{env['REST_URL']}/ws_estimates?id=eq.{record_id}&select=id,organization_id,status,archived_at",
+        f"{env['REST_URL']}/ws_estimates?id=eq.{record_id}&select=id,organization_id,status,archived_at,total_cents",
         auth_headers(env, admin=True),
     )
     if status != 200 or not isinstance(payload, list) or not payload:
         fail(f"persisted estimate missing after restart (http {status})")
-    if payload[0].get("organization_id") != ORG_A:
+    row = payload[0]
+    if row.get("organization_id") != ORG_A:
         fail("persisted estimate organization mismatch")
-    pass_("estimate remained after local restart")
+    if row.get("status") != "accepted":
+        fail("persisted estimate lifecycle status did not survive restart")
+    if row.get("archived_at") is not None:
+        fail("restored estimate was still archived after restart")
+    if not isinstance(row.get("total_cents"), int) or row["total_cents"] < 0:
+        fail("persisted estimate total was missing or not integer cents")
+    pass_("estimate header, status, and restore state remained after local restart")
+
+    line_status, lines, _ = request(
+        "GET",
+        f"{env['REST_URL']}/ws_estimate_lines?estimate_id=eq.{record_id}&select=quantity,unit_cents,discount_cents,line_total_cents",
+        auth_headers(env, admin=True),
+    )
+    if line_status != 200 or not isinstance(lines, list) or not lines:
+        fail(f"persisted estimate lines missing after restart (http {line_status})")
+    line = lines[0]
+    expected_line = (line.get("quantity") or 0) * (line.get("unit_cents") or 0) - (line.get("discount_cents") or 0)
+    if line.get("line_total_cents") != expected_line:
+        fail("persisted line total was not quantity times unit minus discount")
+    pass_("estimate line items remained after local restart")
+
+    audit_status, audits, _ = request(
+        "GET",
+        f"{env['REST_URL']}/audit_events?entity_id=eq.{record_id}&select=action,result,entity_type,metadata",
+        auth_headers(env, admin=True),
+    )
+    if audit_status != 200 or not isinstance(audits, list):
+        fail(f"persisted estimate audits missing after restart (http {audit_status})")
+    actions = {item.get("action") for item in audits}
+    required_actions = {
+        "ws_estimate.created",
+        "ws_estimate.status_changed",
+        "ws_estimate.archived",
+        "ws_estimate.restored",
+    }
+    if not required_actions.issubset(actions):
+        fail("persisted estimate audit actions did not survive restart")
+    for item in audits:
+        dumped = json.dumps(item.get("metadata") or {})
+        if any(token in dumped.lower() for token in ("do not email", "customer facing", "website quote")):
+            fail("persisted estimate audit stored sensitive estimate content")
+    pass_("estimate audit events remained after local restart")
     print("DAY5_LOCAL_AUTH_REST_PASSED")
 
 
 def signed_out_app_redirect() -> None:
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            return None
+
+    opener = urllib.request.build_opener(NoRedirect)
     req = urllib.request.Request(f"{APP_URL}/dashboard/estimates", method="GET")
     try:
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with opener.open(req, timeout=8) as resp:
             fail(f"signed-out estimates page returned http {resp.status}")
     except urllib.error.HTTPError as exc:
         location = exc.headers.get("Location") or ""
@@ -366,6 +413,13 @@ def main() -> None:
     if neg_status in (200, 201):
         fail("negative unit price was accepted")
     pass_("negative monetary input denied")
+
+    huge_lines = dict(estimate_args(ORG_A, client_id, "Huge"))
+    huge_lines["p_lines"] = [{"description": "Huge", "quantity": 9999, "unit_cents": 99999999, "discount_cents": 0}]
+    huge_status, _ = rpc(env, tokens[OWNER_A_EMAIL], "sts_save_ws_estimate", huge_lines)
+    if huge_status in (200, 201):
+        fail("oversized monetary input was accepted")
+    pass_("oversized monetary input denied")
 
     ready_status, _ = rpc_id(env, tokens[OWNER_A_EMAIL], "sts_set_ws_estimate_status", {
         "p_organization_id": ORG_A,
