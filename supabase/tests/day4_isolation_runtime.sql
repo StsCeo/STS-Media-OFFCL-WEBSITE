@@ -49,19 +49,24 @@ begin
 end;
 $$;
 
-create or replace function pg_temp.sts_day4_impersonate(p_user_id uuid, p_email text)
+create or replace function pg_temp.sts_day4_impersonate(p_user_id uuid, p_email text, p_aal text default 'aal2')
 returns void language plpgsql as $$
+declare
+  claims jsonb;
 begin
   execute 'reset role';
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub', p_user_id::text, true);
   perform set_config('request.jwt.claim.role', 'authenticated', true);
   perform set_config('request.jwt.claim.email', p_email, true);
-  perform set_config(
-    'request.jwt.claims',
-    jsonb_build_object('sub', p_user_id, 'role', 'authenticated', 'email', p_email, 'aud', 'authenticated')::text,
-    true
-  );
+  claims := jsonb_build_object('sub', p_user_id, 'role', 'authenticated', 'email', p_email, 'aud', 'authenticated');
+  if p_aal is not null and p_aal <> '' then
+    claims := claims || jsonb_build_object('aal', p_aal);
+    perform set_config('request.jwt.claim.aal', p_aal, true);
+  else
+    perform set_config('request.jwt.claim.aal', '', true);
+  end if;
+  perform set_config('request.jwt.claims', claims::text, true);
 end;
 $$;
 

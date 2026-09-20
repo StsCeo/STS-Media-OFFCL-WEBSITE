@@ -84,7 +84,7 @@ begin
   perform set_config('request.jwt.claim.email', p_email, true);
   perform set_config(
     'request.jwt.claims',
-    jsonb_build_object('sub', p_user_id, 'role', 'authenticated', 'email', p_email, 'aud', 'authenticated')::text,
+    jsonb_build_object('sub', p_user_id, 'role', 'authenticated', 'email', p_email, 'aud', 'authenticated', 'aal', 'aal2')::text,
     true
   );
 end;
