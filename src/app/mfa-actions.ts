@@ -18,6 +18,7 @@ export type MfaEnrollState = {
   factorId?: string;
   qrCode?: string;
   enrolled?: boolean;
+  cancelled?: boolean;
 };
 
 async function requireEnrollContext() {
@@ -59,7 +60,8 @@ export async function startMfaEnrollment(
   }
 
   const { data: factors } = await context.supabase.auth.mfa.listFactors();
-  const verified = factors?.totp.find((factor) => factor.status === "verified");
+  const totpAll = (factors?.all ?? []).filter((factor) => factor.factor_type === "totp");
+  const verified = totpAll.find((factor) => factor.status === "verified");
   const { data: assurance } = await context.supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   if (verified && assurance?.currentLevel !== "aal2") {
     stampAudit("mfa_enroll_rejected", "auth", "MFA enrollment rejected. No secret was logged.");
@@ -69,7 +71,7 @@ export async function startMfaEnrollment(
     return { enrolled: true };
   }
 
-  const unverified = factors?.totp.filter((factor) => factor.status !== "verified") ?? [];
+  const unverified = totpAll.filter((factor) => factor.status !== "verified");
   for (const factor of unverified) {
     await context.supabase.auth.mfa.unenroll({ factorId: factor.id });
   }
@@ -105,7 +107,7 @@ export async function confirmMfaEnrollment(
     production: process.env.NODE_ENV === "production",
     verifiedByProvider: false,
   });
-  if (!factorId || format.status === "missing" || format.status === "forged" || format.status === "invalid") {
+  if (!factorId || format.status === "missing" || format.status === "forged" || format.status === "expired" || format.status === "not_configured") {
     stampAudit("mfa_enroll_rejected", "auth", "MFA enrollment rejected. No secret was logged.");
     return { error: format.status === "missing" ? "Enter the authenticator code." : MFA_ENROLL_GENERIC_ERROR, factorId };
   }
@@ -143,13 +145,12 @@ export async function cancelMfaEnrollment(
     return {};
   }
   const { data: factors } = await context.supabase.auth.mfa.listFactors();
-  const all = factors?.totp ?? [];
-  const match = all.find((factor) => factor.id === factorId);
-  if (!match || match.status === "verified") {
+  const match = (factors?.all ?? []).find((factor) => factor.id === factorId);
+  if (!match || match.factor_type !== "totp" || match.status === "verified") {
     stampAudit("mfa_enroll_cancel_rejected", "auth", "MFA enrollment cancel rejected. No secret was logged.");
     return { error: MFA_ENROLL_GENERIC_ERROR };
   }
   await context.supabase.auth.mfa.unenroll({ factorId });
   stampAudit("mfa_enroll_cancelled", "auth", "Unverified MFA enrollment cancelled. No secret was logged.");
-  return {};
+  return { cancelled: true, factorId };
 }

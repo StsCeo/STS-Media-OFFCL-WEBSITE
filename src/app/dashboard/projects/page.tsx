@@ -1,20 +1,26 @@
 import Link from "next/link";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { ProjectEditor } from "@/components/dashboard/project-editor";
-import { getWorkspace } from "@/lib/data/store";
+import { loadVisibleOpsRecords } from "@/lib/org/operations-context";
 import { formatCurrency } from "@/lib/utils";
 import { PROJECT_STAGES } from "@/lib/types";
 
 export const metadata = { title: "Projects" };
 
-export default function ProjectsPage() {
-  const { projects, clients, tasks } = getWorkspace();
+export default async function ProjectsPage() {
+  const { projects, clients, tasks, source, unavailable, estimateNote } = await loadVisibleOpsRecords();
   return (
     <div>
       <PageHeader title="Projects" description="Delivery stages, money, and risk. Credentials are stored as a vault location reference only." />
+      {unavailable ? (
+        <Card className="mb-4">
+          <p className="text-sm text-muted">Projects could not be loaded from the database. Nothing was written to a local fallback.</p>
+        </Card>
+      ) : null}
+      {source === "postgres" ? <p className="mb-4 text-xs text-muted">{estimateNote}</p> : null}
       <Card id="add" className="mb-6">
         <h2 className="mb-4 font-semibold">Add project</h2>
-        {clients.length ? <ProjectEditor clients={clients} /> : <p className="text-sm text-muted">Add a client before creating a project.</p>}
+        <ProjectEditor clients={clients} />
       </Card>
       <div className="flex gap-2 overflow-x-auto pb-3 text-xs">
         {PROJECT_STAGES.map((stage) => (
@@ -32,7 +38,7 @@ export default function ProjectsPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <Link href={`/dashboard/projects/${project.id}`} className="text-lg font-semibold hover:underline">{project.name}</Link>
-                  <p className="text-sm text-muted">{client?.businessName} · {project.stage.replaceAll("_", " ")}</p>
+                  <p className="text-sm text-muted">{client?.businessName || "No client"} · {project.stage.replaceAll("_", " ")}</p>
                 </div>
                 {project.atRisk ? <Badge tone="warning">At risk</Badge> : <Badge tone="success">Tracked</Badge>}
               </div>
@@ -42,7 +48,10 @@ export default function ProjectsPage() {
                 <div><dt className="text-muted">Collected</dt><dd className="font-mono">{formatCurrency(project.amountCollected)}</dd></div>
                 <div><dt className="text-muted">Profit</dt><dd className="font-mono">{formatCurrency(project.amountCollected - project.directCost)}</dd></div>
               </dl>
-              <p className="mt-2 text-sm">{open.length} open tasks · deadline {project.deadline}</p>
+              <p className="mt-2 text-sm">{open.length} open tasks · deadline {project.deadline || "none"}</p>
+              <div className="mt-4 border-t border-line pt-4">
+                <ProjectEditor project={project} clients={clients} />
+              </div>
             </Card>
           );
         })}

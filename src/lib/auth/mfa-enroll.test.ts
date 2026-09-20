@@ -65,8 +65,13 @@ describe("MFA enrollment policy", () => {
     const actions = readFileSync("src/app/mfa-actions.ts", "utf8");
     expect(enroll).not.toContain("action=\"/mfa/verify\"");
     expect(form).not.toContain("secret");
+    expect(form).toContain("enrollmentCancelled");
     expect(actions).not.toContain("console.log");
     expect(actions).toContain("No secret was logged");
     expect(actions).toContain("unenroll");
+    expect(actions).toContain("cancelled: true");
+    expect(actions).toContain("factors?.all");
+    expect(actions).toContain("mfa.challenge");
+    expect(actions).not.toMatch(/format\.status === "invalid"/);
   });
 });

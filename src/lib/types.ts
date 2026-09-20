@@ -696,6 +696,27 @@ export const EXPENSE_CATEGORIES = [
   "Needs review",
 ] as const;
 
+export const STS_MEDIA_EXPENSE_CATEGORIES = [
+  "Business Formation",
+  "Registered Agent",
+  "Domain & Website",
+  "Software & Subscriptions",
+  "Advertising & Marketing",
+  "Office Supplies",
+  "Equipment",
+  "Phone & Internet",
+  "Professional Services",
+  "Banking & Processing Fees",
+  "Travel & Mileage",
+  "Meals",
+  "Education & Training",
+  "Other",
+] as const;
+
+export const OPS_EXPENSE_CATEGORIES = Array.from(
+  new Set<string>([...STS_MEDIA_EXPENSE_CATEGORIES, ...EXPENSE_CATEGORIES]),
+);
+
 export const LEAD_STAGES: LeadStage[] = [
   "new_inquiry",
   "contacted",

@@ -1,5 +1,5 @@
 import { addDays, endOfQuarter, endOfYear, startOfQuarter, startOfYear, subDays } from "date-fns";
-import type { DatePreset, Expense, RevenueEntry, SubscriptionRecord, WorkspaceState } from "./types";
+import type { DatePreset, Expense, Invoice, RevenueEntry, SubscriptionRecord, WorkspaceState } from "./types";
 import { endOfDay, inRange, roundMoney, startOfDay } from "./utils";
 
 export const FINANCE_DEFINITIONS = {
@@ -68,23 +68,25 @@ export function activeMrr(subscriptions: SubscriptionRecord[]) {
   );
 }
 
-export function computeFinance(
-  workspace: WorkspaceState,
+export function computeFinanceFromLedgers(
+  expenses: Expense[],
+  revenue: RevenueEntry[],
+  invoices: Invoice[],
+  subscriptions: SubscriptionRecord[],
   range: { from: Date; to: Date },
 ) {
-  const expenses = workspace.expenses.filter(
+  const rangedExpenses = expenses.filter(
     (item) => !item.archived && inRange(item.transactionDate, range.from, range.to),
   );
-  const revenue = workspace.revenue.filter((item) => inRange(item.date, range.from, range.to));
-  const invoices = workspace.invoices;
+  const rangedRevenue = revenue.filter((item) => inRange(item.date, range.from, range.to));
 
-  const grossRevenue = roundMoney(revenue.reduce((sum, item) => sum + recognizedRevenueAmount(item), 0));
-  const cashCollected = roundMoney(revenue.reduce((sum, item) => sum + cashAmount(item), 0));
-  const totalExpenses = roundMoney(expenses.reduce((sum, item) => sum + item.totalAmount, 0));
+  const grossRevenue = roundMoney(rangedRevenue.reduce((sum, item) => sum + recognizedRevenueAmount(item), 0));
+  const cashCollected = roundMoney(rangedRevenue.reduce((sum, item) => sum + cashAmount(item), 0));
+  const totalExpenses = roundMoney(rangedExpenses.reduce((sum, item) => sum + item.totalAmount, 0));
   const directCosts = roundMoney(
-    expenses.filter((item) => item.directProjectCost).reduce((sum, item) => sum + item.totalAmount, 0),
+    rangedExpenses.filter((item) => item.directProjectCost).reduce((sum, item) => sum + item.totalAmount, 0),
   );
-  const mrr = activeMrr(workspace.subscriptions);
+  const mrr = activeMrr(subscriptions);
   const arr = roundMoney(mrr * 12);
   const grossProfit = roundMoney(grossRevenue - directCosts);
   const netProfit = roundMoney(grossRevenue - totalExpenses);
@@ -107,6 +109,19 @@ export function computeFinance(
     accountingProfit: netProfit,
     cashFlow: roundMoney(cashCollected - totalExpenses),
   };
+}
+
+export function computeFinance(
+  workspace: WorkspaceState,
+  range: { from: Date; to: Date },
+) {
+  return computeFinanceFromLedgers(
+    workspace.expenses,
+    workspace.revenue,
+    workspace.invoices,
+    workspace.subscriptions,
+    range,
+  );
 }
 
 export type FinanceMetrics = ReturnType<typeof computeFinance>;

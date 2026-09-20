@@ -1,14 +1,20 @@
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { TaskEditor } from "@/components/dashboard/task-editor";
-import { getWorkspace } from "@/lib/data/store";
+import { loadVisibleOpsRecords } from "@/lib/org/operations-context";
 
 export const metadata = { title: "Tasks" };
 
-export default function TasksPage() {
-  const { tasks, clients, projects } = getWorkspace();
+export default async function TasksPage() {
+  const { tasks, clients, projects, source, unavailable } = await loadVisibleOpsRecords();
   return (
     <div>
       <PageHeader title="Tasks" description="Owner work queue, including recurring follow-ups and launch blockers." />
+      {unavailable ? (
+        <Card className="mb-4">
+          <p className="text-sm text-muted">Tasks could not be loaded from the database. Nothing was written to a local fallback.</p>
+        </Card>
+      ) : null}
+      {source === "postgres" ? <p className="mb-4 text-xs text-muted">Tasks are stored on the organization record.</p> : null}
       <Card id="add" className="mb-6">
         <h2 className="mb-4 font-semibold">Add task</h2>
         <TaskEditor clients={clients} projects={projects} />
