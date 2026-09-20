@@ -63,7 +63,10 @@ npm run build
    - Legacy init compatibility + RPC guards: `supabase/migrations/20260919053000_day1_legacy_init_compat_and_rpc_guards.sql`
    - Day 2 membership gate: `supabase/migrations/20260919120000_day2_membership_owner_gate.sql`
    - Day 2 CRM leads/clients: `supabase/migrations/20260919123000_day2_crm_leads_clients.sql`
-   - Do not apply Day 2 to production until an active owner membership exists.
+   - Day 3 finance/operations: `supabase/migrations/20260920120000_day3_finance_operations.sql` and `20260920121000_day3_finance_operations_rpcs.sql`
+   - Day 4 workspace/invoices: `supabase/migrations/20260920140000_day4_workspace_tools.sql` through `20260920150000_day4_aal2_session_gate.sql`
+   - Day 5 estimates: `supabase/migrations/20260920160000_day5_estimates.sql`, `20260920161000_day5_estimates_rpcs.sql`, `20260920162000_day5_estimates_no_hard_delete.sql`
+   - Do not apply Day 2 or later to production until an active owner membership exists and each prior day is reviewed.
 6. Create private storage buckets `receipts` and `documents`. Do not create a public `client-files` bucket.
 7. Auth redirect URLs:
    - `http://localhost:3000/auth/callback`
