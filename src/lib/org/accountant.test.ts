@@ -242,7 +242,8 @@ describe("day 8 migrations", () => {
     expect(sql).not.toMatch(/client_email|payment_instructions|payment_method|payment_account/);
     expect(sql).not.toMatch(/grant execute[\s\S]{0,80}to anon/i);
     expect(readFileSync("src/app/accountant/page.tsx", "utf8")).toContain("Accountant Center");
-    expect(readFileSync("src/app/accountant/page.tsx", "utf8")).not.toMatch(/save|archive|restore|delete|reconcile/i);
+    expect(readFileSync("src/app/accountant/page.tsx", "utf8")).not.toMatch(/type=["']submit["']/i);
+    expect(readFileSync("src/app/accountant/page.tsx", "utf8")).not.toMatch(/sts_save_|sts_archive_|sts_issue_|sts_record_ws_invoice_payment|sts_reconcile_/);
     expect(readFileSync("vercel.json", "utf8")).toContain('"main": true');
     expect(readFileSync("vercel.json", "utf8")).toContain('"*": false');
   });

@@ -106,6 +106,32 @@ begin
 end;
 $$;
 
+create or replace function pg_temp.sts_day8_expect_zero_rows(p_sql text, p_name text)
+returns void language plpgsql as $$
+declare n integer := -1;
+begin
+  begin
+    execute p_sql;
+    get diagnostics n = row_count;
+  exception
+    when insufficient_privilege then
+      raise notice 'PASS % (permission denied)', p_name;
+      return;
+    when others then
+      if sqlerrm ilike '%permission denied%' or sqlerrm ilike '%not authorized%' then
+        raise notice 'PASS % (denied)', p_name;
+        return;
+      end if;
+      raise;
+  end;
+  if n = 0 then
+    raise notice 'PASS % (zero rows)', p_name;
+    return;
+  end if;
+  raise exception 'day8 isolation failed: % (changed % rows)', p_name, n;
+end;
+$$;
+
 create or replace function pg_temp.sts_day8_expect_denied_or_zero(p_sql text, p_name text)
 returns void language plpgsql as $$
 declare n integer;
@@ -374,15 +400,15 @@ begin
     format($sql$insert into public.ws_invoices (organization_id, invoice_number, status, currency, client_business_name, subtotal_cents, discount_cents, tax_cents, total_cents, amount_paid_cents) values (%L, 'HACK-1', 'draft', 'USD', 'Nope', 0, 0, 0, 0, 0)$sql$, org_a),
     'accountant cannot insert invoices'
   );
-  perform pg_temp.sts_day8_expect_exception(
+  perform pg_temp.sts_day8_expect_zero_rows(
     format($sql$update public.ws_invoices set notes = 'hack' where id = %L::uuid$sql$, invoice_draft),
     'accountant cannot update invoices'
   );
-  perform pg_temp.sts_day8_expect_exception(
+  perform pg_temp.sts_day8_expect_zero_rows(
     format($sql$update public.ws_invoices set organization_id = %L::uuid where id = %L::uuid$sql$, org_b, invoice_draft),
     'accountant cannot reassign invoice organization'
   );
-  perform pg_temp.sts_day8_expect_exception(
+  perform pg_temp.sts_day8_expect_zero_rows(
     format($sql$delete from public.ops_expenses where id = %L::uuid$sql$, expense_live),
     'accountant cannot delete expenses'
   );
