@@ -2,7 +2,7 @@
 
 This report is the evidence log for Day 3 work on top of the completed isolated Day 2 state. It does not claim production readiness.
 
-**Verdict: DAY 3 COMPLETE IN ISOLATED TEST ENV — finance/operations persistence, organization-scoped RLS/REST isolation, operational estimates, restart persistence, and the quality suite PASS. Not production-ready.**
+**Verdict: DAY 3 CLOSURE COMPLETE IN ISOLATED TEST ENV — finance/operations persistence, authenticated hard-delete denial, archival + audit, interactive MFA UI, restart persistence, and the quality suite PASS. Not production-ready.**
 
 Target used: disposable local stack `supabase/config.toml` `project_id = "sts-media"`. No hosted or production project was linked, queried, reset, or migrated. PR #5 and PR #6 were not merged. Day 3 lives on a draft PR whose base branch is `cursor/sts-business-os-day2-hardening-a5ed`.
 
@@ -35,6 +35,12 @@ Applied on the isolated local database only.
    - `sts_save_ops_task` / `sts_archive_ops_task`
    - Cross-organization client, project, and member asserts
    - Audit actions: created, updated, archived, reimbursement/payment/status changed, assigned, completed
+3. `supabase/migrations/20260920130000_day3_ops_no_hard_delete.sql`
+   - Drops `ops_*_delete_privileged` policies
+   - Revokes `DELETE` from `authenticated`, `anon`, and `public`
+   - Re-grants `SELECT`/`INSERT`/`UPDATE` to `authenticated`
+   - Grants `DELETE` to `service_role` only when that role exists (maintenance; never exposed to the client)
+   - No authenticated restore RPC. Archived rows stay immutable except through a future authorized restoration workflow.
 
 ## 3. Authorization matrix
 
@@ -47,10 +53,10 @@ Dashboard entry remains Day 2: active `owner` or `administrator` plus trusted AA
 | Other organization member | own org only | own org only | own org only | own org only |
 | Employee / member | read + create/update/archive own org | none | read + create/update/archive own org | created by their writes |
 | Accountant | read | read | none | read if membership allows audit read; no ops writes |
-| Administrator | read + write + archive; hard delete | read + write + archive; hard delete | read + write + archive; hard delete | yes |
+| Administrator | read + write + archive; no hard delete | read + write + archive; no hard delete | read + write + archive; no hard delete | yes |
 | Owner | same as administrator | same as administrator | same as administrator | yes |
 
-Hard `DELETE` is owner/administrator only. Recoverable archival is the supported business-record removal path. Next.js server actions still call `requireOwnerWrite()` (dashboard owner/admin + AAL2), so employees and accountants are tested through SQL and REST, not the owner dashboard UI.
+Permanent `DELETE` is denied for owner, administrator, accountant, employee, and other authenticated application sessions. Recoverable archival (`archived_at` via `sts_archive_ops_*`) is the supported business-record removal path. Direct REST `DELETE` fails closed (HTTP 403). Ordinary server actions archive; they do not hard-delete organization ledgers. `service_role` retains maintenance `DELETE` and is not shipped to the browser. Next.js dashboard mutations still call `requireOwnerWrite()` (dashboard owner/admin + AAL2), so employees and accountants are tested through SQL and REST, not the owner dashboard UI.
 
 ## 4. Validation rules
 
@@ -111,9 +117,12 @@ DAY3_AUTH_PHASE=persist python3 scripts/verify-day3-local-auth.py
 After `npx supabase stop` (backup) then `npx supabase start`, and after restarting the Next.js production server on port 3000:
 
 - Expense, revenue, project, and task rows written through Day 3 RPCs remained (`DAY3_AUTH_PHASE=persist` → all four markers PASS).
+- The archived expense row still had `archived_at` set.
+- Archive audit events with `action = ops_expense.archived` remained (count > 0).
 - Day 2 CRM lead persistence still PASS after the same restart.
 - Operational audit events with `entity_type` in `ops_expense` / `ops_revenue` / `ops_project` / `ops_task` remained (count > 0).
 - Signed-out `/dashboard` still redirected to `/login`.
+- A harmless local task created through the MFA UI remained in the organization ledger after the same restart.
 
 Page refresh and a new authenticated REST session continued to see the same organization-scoped rows. Demo in-memory ledgers are still process-local and are not this persistence path.
 
@@ -137,28 +146,54 @@ Page refresh and a new authenticated REST session continued to see the same orga
 | Direct REST insert into another org | HTTP 403 |
 | Archived record mutation | SQL `archived` / blocked write |
 | Cross-organization client/project/member refs | Fail closed |
+| Owner REST hard-delete | Fail closed (HTTP 403) |
+| Admin REST hard-delete | Fail closed (HTTP 403) |
+| Employee REST hard-delete | Fail closed (HTTP 403) |
+| Accountant REST hard-delete | Fail closed (HTTP 403) |
+| Cross-organization REST hard-delete | Fail closed (HTTP 403) |
+| Owner REST archive | PASS; writes `ops_expense.archived` audit |
 | Audit-log isolation | Other org sees zero org A audit rows |
 
 `scripts/verify-day3-local-supabase.sh` ended with `DAY3_LOCAL_SUPABASE_VERIFY_PASSED`.
 `scripts/verify-day3-local-auth.py` ended with `DAY3_LOCAL_AUTH_REST_PASSED`.
 Day 1 and Day 2 verification scripts still ended with their PASS banners.
 
+## 9.1 Interactive MFA UI (disposable local owner)
+
+Completed against `next start` on `http://127.0.0.1:3000` with a disposable local owner. No QR image, TOTP secret, password, cookie, JWT, or environment value was logged, screenshot, or committed. Temporary secret material used for in-memory QR decode lived in a 0600 file under `/tmp/sts-local` and was deleted with the disposable Auth user afterward.
+
+| Step | Result |
+| --- | --- |
+| Signed-out `/dashboard` | Redirect to `/login` |
+| Password sign-in | Directed to `/mfa/verify` (AAL1; dashboard denied) |
+| `/mfa/recovery` | Fails safely; recovery codes are not issued |
+| `/mfa/enroll` | Start renders a session-only QR (not captured) |
+| Cancel enrollment | Unfinished factor removed; UI returns to Start |
+| Finish enrollment | Auth provider challenge/verify; AAL2 Command Center |
+| Tasks UI | Harmless local task created on the organization ledger |
+| Refresh | Dashboard still protected |
+| Sign-out | Auth cookie gone; `/dashboard`, `/mfa/enroll`, `/mfa/verify` redirect to `/login` |
+| Second sign-in | MFA challenge required; AAL2 dashboard granted |
+
+Enrollment cancel uses `listFactors().all` because the Auth client omits unverified TOTP factors from `.totp`. Confirm does not treat `describeMfaAttempt(..., verifiedByProvider: false)` as a hard failure.
+
 ## 10. Quality suite
 
 | Check | Result |
 | --- | --- |
-| isolated local `db reset` | PASS (all ten timestamped migrations applied, including Day 3) |
+| isolated local `db reset` | PASS (all eleven timestamped migrations applied, including Day 3 no-hard-delete) |
 | Day 1 local SQL | PASS |
 | Day 2 local SQL | PASS |
-| Day 3 local SQL | PASS |
+| Day 3 local SQL | PASS (owner/admin/employee/accountant/cross-org hard-delete denied; archive still works) |
 | Day 1 local Auth/REST | PASS (pre-existing GAP: logout may not immediately revoke JWTs) |
 | Day 2 local Auth/REST | PASS |
-| Day 3 local Auth/REST | PASS |
-| lint | PASS (existing unused import warning in Day 1 `phase1-acceptance.test.ts` only) |
+| Day 3 local Auth/REST | PASS (REST hard-delete fail closed; archive + persist markers PASS) |
+| Interactive MFA browser UI | PASS (disposable local owner; QR/secret never logged, screenshot, or committed; artifacts deleted after) |
+| lint | PASS (zero warnings) |
 | type-check | PASS |
 | all tests | PASS (136) |
 | production build | PASS |
-| persistence after Next.js + local Supabase restart | PASS |
+| persistence after Next.js + local Supabase restart | PASS (including archived expense + archive audit) |
 
 ## 11. Known limitations
 
@@ -185,5 +220,4 @@ Day 1 and Day 2 verification scripts still ended with their PASS banners.
 - Payments, payroll, tax, banking, and external accounting integrations are intentionally absent.
 - MFA recovery codes are not issued.
 - Remaining workspace tools (notes, documents, calendar, and so on) are still in-process memory for demo and not yet organization ledgers.
-- Interactive owner-dashboard MFA click-through was not re-run after the requested local `db reset`, which wipes Auth factors. Finance/operations writes were verified through the same RPCs the UI calls, plus signed-out dashboard redirect.
 - An already-issued bearer JWT can remain valid until expiry after logout (unchanged Supabase behavior).

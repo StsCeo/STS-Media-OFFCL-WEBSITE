@@ -167,6 +167,8 @@ Deny by default. The browser never supplies a trusted role or organization id.
 4. `canAccessOrganizationResource` rejects missing membership, inactive membership, and cross-organization ids.
 5. Owner-only routes stay owner-only even if a future role is modeled. Accountants, employees, contractors, and clients are denied dashboard entry until memberships exist and the owner approves invites.
 6. Roles and organization ids on forms, query strings, or localStorage are ignored.
+7. Day 3 `ops_*` ledgers have no authenticated `DELETE` policy or grant. Application sessions archive through `sts_archive_ops_*`. `service_role` may delete for maintenance only and is never given to the browser.
+8. MFA enrollment lists unfinished factors from `listFactors().all` (the Auth client keeps unverified TOTP out of `.totp`). Cancel unenrolls unverified factors only. Confirm sends well-formed codes to the Auth provider; `describeMfaAttempt(..., verifiedByProvider: false)` is not treated as a hard failure.
 
 ## 10.1 Row-level security
 
