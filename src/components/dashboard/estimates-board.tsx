@@ -28,9 +28,11 @@ const FILTERS: Array<{ id: string; label: string }> = [
 export function EstimatesBoard({
   estimates,
   clients,
+  convertedInvoiceIds,
 }: {
   estimates: WorkspaceEstimate[];
   clients: Pick<ClientRecord, "id" | "businessName">[];
+  convertedInvoiceIds?: Record<string, string>;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("active");
@@ -83,14 +85,14 @@ export function EstimatesBoard({
                   {estimate.archived ? <Badge tone="warning">archived</Badge> : null}
                 </div>
               </div>
-              <EstimateForm estimate={estimate} clients={clients} />
+              <EstimateForm estimate={estimate} clients={clients} convertedInvoiceId={convertedInvoiceIds?.[estimate.id]} />
             </Card>
           );
         })
       ) : (
         <EmptyState
           title={estimates.length ? "No estimates match this search" : "No estimates yet"}
-          body={estimates.length ? "Clear the search or choose another status." : "Create a draft quote. Ready does not send an email or generate a PDF."}
+          body={estimates.length ? "Clear the search or choose another status." : "Create a draft quote. Ready does not send an email or store a PDF."}
         />
       )}
     </div>

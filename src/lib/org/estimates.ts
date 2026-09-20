@@ -9,10 +9,15 @@ export {
   ESTIMATE_RECORD_NOTE,
   ESTIMATE_STATUSES,
   ESTIMATE_STATUS_TRANSITIONS,
+  GENERIC_CONVERT_ERROR,
   GENERIC_ESTIMATE_ERROR,
+  addUtcDays,
   canTransitionEstimateStatus,
+  canConvertEstimateToInvoice,
   computeEstimateTotals,
+  computeInvoiceSnapshotTotals,
   derivedEstimateStatus,
+  draftInvoiceFromAcceptedEstimate,
   estimateLinesPayload,
   estimateSummaries,
   estimateTotalsLabel,
@@ -189,4 +194,26 @@ export async function archiveWorkspaceEstimate(supabase: SupabaseClient, organiz
 
 export async function restoreWorkspaceEstimate(supabase: SupabaseClient, organizationId: string, id: string) {
   return rpcId(supabase, ESTIMATE_RESTORE_RPC, { p_organization_id: organizationId, p_id: id });
+}
+
+export async function loadWorkspaceEstimate(supabase: SupabaseClient, organizationId: string, id: string) {
+  const { data, error } = await supabase
+    .from("ws_estimates")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) return { error: true as const };
+  if (!data) return null;
+  const { data: lines, error: lineError } = await supabase
+    .from("ws_estimate_lines")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("estimate_id", id)
+    .order("position", { ascending: true });
+  if (lineError) return { error: true as const };
+  return mapEstimateRow(
+    data as Record<string, unknown>,
+    (lines ?? []).map((row) => mapEstimateLineRow(row as Record<string, unknown>)),
+  );
 }

@@ -401,6 +401,8 @@ export interface WorkspaceInvoice {
   totalCents: number;
   amountPaidCents: number;
   lines: WorkspaceInvoiceLine[];
+  sourceEstimateId: string | null;
+  sourceEstimateNumber: string;
   issuedAt: string | null;
   paidAt: string | null;
   voidedAt: string | null;

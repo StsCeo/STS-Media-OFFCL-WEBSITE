@@ -831,4 +831,7 @@ html[data-palette="warm-earth"] [data-surface="dashboard"] nav a[aria-current="p
 @media print {
   .no-print { display: none !important; }
   body { background: white; color: black; }
+  main { padding: 0 !important; }
+  .print-document { box-shadow: none !important; }
+  a[href]::after { content: none !important; }
 }

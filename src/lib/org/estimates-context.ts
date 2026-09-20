@@ -7,11 +7,21 @@ import {
   listWorkspaceEstimates,
   shouldUseEstimateDatabase,
 } from "@/lib/org/estimates";
+import { listWorkspaceInvoices, shouldUseWorkspaceDatabase } from "@/lib/org/workspace";
 import type { ClientRecord, WorkspaceEstimate } from "@/lib/types";
+
+function conversionMap(invoices: Array<{ id: string; sourceEstimateId?: string | null }>) {
+  const mapped: Record<string, string> = {};
+  for (const invoice of invoices) {
+    if (invoice.sourceEstimateId) mapped[invoice.sourceEstimateId] = invoice.id;
+  }
+  return mapped;
+}
 
 export async function loadVisibleEstimates(): Promise<{
   estimates: WorkspaceEstimate[];
   clients: ClientRecord[];
+  convertedInvoiceIds: Record<string, string>;
   source: "postgres" | "demo-memory";
   unavailable: boolean;
   recordNote: string;
@@ -26,6 +36,7 @@ export async function loadVisibleEstimates(): Promise<{
     return {
       estimates: workspace.workspaceEstimates,
       clients: workspace.clients,
+      convertedInvoiceIds: conversionMap(workspace.workspaceInvoices),
       source: "demo-memory",
       unavailable: false,
       recordNote: ESTIMATE_RECORD_NOTE,
@@ -37,18 +48,22 @@ export async function loadVisibleEstimates(): Promise<{
   if (!factory) return emptyEstimates("postgres", true);
   const supabase = await factory();
   const organizationId = session.user.organizationId;
-  const [estimates, clients] = await Promise.all([
+  const [estimates, clients, invoices] = await Promise.all([
     listWorkspaceEstimates(supabase, organizationId),
     shouldUseCrmDatabase(session.user)
       ? listCrmClientsFromDatabase(supabase, organizationId)
       : Promise.resolve(workspace.clients),
+    shouldUseWorkspaceDatabase(session.user)
+      ? listWorkspaceInvoices(supabase, organizationId)
+      : Promise.resolve(workspace.workspaceInvoices),
   ]);
-  if ("error" in estimates || "error" in clients) {
+  if ("error" in estimates || "error" in clients || "error" in invoices) {
     return emptyEstimates("postgres", true);
   }
   return {
     estimates,
     clients,
+    convertedInvoiceIds: conversionMap(invoices),
     source: "postgres",
     unavailable: false,
     recordNote: ESTIMATE_RECORD_NOTE,
@@ -60,6 +75,7 @@ function emptyEstimates(source: "postgres" | "demo-memory", unavailable: boolean
   return {
     estimates: [] as WorkspaceEstimate[],
     clients: [] as ClientRecord[],
+    convertedInvoiceIds: {} as Record<string, string>,
     source,
     unavailable,
     recordNote: ESTIMATE_RECORD_NOTE,

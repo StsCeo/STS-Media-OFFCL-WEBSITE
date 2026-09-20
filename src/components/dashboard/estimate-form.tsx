@@ -3,13 +3,14 @@
 import { useActionState, useMemo, useState } from "react";
 import {
   archiveEstimateForm,
+  convertEstimateToInvoiceForm,
   restoreEstimateForm,
   saveEstimateForm,
   setEstimateStatusForm,
 } from "@/app/actions";
 import { Button, Field, inputClass, textareaClass } from "@/components/ui";
 import { centsToDollars, formatCents } from "@/lib/money";
-import { computeEstimateTotals } from "@/lib/org/estimates-model";
+import { canConvertEstimateToInvoice, computeEstimateTotals } from "@/lib/org/estimates-model";
 import type { ClientRecord, WorkspaceEstimate } from "@/lib/types";
 
 type State = { error?: string; ok?: boolean };
@@ -27,6 +28,10 @@ const statusAction = wrap(setEstimateStatusForm);
 const archiveAction = wrap(archiveEstimateForm);
 const restoreAction = wrap(restoreEstimateForm);
 
+async function convertAction(_prev: State & { invoiceId?: string }, formData: FormData): Promise<State & { invoiceId?: string }> {
+  return (await convertEstimateToInvoiceForm(formData)) ?? { ok: true };
+}
+
 function linesFromEstimate(estimate?: WorkspaceEstimate): LineDraft[] {
   if (!estimate?.lines.length) return [{ description: "", quantity: "1", unit: "0.00", discount: "0.00" }];
   return estimate.lines.map((line) => ({
@@ -40,14 +45,17 @@ function linesFromEstimate(estimate?: WorkspaceEstimate): LineDraft[] {
 export function EstimateForm({
   estimate,
   clients,
+  convertedInvoiceId,
 }: {
   estimate?: WorkspaceEstimate;
   clients: Pick<ClientRecord, "id" | "businessName">[];
+  convertedInvoiceId?: string;
 }) {
   const [state, formAction, pending] = useActionState(saveAction, {});
   const [statusState, statusFormAction, statusPending] = useActionState(statusAction, {});
   const [archiveState, archiveFormAction, archivePending] = useActionState(archiveAction, {});
   const [restoreState, restoreFormAction, restorePending] = useActionState(restoreAction, {});
+  const [convertState, convertFormAction, convertPending] = useActionState(convertAction, {});
   const [lines, setLines] = useState<LineDraft[]>(() => linesFromEstimate(estimate));
   const [tax, setTax] = useState(estimate ? centsToDollars(estimate.taxCents).toFixed(2) : "0");
   const preview = useMemo(
@@ -247,10 +255,23 @@ export function EstimateForm({
               </form>
             </>
           )}
+          <Button href={`/dashboard/estimates/${estimate.id}/print`} size="sm" variant="secondary">Print view</Button>
+          {convertedInvoiceId || convertState.invoiceId ? (
+            <Button href={`/dashboard/invoices/${convertedInvoiceId || convertState.invoiceId}/print`} size="sm" variant="secondary">
+              Open draft invoice
+            </Button>
+          ) : canConvertEstimateToInvoice(estimate) ? (
+            <form action={convertFormAction}>
+              <input type="hidden" name="id" value={estimate.id} />
+              <Button type="submit" size="sm" disabled={convertPending}>{convertPending ? "Converting…" : "Create draft invoice"}</Button>
+            </form>
+          ) : null}
           {statusState.error ? <p className="w-full text-sm text-danger" role="alert">{statusState.error}</p> : null}
-          {statusState.ok ? <p className="w-full text-sm text-success" role="status">Status updated. No email or PDF was created.</p> : null}
+          {statusState.ok ? <p className="w-full text-sm text-success" role="status">Status updated. No email or stored PDF was created.</p> : null}
           {archiveState.error ? <p className="w-full text-sm text-danger" role="alert">{archiveState.error}</p> : null}
           {archiveState.ok ? <p className="w-full text-sm text-success" role="status">Estimate archived.</p> : null}
+          {convertState.error ? <p className="w-full text-sm text-danger" role="alert">{convertState.error}</p> : null}
+          {convertState.ok ? <p className="w-full text-sm text-success" role="status">Draft invoice created. Nothing was emailed or charged.</p> : null}
         </div>
       ) : null}
     </div>
