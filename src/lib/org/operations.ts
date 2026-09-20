@@ -37,7 +37,8 @@ export function shouldUseOpsDatabase(user: SessionUser | null | undefined) {
     user?.source === "supabase" &&
       isSupabaseConfigured() &&
       user.organizationId &&
-      user.membershipStatus === "active",
+      user.membershipStatus === "active" &&
+      user.mfaVerified,
   );
 }
 

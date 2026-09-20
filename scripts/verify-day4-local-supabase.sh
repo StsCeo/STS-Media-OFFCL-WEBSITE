@@ -59,6 +59,7 @@ EXPECTED=(
   "supabase/migrations/20260920142000_day4_storage_documents.sql"
   "supabase/migrations/20260920143000_day4_no_hard_delete.sql"
   "supabase/migrations/20260920144000_day4_storage_extension_guard.sql"
+  "supabase/migrations/20260920150000_day4_aal2_session_gate.sql"
 )
 for file in "${EXPECTED[@]}"; do
   if [[ ! -f "$file" ]]; then
@@ -86,6 +87,27 @@ if grep -q 'DAY4_ISOLATION_RUNTIME_PASSED' /tmp/sts-day4-isolation.out; then
   pass "day4_isolation_runtime.sql finished without error"
 else
   fail "isolation SQL did not report DAY4_ISOLATION_RUNTIME_PASSED"
+fi
+
+docker cp supabase/tests/day4_aal2_runtime.sql supabase_db_sts-media:/tmp/day4_aal2_runtime.sql >/dev/null
+if ! docker exec supabase_db_sts-media psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /tmp/day4_aal2_runtime.sql >/tmp/sts-day4-aal2.out 2>&1; then
+  python3 - <<'PY'
+from pathlib import Path
+p = Path("/tmp/sts-day4-aal2.out")
+text = p.read_text(errors="replace") if p.exists() else ""
+for line in text.splitlines()[-50:]:
+    low = line.lower()
+    if any(s in low for s in ("password=", "apikey", "service_role_key", "jwt secret")):
+        print("[redacted]")
+    else:
+        print(line[:400])
+PY
+  fail "day4_aal2_runtime.sql"
+fi
+if grep -q 'DAY4_AAL2_RUNTIME_PASSED' /tmp/sts-day4-aal2.out; then
+  pass "day4_aal2_runtime.sql finished without error"
+else
+  fail "AAL2 SQL did not report DAY4_AAL2_RUNTIME_PASSED"
 fi
 
 echo

@@ -38,6 +38,9 @@ export async function loadVisibleWorkspaceRecords(): Promise<{
 }> {
   const session = await getSession();
   const workspace = getWorkspace();
+  if (session.user?.source === "supabase" && !session.user.mfaVerified) {
+    return emptyWorkspace("postgres", true);
+  }
   if (!shouldUseWorkspaceDatabase(session.user) || !session.user?.organizationId) {
     return {
       notes: workspace.notes,

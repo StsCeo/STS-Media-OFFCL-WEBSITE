@@ -14,6 +14,9 @@ export async function loadVisibleCrmRecords(): Promise<{
   unavailable: boolean;
 }> {
   const session = await getSession();
+  if (session.user?.source === "supabase" && !session.user.mfaVerified) {
+    return { clients: [], leads: [], source: "postgres", unavailable: true };
+  }
   if (shouldUseCrmDatabase(session.user) && session.user?.organizationId) {
     const factory = createSupabaseServer();
     if (!factory) {

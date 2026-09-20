@@ -113,6 +113,7 @@ describe("day 4 migrations", () => {
       "20260920142000_day4_storage_documents.sql",
       "20260920143000_day4_no_hard_delete.sql",
       "20260920144000_day4_storage_extension_guard.sql",
+      "20260920150000_day4_aal2_session_gate.sql",
     ]));
     const schema = readFileSync("supabase/migrations/20260920140000_day4_workspace_tools.sql", "utf8");
     const rpcs = readFileSync("supabase/migrations/20260920141000_day4_workspace_rpcs.sql", "utf8");
@@ -136,5 +137,15 @@ describe("day 4 migrations", () => {
     expect(storage).toContain("Antivirus/malware scanning is not implemented");
     expect(readFileSync("src/app/dashboard/notes/page.tsx", "utf8")).not.toContain("dangerouslySetInnerHTML");
     expect(readFileSync("src/app/dashboard/invoices/page.tsx", "utf8")).not.toContain("PlannedSection");
+  });
+
+  it("requires JWT aal2 for protected workspace helpers and keeps AAL1 off the database loaders", () => {
+    const gate = readFileSync("supabase/migrations/20260920150000_day4_aal2_session_gate.sql", "utf8");
+    expect(gate).toContain("sts_session_is_aal2");
+    expect(gate).toContain("auth.jwt() ->> 'aal'");
+    expect(gate).toContain("= 'aal2'");
+    expect(gate).toContain("service_role");
+    expect(readFileSync("src/lib/org/workspace.ts", "utf8")).toContain("user.mfaVerified");
+    expect(readFileSync("src/lib/supabase/browser.ts", "utf8")).not.toMatch(/SERVICE_ROLE/);
   });
 });

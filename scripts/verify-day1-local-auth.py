@@ -10,6 +10,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from local_aal import enroll_totp_aal2, expect_denied_or_empty, jwt_aal
+
 ENV_FILE = Path("/tmp/sts-local/status.env")
 ORG_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 ORG_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
@@ -173,15 +176,17 @@ def main() -> None:
         fail(f"wrong password unexpectedly succeeded (http {bad_status})")
     pass_("wrong password is rejected")
 
-    status_a, token_a = password_login(env, OWNER_A_EMAIL, owner_a_password)
-    if status_a != 200 or not token_a:
+    status_a, token_a_aal1 = password_login(env, OWNER_A_EMAIL, owner_a_password)
+    if status_a != 200 or not token_a_aal1:
         fail(f"owner A password login failed (http {status_a})")
-    pass_("owner A password login succeeded")
+    if jwt_aal(token_a_aal1) != "aal1":
+        fail("owner A password session was not AAL1")
+    pass_("owner A password login succeeded at AAL1")
 
-    status_b, token_b = password_login(env, OWNER_B_EMAIL, owner_b_password)
-    if status_b != 200 or not token_b:
+    status_b, token_b_aal1 = password_login(env, OWNER_B_EMAIL, owner_b_password)
+    if status_b != 200 or not token_b_aal1:
         fail(f"owner B password login failed (http {status_b})")
-    pass_("owner B password login succeeded")
+    pass_("owner B password login succeeded at AAL1")
 
     status_s, token_s = password_login(env, STRANGER_EMAIL, stranger_password)
     if status_s != 200 or not token_s:
@@ -201,10 +206,27 @@ def main() -> None:
     else:
         fail(f"anon REST organizations leaked rows http {anon_status} count {anon_count}")
 
+    a1_status, a1_count = rest_count(env, token_a_aal1, "organizations")
+    expect_denied_or_empty(a1_status, a1_count, "owner A AAL1 REST cannot read organizations")
+    m_status, m_count = rest_count(env, token_a_aal1, "organization_members")
+    if m_status != 200 or m_count != 1:
+        fail(f"owner A AAL1 membership bootstrap http {m_status} count {m_count}")
+    pass_("owner A AAL1 REST can read own membership")
+    rpc_aal1 = rpc_save(env, token_a_aal1, ORG_A, "Day1 Test Org A")
+    if rpc_aal1 in (200, 204):
+        fail("owner A AAL1 RPC save unexpectedly succeeded")
+    pass_(f"owner A AAL1 REST RPC save denied (http {rpc_aal1})")
+
+    token_a = enroll_totp_aal2(env, token_a_aal1)
+    token_b = enroll_totp_aal2(env, token_b_aal1)
+    if jwt_aal(token_a) != "aal2" or jwt_aal(token_b) != "aal2":
+        fail("MFA verify did not raise AAL2")
+    pass_("owner A and owner B MFA verify produced AAL2 sessions")
+
     a_status, a_count = rest_count(env, token_a, "organizations")
     if a_status != 200 or a_count != 1:
         fail(f"owner A REST organizations http {a_status} count {a_count}")
-    pass_("owner A REST sees one organization")
+    pass_("owner A AAL2 REST sees one organization")
 
     a_other_status, a_other_count = rest_count(env, token_a, "organizations", f"?id=eq.{ORG_B}")
     if a_other_status not in (200, 406) or a_other_count not in (0, None):
@@ -258,12 +280,14 @@ def main() -> None:
 
     after_status, after_count = rest_count(env, token_a, "organizations")
     if after_status in (401, 403):
-        pass_("revoked owner A token cannot read organizations")
+        pass_("revoked owner A AAL2 token cannot read organizations")
     elif after_status == 200 and after_count == 0:
-        pass_("revoked owner A token reads zero organizations")
+        pass_("revoked owner A AAL2 token reads zero organizations")
     else:
         # Local GoTrue may not immediately revoke JWTs; record as a gap if still valid.
-        print(f"GAP logout does not invalidate existing access token (http {after_status} count {after_count})")
+        print("GAP logout does not invalidate existing access token")
+    a1_after_status, a1_after_count = rest_count(env, token_a_aal1, "organizations")
+    expect_denied_or_empty(a1_after_status, a1_after_count, "direct AAL1 REST retry remains denied after AAL2 upgrade")
 
     print("DAY1_LOCAL_AUTH_REST_PASSED")
 

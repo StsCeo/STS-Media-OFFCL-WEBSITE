@@ -141,7 +141,7 @@ Deny by default. Hidden navigation is not authorization.
 | contractor | Assigned work only |
 | client | Own portal records only; never the owner dashboard |
 
-Phase 1 `canAccessDashboard()` remains owner/administrator + AAL2 so existing invite-only dashboard behavior is preserved. Employees and accountants can still be authorized at RLS/REST for the records listed in the Day 3 and Day 4 matrices. Hidden navigation is not authorization.
+Phase 1 `canAccessDashboard()` remains owner/administrator + AAL2 so existing invite-only dashboard behavior is preserved. Employees and accountants can still be authorized at RLS/REST **only after** the JWT `aal` claim is exactly `aal2`. Password sessions are AAL1 and may read own membership to reach MFA; they cannot read or mutate protected business records. Hidden navigation is not authorization.
 
 Application helpers: `hasPermission`, `canAccessOrganizationResource`, `canAccessAssignedWork`, `canAccessClientRecord`, `canWriteMembership`. Members cannot change their own role or status. Only an owner may assign the owner role. Hidden navigation is not authorization.
 
@@ -166,17 +166,19 @@ Deny by default. The browser never supplies a trusted role or organization id.
 2. `src/app/dashboard/layout.tsx` calls `getSession()` then `canAccessDashboard()`. Invalid sessions, non-owners, emails outside `OWNER_EMAIL`, and unverified MFA (except demo) redirect to login or MFA.
 3. Mutating server actions call `assertSameOrigin()` and `requireOwnerWrite()`. Business Settings also calls `requireBusinessSettingsWrite()`, which checks `settings.business.write` against the **session** organization id (`sessionOrganizationId`).
 4. `canAccessOrganizationResource` rejects missing membership, inactive membership, and cross-organization ids.
-5. Owner-only routes stay owner-only even if a future role is modeled. Accountants, employees, contractors, and clients are denied dashboard entry until memberships exist and the owner approves invites.
-6. Roles and organization ids on forms, query strings, or localStorage are ignored.
-7. Day 3 `ops_*` ledgers and Day 4 `ws_*` records have no authenticated `DELETE` policy or grant. Application sessions archive through `sts_archive_*`. `service_role` may delete for maintenance only and is never given to the browser.
-8. MFA enrollment lists unfinished factors from `listFactors().all` (the Auth client keeps unverified TOTP out of `.totp`). Cancel unenrolls unverified factors only. Confirm sends well-formed codes to the Auth provider; `describeMfaAttempt(..., verifiedByProvider: false)` is not treated as a hard failure.
+5. PostgreSQL `sts_session_is_aal2()` fail-closes unless the authenticated JWT `aal` claim is exactly `aal2` (or the caller is `service_role` for maintenance). `sts_has_organization_role()`, `is_phase1_owner()`, organization SELECT, audit writes, Day 1–4 RLS, SECURITY DEFINER RPCs, and `org-documents` Storage policies inherit that gate.
+6. AAL1 remains able to authenticate, read **own** `organization_members` row, and complete MFA enrollment/verify. It cannot load CRM, finance, operations, notes, documents, calendar, invoices, settings, or audit rows.
+7. Application clients use the session-bound anon key. `SUPABASE_SERVICE_ROLE_KEY` is server-only and is not shipped to the browser.
+8. Roles and organization ids on forms, query strings, or localStorage are ignored.
+9. Day 3 `ops_*` ledgers and Day 4 `ws_*` records have no authenticated `DELETE` policy or grant. Application sessions archive through `sts_archive_*`. `service_role` may delete for maintenance only and is never given to the browser.
+10. MFA enrollment lists unfinished factors from `listFactors().all` (the Auth client keeps unverified TOTP out of `.totp`). Cancel unenrolls unverified factors only. Confirm sends well-formed codes to the Auth provider; `describeMfaAttempt(..., verifiedByProvider: false)` is not treated as a hard failure.
 
 ## 10.1 Row-level security
 
 When the Day 1 migrations are applied to a non-production Postgres/Supabase database:
 
 - RLS is **enabled and forced** on `organizations`, `organization_members`, `business_settings`, and `audit_events`.
-- Policies use `sts_is_organization_member` / `sts_has_organization_role` (`SECURITY DEFINER`, `search_path = public`) so membership checks do not recurse.
+- Policies use `sts_is_organization_member` / `sts_has_organization_role` (`SECURITY DEFINER`, `search_path = public`) so membership checks do not recurse. Day 4 closure adds `sts_session_is_aal2()` so role checks also require JWT `aal = aal2`.
 - `USING` and `WITH CHECK` both require an active membership in **that** `organization_id`.
 - There is no `USING (true)` policy and no grant that lets every authenticated user read every organization.
 - `anon` / `public` have no table privileges. `authenticated` cannot `INSERT` organizations (first tenant is provisioned with the service role).
@@ -302,7 +304,7 @@ Reserved, unused on Day 1: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_P
 
 ## 18. Tenant-isolation testing plan
 
-This Cloud Agent environment now has a disposable local Supabase stack (`project_id = "sts-media"`). Application-layer Vitest still covers in-memory and mocked sessions. Executable SQL is `supabase/tests/day1_isolation_runtime.sql`, `supabase/tests/day2_isolation_runtime.sql`, `supabase/tests/day3_isolation_runtime.sql`, and `supabase/tests/day4_isolation_runtime.sql` (executed locally as `anon` / `authenticated`). The manual plan remains in `supabase/tests/org_isolation.sql`. Setup notes: `docs/day-1-local-supabase-setup.md`. Evidence: `docs/day-1-foundation-verification.md`, `docs/day-2-hardening-verification.md`, `docs/day-3-finance-operations-verification.md`, and `docs/day-4-workspace-invoicing-verification.md`.
+This Cloud Agent environment now has a disposable local Supabase stack (`project_id = "sts-media"`). Application-layer Vitest still covers in-memory and mocked sessions. Executable SQL is `supabase/tests/day1_isolation_runtime.sql`, `supabase/tests/day2_isolation_runtime.sql`, `supabase/tests/day3_isolation_runtime.sql`, `supabase/tests/day4_isolation_runtime.sql`, and `supabase/tests/day4_aal2_runtime.sql` (executed locally as `anon` / `authenticated`). The manual plan remains in `supabase/tests/org_isolation.sql`. Setup notes: `docs/day-1-local-supabase-setup.md`. Evidence: `docs/day-1-foundation-verification.md`, `docs/day-2-hardening-verification.md`, `docs/day-3-finance-operations-verification.md`, `docs/day-4-workspace-invoicing-verification.md`, and `docs/vercel-preview-safety.md`.
 
 | # | Scenario | Application evidence | SQL evidence (after migrations on a branch DB) |
 | --- | --- | --- | --- |

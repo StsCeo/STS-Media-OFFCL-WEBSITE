@@ -11,6 +11,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from local_aal import enroll_totp_aal2, expect_denied_or_empty, jwt_aal
+
 ENV_FILE = Path("/tmp/sts-local/status.env")
 NOTE_MARK = Path("/tmp/sts-local/day4-note.id")
 EVENT_MARK = Path("/tmp/sts-local/day4-event.id")
@@ -264,14 +267,49 @@ def main() -> None:
     ensure_membership(env, ORG_A, ids[MEMBER_A_EMAIL], "employee")
     ensure_membership(env, ORG_A, ids[ACCOUNTANT_A_EMAIL], "accountant")
 
-    tokens: dict[str, str] = {}
+    aal1_tokens: dict[str, str] = {}
     for email in emails:
         status, token = password_login(env, email, passwords[email])
         if status != 200 or not token:
             fail(f"password login failed for a synthetic user (http {status})")
-        tokens[email] = token
-    pass_("owner, admin, member, accountant, other-org, and stranger password logins succeeded")
-    pass_("password sessions are AAL1; dashboard AAL2 remains an application gate from Day 1/2")
+        if jwt_aal(token) != "aal1":
+            fail("password session was not AAL1")
+        aal1_tokens[email] = token
+    pass_("owner, admin, member, accountant, other-org, and stranger password logins succeeded at AAL1")
+
+    for table in ("ws_notes", "ws_documents", "ws_calendar_events", "ws_invoices", "ws_invoice_lines"):
+        o1_status, o1_count = rest_count(env, aal1_tokens[OWNER_A_EMAIL], table)
+        expect_denied_or_empty(o1_status, o1_count, f"owner A AAL1 REST cannot read {table}")
+    note_aal1, _ = rpc_id(env, aal1_tokens[OWNER_A_EMAIL], "sts_save_ws_note", {
+        "p_organization_id": ORG_A,
+        "p_id": None,
+        "p_title": "AAL1 note",
+        "p_body": "Nope",
+        "p_related_type": "none",
+        "p_related_id": None,
+        "p_pinned": False,
+    })
+    if note_aal1 in (200, 201):
+        fail("owner A AAL1 note save unexpectedly succeeded")
+    pass_(f"owner A AAL1 REST note RPC denied (http {note_aal1})")
+    a1_upload_headers = auth_headers(env, aal1_tokens[OWNER_A_EMAIL], json_body=False)
+    a1_upload_headers["Content-Type"] = "text/plain"
+    a1_upload_status, _, _ = request(
+        "POST",
+        f"{env['API_URL']}/storage/v1/object/org-documents/{ORG_A}/{uuid.uuid4()}/aal1.txt",
+        a1_upload_headers,
+        b"aal1 should not upload\n",
+    )
+    if a1_upload_status in (200, 201):
+        fail("owner A AAL1 storage upload unexpectedly succeeded")
+    pass_(f"owner A AAL1 storage upload denied (http {a1_upload_status})")
+
+    tokens: dict[str, str] = {STRANGER_EMAIL: aal1_tokens[STRANGER_EMAIL]}
+    for email in (OWNER_A_EMAIL, OWNER_B_EMAIL, ADMIN_A_EMAIL, MEMBER_A_EMAIL, ACCOUNTANT_A_EMAIL):
+        tokens[email] = enroll_totp_aal2(env, aal1_tokens[email])
+        if jwt_aal(tokens[email]) != "aal2":
+            fail("MFA verify did not raise AAL2")
+    pass_("member sessions upgraded to AAL2")
 
     for table in ("ws_notes", "ws_documents", "ws_calendar_events", "ws_invoices", "ws_invoice_lines"):
         anon_status, anon_count = rest_count(env, None, table)
@@ -534,6 +572,28 @@ def main() -> None:
     if acc_doc_status != 200 or not acc_doc_count:
         fail("accountant could not read document metadata")
     pass_("accountant REST document read succeeded")
+
+    a1_get_status, _, _ = request(
+        "GET",
+        f"{env['API_URL']}/storage/v1/object/org-documents/{storage_path}",
+        auth_headers(env, aal1_tokens[OWNER_A_EMAIL], json_body=False),
+    )
+    if a1_get_status in (200, 201):
+        fail("owner A AAL1 storage download unexpectedly succeeded")
+    pass_(f"owner A AAL1 storage download denied (http {a1_get_status})")
+
+    a1_retry, _ = rpc_id(env, aal1_tokens[OWNER_A_EMAIL], "sts_save_ws_note", {
+        "p_organization_id": ORG_A,
+        "p_id": None,
+        "p_title": "AAL1 retry",
+        "p_body": "Nope",
+        "p_related_type": "none",
+        "p_related_id": None,
+        "p_pinned": False,
+    })
+    if a1_retry in (200, 201):
+        fail("direct AAL1 RPC retry unexpectedly succeeded")
+    pass_(f"direct AAL1 RPC retry remains denied (http {a1_retry})")
 
     NOTE_MARK.write_text(note_id)
     EVENT_MARK.write_text(event_id)

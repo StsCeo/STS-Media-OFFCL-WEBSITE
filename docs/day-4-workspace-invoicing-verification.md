@@ -2,7 +2,7 @@
 
 This report is the evidence log for Day 4 work on top of the completed isolated Day 3 closure. It does not claim production readiness, accounting compliance, tax compliance, legal compliance, malware-scanning coverage, or electronic-signature validity.
 
-**Verdict: DAY 4 COMPLETE IN ISOLATED TEST ENV — notes, private documents, internal calendar, and invoices persist with fail-closed RLS/Storage; lint, tests, and production build PASS. Not production-ready.**
+**Verdict: DAY 4 SECURITY CLOSURE IN PROGRESS IN ISOLATED TEST ENV — JWT `aal=aal2` is now required at RLS/RPC/Storage, not only the dashboard. Verification results follow in §8. Not production-ready.**
 
 Target used: disposable local stack `supabase/config.toml` `project_id = "sts-media"`. No hosted or production project was linked, queried, reset, or migrated. PR #5, PR #6, and PR #7 were not merged. Day 4 lives on draft PR #8 whose base branch is `cursor/sts-business-os-day3-finance-ops-a5ed`.
 
@@ -44,23 +44,32 @@ Applied on the isolated local database only.
    - Revokes `DELETE` from `authenticated`, `anon`, and `public`
 5. `supabase/migrations/20260920144000_day4_storage_extension_guard.sql`
    - Insert policy requires `pdf|png|jpe?g|txt` on the generated filename segment
+6. `supabase/migrations/20260920150000_day4_aal2_session_gate.sql`
+   - `sts_session_aal()` / `sts_session_is_aal2()` read the authenticated JWT `aal` claim
+   - Fail closed when the claim is missing, empty, or not exactly `aal2`
+   - `sts_has_organization_role()` and `is_phase1_owner()` require AAL2
+   - `organizations` SELECT requires AAL2
+   - `sts_record_audit_event()` requires AAL2
+   - `service_role` remains maintenance-only
 
 Antivirus/malware scanning is not implemented. Only harmless generated local test files were used.
 
 ## 3. Authorization matrix
 
-Dashboard entry remains Day 2: active `owner` or `administrator` plus trusted AAL2. That is an application gate. PostgreSQL RLS and Storage policies are the data gate. UI visibility is not a security control.
+Dashboard entry remains Day 2: active `owner` or `administrator` plus trusted AAL2. That is an application gate. PostgreSQL RLS, SECURITY DEFINER RPCs, and Storage policies now also require JWT `aal = aal2`. UI visibility is not a security control.
+
+AAL1 may only: authenticate, read the caller’s own `organization_members` row, and complete MFA enrollment/verify. AAL1 cannot read or mutate protected business records.
 
 | Actor | Notes | Calendar | Documents | Invoices |
 | --- | --- | --- | --- | --- |
 | Signed out | none | none | none | none |
 | Authenticated, no membership | none | none | none | none |
-| Other organization member | own org only | own org only | own org only | own org only |
-| Session below AAL2 | REST/SQL may still run as AAL1; dashboard remains denied | same | same | same |
-| Employee / member | read + write + archive | read + write + archive | read + write + archive | none |
-| Accountant | none | none | read | read; no write/issue/pay/void |
-| Administrator | all Day 4 records; no hard delete | same | same | all invoice actions except hard delete |
-| Owner | same as administrator | same | same | same |
+| Other organization member (any AAL) | own org only, and only at AAL2 | same | same | same |
+| Any role at AAL1 | membership bootstrap only | none | none | none |
+| Employee / member at AAL2 | read + write + archive | read + write + archive | read + write + archive | none |
+| Accountant at AAL2 | none | none | read | read; no write/issue/pay/void |
+| Administrator at AAL2 | all Day 4 records; no hard delete | same | same | all invoice actions except hard delete |
+| Owner at AAL2 | same as administrator | same | same | same |
 
 Permanent `DELETE` is denied for application sessions. Recoverable archival is the supported removal path. Direct REST `DELETE` fails closed. `service_role` retains maintenance `DELETE` and is not shipped to the browser.
 
@@ -142,11 +151,13 @@ npm run build
 
 ## 9. Remaining limitations
 
-- Dashboard UI is still owner/administrator + AAL2. Employee and accountant Day 4 access is enforced at SQL/REST/Storage, not by opening the Command Center to those roles.
+- Dashboard UI is still owner/administrator + AAL2. Employee and accountant Day 4 access is enforced at SQL/REST/Storage after AAL2, not by opening the Command Center to those roles.
+- AAL2 is now a database/RPC/Storage requirement as well as a dashboard gate. Password sessions remain AAL1 until MFA verify.
 - No Stripe, banking, payroll, tax filing, QuickBooks, DocuSign, email, SMS, or Google/Outlook calendar sync.
 - Recurrence, reminders, malware scanning, and PDF export are future work.
 - Phase 1 owner-scoped `documents` bucket remains separate from `org-documents`.
 - Demo mode still uses in-memory notes/documents/events/`workspaceInvoices`.
+- Automatic Vercel Previews are created by the GitHub integration, not by this repository. See `docs/vercel-preview-safety.md`. The owner must confirm Preview is isolated from production Supabase.
 
 ## 10. Production deployment order and prerequisites
 
