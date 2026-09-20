@@ -111,6 +111,8 @@ describe("day 4 migrations", () => {
       "20260920140000_day4_workspace_tools.sql",
       "20260920141000_day4_workspace_rpcs.sql",
       "20260920142000_day4_storage_documents.sql",
+      "20260920143000_day4_no_hard_delete.sql",
+      "20260920144000_day4_storage_extension_guard.sql",
     ]));
     const schema = readFileSync("supabase/migrations/20260920140000_day4_workspace_tools.sql", "utf8");
     const rpcs = readFileSync("supabase/migrations/20260920141000_day4_workspace_rpcs.sql", "utf8");
@@ -123,6 +125,7 @@ describe("day 4 migrations", () => {
     expect(schema).toContain("integer not null");
     expect(schema).toContain("force row level security");
     expect(schema).not.toMatch(/create policy[\s\S]{0,80}for delete/i);
+    expect(readFileSync("supabase/migrations/20260920143000_day4_no_hard_delete.sql", "utf8")).toContain("revoke delete on public.ws_notes");
     expect(schema).not.toMatch(/double precision|numeric\(/i);
     expect(rpcs).toContain(NOTE_SAVE_RPC);
     expect(rpcs).toContain(INVOICE_SAVE_RPC);

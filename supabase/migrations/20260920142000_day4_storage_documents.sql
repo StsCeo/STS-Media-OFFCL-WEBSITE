@@ -59,6 +59,7 @@ create policy org_documents_insert_scoped on storage.objects
     and public.sts_can_write_documents(public.sts_storage_org_id(name))
     and name not like '%..%'
     and public.sts_storage_org_id(name) is not null
+    and lower(split_part(name, '/', 3)) ~ '\.(pdf|png|jpe?g|txt)$'
   );
 
 -- No authenticated update/delete policies: objects stay private after metadata archive.

@@ -517,9 +517,9 @@ declare
   issued_number text;
   org_legal text;
   org_display text;
-  client_business text := '';
-  client_contact text := '';
-  client_email text := '';
+  snap_client_business text := '';
+  snap_client_contact text := '';
+  snap_client_email text := '';
 begin
   if auth.uid() is null or not public.sts_can_write_invoices(p_organization_id) then
     raise exception 'not authorized';
@@ -544,9 +544,9 @@ begin
   select coalesce(invoice_prefix, 'STS') into prefix
   from public.business_settings where organization_id = p_organization_id;
   prefix := coalesce(prefix, 'STS');
-  select business_name, contact_name, email into client_business, client_contact, client_email
+  select business_name, contact_name, email into snap_client_business, snap_client_contact, snap_client_email
   from public.crm_clients where id = rec.client_id and organization_id = p_organization_id;
-  if client_business is null then
+  if snap_client_business is null then
     raise exception 'invalid client';
   end if;
 
@@ -569,9 +569,9 @@ begin
     issued_at = now(),
     org_legal_name = coalesce(org_legal, ''),
     org_display_name = coalesce(org_display, ''),
-    client_business_name = coalesce(client_business, ''),
-    client_contact_name = coalesce(client_contact, ''),
-    client_email = coalesce(client_email, '')
+    client_business_name = coalesce(snap_client_business, ''),
+    client_contact_name = coalesce(snap_client_contact, ''),
+    client_email = coalesce(snap_client_email, '')
   where id = rec.id;
 
   perform public.sts_ops_write_audit(p_organization_id, 'ws_invoice.issued', 'ws_invoice', rec.id);

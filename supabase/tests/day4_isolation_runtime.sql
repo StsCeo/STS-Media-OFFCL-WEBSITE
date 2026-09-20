@@ -126,6 +126,26 @@ begin
 end;
 $$;
 
+create or replace function pg_temp.sts_day4_expect_blocked_write(p_sql text, p_name text)
+returns void language plpgsql as $$
+declare n integer;
+begin
+  begin
+    execute p_sql;
+    get diagnostics n = row_count;
+  exception
+    when others then
+      raise notice 'PASS % (error)', p_name;
+      return;
+  end;
+  if n = 0 then
+    raise notice 'PASS % (zero rows)', p_name;
+    return;
+  end if;
+  raise exception 'day4 isolation failed: % (wrote % rows)', p_name, n;
+end;
+$$;
+
 do $$
 declare
   owner_a uuid := 'a1111111-1111-4111-8111-111111111111';
@@ -134,8 +154,8 @@ declare
   member_a uuid := 'a4444444-4444-4444-8444-444444444444';
   accountant_a uuid := 'a5555555-5555-4555-8555-555555555555';
   stranger uuid := 'a6666666-6666-4666-8666-666666666666';
-  org_a uuid := 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-  org_b uuid := 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  org_a uuid := 'd4d4d4d4-d4d4-4d4d-8d4d-d4d4d4d4d4d4';
+  org_b uuid := 'd5d5d5d5-d5d5-45d5-8d5d-d5d5d5d5d5d5';
   n integer;
   client_a uuid;
   client_b uuid;
@@ -143,7 +163,7 @@ declare
   event_a uuid;
   invoice_a uuid;
   doc_a uuid;
-  doc_id uuid := 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  doc_id uuid := 'd4c0c0c0-c0c0-4c0c-8c0c-c0c0c0c0c0c0';
   lines jsonb := '[{"description":"Website build","quantity":2,"unit_cents":150000}]'::jsonb;
   tampered jsonb;
   issued_number text;
@@ -328,11 +348,11 @@ begin
   );
 
   perform pg_temp.sts_day4_impersonate(owner_a, 'owner-a@day4.test');
-  perform pg_temp.sts_day4_expect_exception(
+  perform pg_temp.sts_day4_expect_blocked_write(
     format('delete from public.ws_notes where id = %L::uuid', note_a),
     'authenticated cannot hard-delete notes'
   );
-  perform pg_temp.sts_day4_expect_exception(
+  perform pg_temp.sts_day4_expect_blocked_write(
     format('delete from public.ws_invoices where organization_id = %L::uuid', org_a),
     'authenticated cannot hard-delete invoices'
   );

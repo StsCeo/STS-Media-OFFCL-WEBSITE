@@ -57,6 +57,8 @@ EXPECTED=(
   "supabase/migrations/20260920140000_day4_workspace_tools.sql"
   "supabase/migrations/20260920141000_day4_workspace_rpcs.sql"
   "supabase/migrations/20260920142000_day4_storage_documents.sql"
+  "supabase/migrations/20260920143000_day4_no_hard_delete.sql"
+  "supabase/migrations/20260920144000_day4_storage_extension_guard.sql"
 )
 for file in "${EXPECTED[@]}"; do
   if [[ ! -f "$file" ]]; then

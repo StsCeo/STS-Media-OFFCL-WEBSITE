@@ -79,7 +79,6 @@ import {
   issueWorkspaceInvoice,
   loadWorkspaceDocument,
   loadWorkspaceEvent,
-  loadWorkspaceInvoice,
   loadWorkspaceNote,
   newDocumentId,
   parseCalendarBounds,
@@ -1565,6 +1564,10 @@ export async function archiveDocumentForm(formData: FormData) {
   revalidatePath("/dashboard/documents");
   revalidatePath("/dashboard");
   return { ok: true as const };
+}
+
+export async function archiveDocumentPageForm(formData: FormData): Promise<void> {
+  await archiveDocumentForm(formData);
 }
 
 export async function saveCalendarForm(formData: FormData) {

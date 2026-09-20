@@ -1,4 +1,4 @@
-import { archiveDocumentForm } from "@/app/actions";
+import { archiveDocumentPageForm } from "@/app/actions";
 import { DocumentForm } from "@/components/dashboard/document-form";
 import { Button, Card, PageHeader } from "@/components/ui";
 import { DOCUMENT_SCAN_NOTE } from "@/lib/org/workspace";
@@ -40,7 +40,7 @@ export default async function DocumentsPage() {
                 ) : (
                   <p className="text-xs text-muted">No file attached yet</p>
                 )}
-                <form action={archiveDocumentForm}>
+                <form action={archiveDocumentPageForm}>
                   <input type="hidden" name="id" value={doc.id} />
                   <Button type="submit" size="sm" variant="secondary">Archive</Button>
                 </form>

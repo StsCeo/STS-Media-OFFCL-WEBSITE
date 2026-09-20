@@ -102,6 +102,7 @@ If the legacy `organizations` table from init.sql already exists, the Day 1 migr
 - Configured Supabase session (`source=supabase`): PostgreSQL via the user-scoped client and `sts_save_business_settings`. Organization IDs come from the session membership. If the database is unavailable, the save returns a generic error and **does not** write the in-memory store.
 - Day 2 CRM leads/clients persist through `sts_save_crm_*`.
 - Day 3 expenses, revenue, projects, and tasks persist through `sts_save_ops_*` / `sts_archive_ops_*` on `ops_*` tables. Authenticated sessions cannot hard-delete those rows; archival is the supported removal path. Demo sessions stay in-memory.
+- Day 4 notes, documents, calendar events, and invoices persist through `sts_save_ws_*` / archive / issue / pay / void RPCs. Invoice money is integer cents with server-calculated totals. Private files use the `org-documents` bucket. Demo sessions stay in-memory.
 
 Manual owner membership insert: `supabase/manual/provision-owner-membership.sql` (blocked until the owner supplies the Auth user UUID).
 
@@ -140,22 +141,22 @@ Deny by default. Hidden navigation is not authorization.
 | contractor | Assigned work only |
 | client | Own portal records only; never the owner dashboard |
 
-Phase 1 `canAccessDashboard()` remains owner/administrator + AAL2 so existing invite-only dashboard behavior is preserved. Employees and accountants can still be authorized at RLS/REST for the records listed in the Day 3 matrix. Hidden navigation is not authorization.
+Phase 1 `canAccessDashboard()` remains owner/administrator + AAL2 so existing invite-only dashboard behavior is preserved. Employees and accountants can still be authorized at RLS/REST for the records listed in the Day 3 and Day 4 matrices. Hidden navigation is not authorization.
 
 Application helpers: `hasPermission`, `canAccessOrganizationResource`, `canAccessAssignedWork`, `canAccessClientRecord`, `canWriteMembership`. Members cannot change their own role or status. Only an owner may assign the owner role. Hidden navigation is not authorization.
 
 ## 9. Planned financial-data model
 
-Day 3 persists organization-owned expense, revenue, project, and task records in `ops_*` tables using integer cents, forced RLS, and recoverable `archived_at`. Dashboard and Finance totals from those ledgers are **operational estimates**, not formal accounting or tax reports.
+Day 3 persists organization-owned expense, revenue, project, and task records in `ops_*` tables using integer cents, forced RLS, and recoverable `archived_at`. Day 4 adds notes, private documents, internal calendar events, and invoices (`ws_*`) with the same archival rule. Invoice totals are calculated on the server in integer cents. Issued and paid statuses are recorded only; no processor, email, or tax filing is connected. Dashboard and Finance totals from those ledgers are **operational estimates / operational invoice records**, not formal accounting or tax reports.
 
 Still later:
 
-- Separate invoices, payments, payroll, and tax **records** from filings
+- Estimates, PDF export, recurrence, reminders, and malware scanning
 - Keep Stripe / QuickBooks / payroll provider ids as opaque references only
 - Never store PAN, CVV, banking passwords, EINs, or SSNs
 - Apply invoice/estimate prefixes to **new** documents only
 
-Command Center now shows operational estimates for the current organization when Day 3 ledgers exist. Payments, payroll, tax filing, banking, Stripe, and QuickBooks are not implemented.
+Command Center now shows operational estimates and Day 4 workspace summaries for the current organization when those records exist. Payments, payroll, tax filing, banking, Stripe, and QuickBooks are not implemented.
 
 ## 10. Server-side authorization
 
@@ -167,7 +168,7 @@ Deny by default. The browser never supplies a trusted role or organization id.
 4. `canAccessOrganizationResource` rejects missing membership, inactive membership, and cross-organization ids.
 5. Owner-only routes stay owner-only even if a future role is modeled. Accountants, employees, contractors, and clients are denied dashboard entry until memberships exist and the owner approves invites.
 6. Roles and organization ids on forms, query strings, or localStorage are ignored.
-7. Day 3 `ops_*` ledgers have no authenticated `DELETE` policy or grant. Application sessions archive through `sts_archive_ops_*`. `service_role` may delete for maintenance only and is never given to the browser.
+7. Day 3 `ops_*` ledgers and Day 4 `ws_*` records have no authenticated `DELETE` policy or grant. Application sessions archive through `sts_archive_*`. `service_role` may delete for maintenance only and is never given to the browser.
 8. MFA enrollment lists unfinished factors from `listFactors().all` (the Auth client keeps unverified TOTP out of `.totp`). Cancel unenrolls unverified factors only. Confirm sends well-formed codes to the Auth provider; `describeMfaAttempt(..., verifiedByProvider: false)` is not treated as a hard failure.
 
 ## 10.1 Row-level security
@@ -241,13 +242,13 @@ Manual SQL isolation plan: `supabase/tests/org_isolation.sql` (eight required sc
 | 3 | Estimates & Proposals | `/dashboard/estimates` | Planned |
 | 4 | Contracts & Signatures | `/dashboard/contracts` | Planned; e-sign not activated |
 | 5 | Projects | `/dashboard/projects` | Day 3 organization ledger |
-| 6 | Invoices & Payments | `/dashboard/invoices` | Planned; Stripe not activated |
+| 6 | Invoices & Payments | `/dashboard/invoices` | Day 4 operational invoices; Stripe not activated |
 | 7 | Finance & Accounting | `/dashboard/finance` | Day 3 operational estimates + existing definitions |
 | 8 | STS Sheets & Charts | `/dashboard/sheets` | Planned |
 | 9 | Taxes | `/dashboard/taxes` | Existing checklist; not a filing product |
 | 10 | Payroll & Contractors | `/dashboard/payroll` | Planned; payroll processing not activated |
-| 11 | Documents & Receipts | `/dashboard/documents` | Existing Phase 1 |
-| 12 | Calendar & Automations | `/dashboard/calendar` | Existing calendar; automations planned |
+| 11 | Documents & Receipts | `/dashboard/documents` | Day 4 org-documents metadata + private bucket |
+| 12 | Calendar & Automations | `/dashboard/calendar` | Day 4 internal calendar; automations planned |
 | 13 | Client Portal | `/dashboard/client-portal` | Planned staff view; public `/portal` unchanged |
 | 14 | Accountant Center | `/dashboard/accountant` | Planned |
 | 15 | Reports | `/dashboard/reports` | Existing Phase 1 |
@@ -262,9 +263,9 @@ Existing extra routes (inbox, tasks, notes, content studio, and so on) stay in t
 1. **Day 1 (this checkpoint)** — Audit, architecture, org/role/RLS foundation, dashboard shell, Command Center shell, Business Settings + audit.
 2. **Day 2** — Replace email `is_phase1_owner()` with membership roles, private MFA enrollment, and persist CRM leads/clients. Settings persistence remains the Day 1 RPC.
 3. **Day 3** — Persist expenses, revenue, projects, and tasks with organization-scoped RLS, audit, and operational estimates.
-4. **Commercial documents** — Estimates then invoices as drafts; prefixes from settings; no live charges.
-5. **Projects + calendar automations** — Assigned-work rules for contractors.
-6. **Documents/receipts on org-scoped storage**.
+4. **Day 4** — Persist notes, private documents, internal calendar, and invoices as operational records. No live charges, email, or external calendar sync.
+5. **Commercial documents** — Estimates remain planned; invoice PDF export is later.
+6. **Projects + calendar automations** — Assigned-work rules for contractors; recurrence/reminders later.
 7. **Accountant read center** after a real accountant membership exists.
 8. **Client portal** on a separate auth path.
 9. **Integrations** only after owner approval, credentials, and a disconnect/revoke design.
@@ -301,7 +302,7 @@ Reserved, unused on Day 1: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_P
 
 ## 18. Tenant-isolation testing plan
 
-This Cloud Agent environment now has a disposable local Supabase stack (`project_id = "sts-media"`). Application-layer Vitest still covers in-memory and mocked sessions. Executable SQL is `supabase/tests/day1_isolation_runtime.sql`, `supabase/tests/day2_isolation_runtime.sql`, and `supabase/tests/day3_isolation_runtime.sql` (executed locally as `anon` / `authenticated`). The manual plan remains in `supabase/tests/org_isolation.sql`. Setup notes: `docs/day-1-local-supabase-setup.md`. Evidence: `docs/day-1-foundation-verification.md`, `docs/day-2-hardening-verification.md`, and `docs/day-3-finance-operations-verification.md`.
+This Cloud Agent environment now has a disposable local Supabase stack (`project_id = "sts-media"`). Application-layer Vitest still covers in-memory and mocked sessions. Executable SQL is `supabase/tests/day1_isolation_runtime.sql`, `supabase/tests/day2_isolation_runtime.sql`, `supabase/tests/day3_isolation_runtime.sql`, and `supabase/tests/day4_isolation_runtime.sql` (executed locally as `anon` / `authenticated`). The manual plan remains in `supabase/tests/org_isolation.sql`. Setup notes: `docs/day-1-local-supabase-setup.md`. Evidence: `docs/day-1-foundation-verification.md`, `docs/day-2-hardening-verification.md`, `docs/day-3-finance-operations-verification.md`, and `docs/day-4-workspace-invoicing-verification.md`.
 
 | # | Scenario | Application evidence | SQL evidence (after migrations on a branch DB) |
 | --- | --- | --- | --- |
