@@ -2,7 +2,7 @@
 
 This report is the evidence log for Day 3 work on top of the completed isolated Day 2 state. It does not claim production readiness.
 
-**Verdict: recorded after local verification in this agent run. Not production-ready.**
+**Verdict: DAY 3 COMPLETE IN ISOLATED TEST ENV — finance/operations persistence, organization-scoped RLS/REST isolation, operational estimates, restart persistence, and the quality suite PASS. Not production-ready.**
 
 Target used: disposable local stack `supabase/config.toml` `project_id = "sts-media"`. No hosted or production project was linked, queried, reset, or migrated. PR #5 and PR #6 were not merged. Day 3 lives on a draft PR whose base branch is `cursor/sts-business-os-day2-hardening-a5ed`.
 
@@ -108,9 +108,59 @@ DAY3_AUTH_PHASE=persist python3 scripts/verify-day3-local-auth.py
 
 ## 8. Persistence results
 
-Recorded during verification. Expense, revenue, project, task, totals, and audit events must survive Next.js restart, local Supabase restart, page refresh, and a new authenticated session.
+After `npx supabase stop` (backup) then `npx supabase start`, and after restarting the Next.js production server on port 3000:
 
-## 9. Known limitations
+- Expense, revenue, project, and task rows written through Day 3 RPCs remained (`DAY3_AUTH_PHASE=persist` → all four markers PASS).
+- Day 2 CRM lead persistence still PASS after the same restart.
+- Operational audit events with `entity_type` in `ops_expense` / `ops_revenue` / `ops_project` / `ops_task` remained (count > 0).
+- Signed-out `/dashboard` still redirected to `/login`.
+
+Page refresh and a new authenticated REST session continued to see the same organization-scoped rows. Demo in-memory ledgers are still process-local and are not this persistence path.
+
+## 9. Realistic local request results
+
+| Scenario | Result |
+| --- | --- |
+| Signed-out `/dashboard` | Redirect to login |
+| Signed-out REST `ops_*` | Denied or empty |
+| Valid owner REST create/update | PASS (expense, revenue, project, task; reimbursement update) |
+| Valid admin REST read | PASS |
+| Valid employee REST expense write | PASS |
+| Valid employee REST revenue write | Fail closed |
+| Valid accountant REST expense read | PASS |
+| Valid accountant REST expense write | Fail closed |
+| Authenticated user without membership | Zero `ops_*` rows |
+| Other organization read/write | Fail closed |
+| Session below AAL2 | Password REST is AAL1 (expected). Dashboard AAL2 remains the Day 1/2 application gate. |
+| Negative / oversized amounts | HTTP 400 |
+| Paid revenue without payment info | HTTP 400 |
+| Direct REST insert into another org | HTTP 403 |
+| Archived record mutation | SQL `archived` / blocked write |
+| Cross-organization client/project/member refs | Fail closed |
+| Audit-log isolation | Other org sees zero org A audit rows |
+
+`scripts/verify-day3-local-supabase.sh` ended with `DAY3_LOCAL_SUPABASE_VERIFY_PASSED`.
+`scripts/verify-day3-local-auth.py` ended with `DAY3_LOCAL_AUTH_REST_PASSED`.
+Day 1 and Day 2 verification scripts still ended with their PASS banners.
+
+## 10. Quality suite
+
+| Check | Result |
+| --- | --- |
+| isolated local `db reset` | PASS (all ten timestamped migrations applied, including Day 3) |
+| Day 1 local SQL | PASS |
+| Day 2 local SQL | PASS |
+| Day 3 local SQL | PASS |
+| Day 1 local Auth/REST | PASS (pre-existing GAP: logout may not immediately revoke JWTs) |
+| Day 2 local Auth/REST | PASS |
+| Day 3 local Auth/REST | PASS |
+| lint | PASS (existing unused import warning in Day 1 `phase1-acceptance.test.ts` only) |
+| type-check | PASS |
+| all tests | PASS (136) |
+| production build | PASS |
+| persistence after Next.js + local Supabase restart | PASS |
+
+## 11. Known limitations
 
 - Dashboard UI remains owner/administrator + AAL2. Employee and accountant access is enforced and tested at RLS/REST.
 - PostgreSQL `integer` cents cap amounts near $21,474,836.47. That is below the check maximum and is enough for STS Media operating records.
@@ -119,7 +169,7 @@ Recorded during verification. Expense, revenue, project, task, totals, and audit
 - No payment processing, payroll, tax filing, banking, Stripe, or QuickBooks.
 - AAL2 is an application dashboard gate. REST password tokens are AAL1 by design.
 
-## 10. Production deployment prerequisites
+## 12. Production deployment prerequisites
 
 1. Do not merge PR #5, PR #6, or the Day 3 PR from this work.
 2. Backup production before any future hosted migration.
@@ -129,10 +179,11 @@ Recorded during verification. Expense, revenue, project, task, totals, and audit
 6. Enroll MFA privately. Do not store TOTP secrets in git or chat.
 7. Demo mode must stay off in production.
 
-## 11. Exact remaining blockers
+## 13. Exact remaining blockers
 
 - Hosted/production Supabase was not migrated.
 - Payments, payroll, tax, banking, and external accounting integrations are intentionally absent.
 - MFA recovery codes are not issued.
 - Remaining workspace tools (notes, documents, calendar, and so on) are still in-process memory for demo and not yet organization ledgers.
+- Interactive owner-dashboard MFA click-through was not re-run after the requested local `db reset`, which wipes Auth factors. Finance/operations writes were verified through the same RPCs the UI calls, plus signed-out dashboard redirect.
 - An already-issued bearer JWT can remain valid until expiry after logout (unchanged Supabase behavior).

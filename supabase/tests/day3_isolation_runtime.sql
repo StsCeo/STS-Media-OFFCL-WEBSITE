@@ -188,7 +188,7 @@ create or replace function pg_temp.sts_day3_expense_sql(
   p_id uuid default null,
   p_vendor text default 'Vendor Co',
   p_description text default 'Test expense',
-  p_cents integer default 100,
+  p_cents bigint default 100,
   p_category text default 'Other',
   p_frequency text default 'one_time',
   p_reimb_status text default 'n/a'
