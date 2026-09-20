@@ -67,6 +67,9 @@ describe("business OS foundation migration", () => {
       "20260920143000_day4_no_hard_delete.sql",
       "20260920144000_day4_storage_extension_guard.sql",
       "20260920150000_day4_aal2_session_gate.sql",
+      "20260920160000_day5_estimates.sql",
+      "20260920161000_day5_estimates_rpcs.sql",
+      "20260920162000_day5_estimates_no_hard_delete.sql",
     ]);
     const noDelete = readFileSync("supabase/migrations/20260920130000_day3_ops_no_hard_delete.sql", "utf8");
     expect(noDelete).toContain("revoke delete on public.ops_expenses");

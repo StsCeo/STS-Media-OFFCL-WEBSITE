@@ -91,7 +91,7 @@ describe("day 5 migrations", () => {
     expect(rpcs).not.toMatch(/p_internal_notes[\s\S]{0,80}audit_events/);
     expect(revoke).toContain("revoke delete on public.ws_estimates");
     expect(readFileSync("src/app/dashboard/estimates/page.tsx", "utf8")).not.toContain("PlannedSection");
-    expect(readFileSync("src/app/dashboard/estimates/page.tsx", "utf8")).not.toMatch(/PDF|DocuSign|Stripe|QuickBooks/i);
+    expect(readFileSync("src/app/dashboard/estimates/page.tsx", "utf8")).toMatch(/does not send email/i);
     expect(readFileSync("vercel.json", "utf8")).toContain('"main": true');
     expect(readFileSync("vercel.json", "utf8")).toContain('"*": false');
   });
