@@ -15,6 +15,7 @@ function ensurePhase1(state: WorkspaceState): WorkspaceState {
   if (!state.businessProfile) state.businessProfile = defaultBusinessProfile();
   if (!Array.isArray(state.notes)) state.notes = [];
   if (!Array.isArray(state.osDocuments)) state.osDocuments = [];
+  if (!Array.isArray(state.workspaceInvoices)) state.workspaceInvoices = [];
   if (!Array.isArray(state.osTransactions)) state.osTransactions = [];
   if (!Array.isArray(state.taxChecklist)) state.taxChecklist = defaultTaxChecklist(2026);
   if (!state.dashboardPreferences) state.dashboardPreferences = { hiddenCards: [], cardOrder: [] };

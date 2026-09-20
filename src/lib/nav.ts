@@ -63,7 +63,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     id: "money",
     label: "Money",
     items: [
-      { href: "/dashboard/invoices", label: "Invoices & Payments", icon: CircleDollarSign, status: "planned", sectionId: "invoices" },
+      { href: "/dashboard/invoices", label: "Invoices & Payments", icon: CircleDollarSign, status: "available", sectionId: "invoices" },
       { href: "/dashboard/finance", label: "Finance & Accounting", icon: Landmark, status: "available", sectionId: "finance" },
       { href: "/dashboard/sheets", label: "STS Sheets & Charts", icon: Table2, status: "planned", sectionId: "sheets" },
       { href: "/dashboard/taxes", label: "Taxes", icon: Scale, status: "available", sectionId: "taxes" },

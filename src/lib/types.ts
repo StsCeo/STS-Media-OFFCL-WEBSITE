@@ -61,7 +61,7 @@ export type FederalClassification = "tbd" | "disregarded_entity" | "partnership"
 export type AccountingMethod = "cash" | "accrual";
 export type FiscalYearType = "calendar" | "fiscal";
 export type SCorpStatus = "not_elected" | "elected" | "undecided";
-export type NoteRelatedType = "client" | "project" | "lead" | "none";
+export type NoteRelatedType = "client" | "project" | "lead" | "task" | "none";
 export type OsDocumentCategory = "contract" | "formation" | "tax" | "insurance" | "other";
 export type OsTransactionKind =
   | "income"
@@ -105,6 +105,8 @@ export interface OwnerNote {
   relatedType: NoteRelatedType;
   relatedId: string | null;
   pinned: boolean;
+  author?: string | null;
+  archived?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -117,6 +119,9 @@ export interface OsDocument {
   relatedId: string | null;
   notes: string;
   storagePath: string | null;
+  contentType?: string;
+  byteSize?: number;
+  archived?: boolean;
   createdAt: string;
 }
 
@@ -357,6 +362,50 @@ export interface CalendarEvent {
   notes: string;
   relatedId: string | null;
   location: string;
+  allDay?: boolean;
+  timezone?: string;
+  clientId?: string | null;
+  projectId?: string | null;
+}
+
+export type WorkspaceInvoiceStatus = "draft" | "issued" | "paid" | "void";
+
+export interface WorkspaceInvoiceLine {
+  id?: string;
+  position: number;
+  description: string;
+  quantity: number;
+  unitCents: number;
+  lineTotalCents: number;
+}
+
+export interface WorkspaceInvoice {
+  id: string;
+  invoiceNumber: string;
+  status: WorkspaceInvoiceStatus;
+  clientId: string | null;
+  issueDate: string | null;
+  dueDate: string | null;
+  currency: string;
+  notes: string;
+  paymentInstructions: string;
+  orgLegalName: string;
+  orgDisplayName: string;
+  clientBusinessName: string;
+  clientContactName: string;
+  clientEmail: string;
+  subtotalCents: number;
+  discountCents: number;
+  taxCents: number;
+  totalCents: number;
+  amountPaidCents: number;
+  lines: WorkspaceInvoiceLine[];
+  issuedAt: string | null;
+  paidAt: string | null;
+  voidedAt: string | null;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Expense {
@@ -630,6 +679,7 @@ export interface WorkspaceState {
   recurringExpenses: RecurringExpenseTemplate[];
   revenue: RevenueEntry[];
   invoices: Invoice[];
+  workspaceInvoices: WorkspaceInvoice[];
   subscriptions: SubscriptionRecord[];
   content: ContentItem[];
   emailTemplates: EmailTemplate[];

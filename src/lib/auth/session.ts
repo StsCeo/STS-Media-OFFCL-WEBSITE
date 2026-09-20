@@ -271,6 +271,23 @@ export async function requireOperationsWrite() {
   return { ...session, organizationId };
 }
 
+export async function requireInvoiceWrite() {
+  const session = await requireOwnerWrite();
+  const user = session.user!;
+  const organizationId = sessionOrganizationId(user);
+  if (!organizationId) {
+    throw new Error("Unauthorized");
+  }
+  if (!canUseOrganizationPermission(user, "section.invoices", organizationId)) {
+    throw new Error("Unauthorized");
+  }
+  const role = organizationRoleFor(user);
+  if (role !== "owner" && role !== "administrator") {
+    throw new Error("Unauthorized");
+  }
+  return { ...session, organizationId };
+}
+
 export async function clearCurrentAuth() {
   const jar = await cookies();
   const cookie = demoSessionCookieOptions(0);

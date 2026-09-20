@@ -189,17 +189,11 @@ begin
   if p_storage_path is null or left(p_storage_path, char_length(expected_prefix)) <> expected_prefix then
     raise exception 'invalid storage path';
   end if;
+  if p_id is not null and split_part(p_storage_path, '/', 2) is distinct from p_id::text then
+    raise exception 'invalid storage path';
+  end if;
 
-  if p_id is null then
-    insert into public.ws_documents (
-      organization_id, storage_path, display_filename, content_type, byte_size,
-      description, category, client_id, project_id, uploaded_by
-    ) values (
-      p_organization_id, p_storage_path, btrim(p_display_filename), p_content_type, p_byte_size,
-      coalesce(p_description, ''), coalesce(p_category, 'other'), p_client_id, p_project_id, auth.uid()
-    )
-    returning id into record_id;
-  else
+  if p_id is not null then
     update public.ws_documents
     set
       display_filename = btrim(p_display_filename),
@@ -209,7 +203,27 @@ begin
       project_id = p_project_id
     where id = p_id and organization_id = p_organization_id and archived_at is null
     returning id into record_id;
-    action_name := 'ws_document.updated';
+    if record_id is not null then
+      action_name := 'ws_document.updated';
+    else
+      insert into public.ws_documents (
+        id, organization_id, storage_path, display_filename, content_type, byte_size,
+        description, category, client_id, project_id, uploaded_by
+      ) values (
+        p_id, p_organization_id, p_storage_path, btrim(p_display_filename), p_content_type, p_byte_size,
+        coalesce(p_description, ''), coalesce(p_category, 'other'), p_client_id, p_project_id, auth.uid()
+      )
+      returning id into record_id;
+    end if;
+  else
+    insert into public.ws_documents (
+      organization_id, storage_path, display_filename, content_type, byte_size,
+      description, category, client_id, project_id, uploaded_by
+    ) values (
+      p_organization_id, p_storage_path, btrim(p_display_filename), p_content_type, p_byte_size,
+      coalesce(p_description, ''), coalesce(p_category, 'other'), p_client_id, p_project_id, auth.uid()
+    )
+    returning id into record_id;
   end if;
   if record_id is null then
     raise exception 'not found';
@@ -271,6 +285,20 @@ begin
   end if;
   if p_end_at < p_start_at then
     raise exception 'invalid time range';
+  end if;
+  if coalesce(p_timezone, '') not in (
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Los_Angeles',
+    'UTC'
+  ) then
+    raise exception 'invalid timezone';
+  end if;
+  if coalesce(p_all_day, false)
+     and ((p_start_at at time zone coalesce(p_timezone, 'UTC'))::date
+          > (p_end_at at time zone coalesce(p_timezone, 'UTC'))::date) then
+    raise exception 'invalid all-day range';
   end if;
   perform public.sts_ops_assert_org_client(p_organization_id, p_client_id);
   perform public.sts_ops_assert_org_project(p_organization_id, p_project_id);
