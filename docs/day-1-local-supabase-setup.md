@@ -53,8 +53,10 @@ Do not paste secrets, connection strings, cookie values, or environment-variable
    6. `supabase/migrations/20260919053000_day1_legacy_init_compat_and_rpc_guards.sql`
    7. `supabase/migrations/20260919120000_day2_membership_owner_gate.sql`
    8. `supabase/migrations/20260919123000_day2_crm_leads_clients.sql`
+   9. `supabase/migrations/20260920120000_day3_finance_operations.sql`
+   10. `supabase/migrations/20260920121000_day3_finance_operations_rpcs.sql`
 
-   To apply Day 2 onto an existing local stack **without** wiping Auth users, use `npx supabase db push --local` (or `bash scripts/verify-day2-local-supabase.sh`). Do not reset if you need to keep local MFA factors.
+   To apply Day 2 or Day 3 onto an existing local stack **without** wiping Auth users, use `npx supabase db push --local` (or `DAY3_DB_RESET=0 bash scripts/verify-day3-local-supabase.sh`). Do not reset if you need to keep local MFA factors.
 7. Run the isolation script:
 
    ```bash
@@ -76,6 +78,8 @@ Do not paste secrets, connection strings, cookie values, or environment-variable
 | `npx supabase status` | Local API and DB reported as running (read values yourself; do not paste them) |
 | `npx supabase db reset --yes` | Exit 0; all six migration files applied |
 | `bash scripts/verify-day1-local-supabase.sh` | Ends with `DAY1_LOCAL_SUPABASE_VERIFY_PASSED` |
+| `bash scripts/verify-day2-local-supabase.sh` | Ends with `DAY2_LOCAL_SUPABASE_VERIFY_PASSED` |
+| `bash scripts/verify-day3-local-supabase.sh` | Ends with `DAY3_LOCAL_SUPABASE_VERIFY_PASSED` |
 | Studio Authentication | Synthetic `@day1.test` users exist after the isolation script |
 | App login on local URL | Password sign-in works; demo is optional and separate |
 | After Node restart | Same settings row and `business_settings.updated` success audit remain |

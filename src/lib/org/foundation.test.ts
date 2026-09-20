@@ -58,7 +58,15 @@ describe("business OS foundation migration", () => {
       "20260919053000_day1_legacy_init_compat_and_rpc_guards.sql",
       "20260919120000_day2_membership_owner_gate.sql",
       "20260919123000_day2_crm_leads_clients.sql",
+      "20260920120000_day3_finance_operations.sql",
+      "20260920121000_day3_finance_operations_rpcs.sql",
     ]);
+    const day3 = readFileSync("supabase/migrations/20260920120000_day3_finance_operations.sql", "utf8");
+    expect(day3).toContain("ops_expenses");
+    expect(day3).toContain("integer not null");
+    expect(day3).toContain("force row level security");
+    expect(day3).toContain("Business Formation");
+    expect(day3).not.toMatch(/double precision|numeric\(/i);
     expect(readFileSync("supabase/tests/day1_isolation_runtime.sql", "utf8")).toContain("set local role authenticated");
     expect(readFileSync("supabase/tests/day1_isolation_runtime.sql", "utf8")).toContain("set local role anon");
     expect(readFileSync("docs/day-1-local-supabase-setup.md", "utf8")).toContain("Docker Desktop");

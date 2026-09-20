@@ -100,7 +100,8 @@ If the legacy `organizations` table from init.sql already exists, the Day 1 migr
 
 - Local demo session (`source=demo`, demo mode on): in-memory `src/lib/org/store.ts`. Process restart loses demo org data.
 - Configured Supabase session (`source=supabase`): PostgreSQL via the user-scoped client and `sts_save_business_settings`. Organization IDs come from the session membership. If the database is unavailable, the save returns a generic error and **does not** write the in-memory store.
-- Phase 1 CRM/finance/documents remain in-memory until a later program wires `os_*` tables.
+- Day 2 CRM leads/clients persist through `sts_save_crm_*`.
+- Day 3 expenses, revenue, projects, and tasks persist through `sts_save_ops_*` / `sts_archive_ops_*` on `ops_*` tables. Demo sessions stay in-memory.
 
 Manual owner membership insert: `supabase/manual/provision-owner-membership.sql` (blocked until the owner supplies the Auth user UUID).
 
@@ -139,23 +140,22 @@ Deny by default. Hidden navigation is not authorization.
 | contractor | Assigned work only |
 | client | Own portal records only; never the owner dashboard |
 
-Phase 1 `canAccessDashboard()` remains owner-only so existing invite-only behavior is preserved.
+Phase 1 `canAccessDashboard()` remains owner/administrator + AAL2 so existing invite-only dashboard behavior is preserved. Employees and accountants can still be authorized at RLS/REST for the records listed in the Day 3 matrix. Hidden navigation is not authorization.
 
 Application helpers: `hasPermission`, `canAccessOrganizationResource`, `canAccessAssignedWork`, `canAccessClientRecord`, `canWriteMembership`. Members cannot change their own role or status. Only an owner may assign the owner role. Hidden navigation is not authorization.
 
 ## 9. Planned financial-data model
 
-Not implemented on Day 1. Future organization-owned ledgers should:
+Day 3 persists organization-owned expense, revenue, project, and task records in `ops_*` tables using integer cents, forced RLS, and recoverable `archived_at`. Dashboard and Finance totals from those ledgers are **operational estimates**, not formal accounting or tax reports.
 
-- Store money as integer **cents** (already the Phase 1 `os_transactions` convention)
-- Include `organization_id` on every row
-- Separate invoices, payments, expenses, payroll, and tax **records** from filings
-- Treat unpaid invoices as not cash
+Still later:
+
+- Separate invoices, payments, payroll, and tax **records** from filings
 - Keep Stripe / QuickBooks / payroll provider ids as opaque references only
 - Never store PAN, CVV, banking passwords, EINs, or SSNs
 - Apply invoice/estimate prefixes to **new** documents only
 
-Command Center does not calculate revenue, profit, tax, or payroll totals until those organization ledgers exist. Existing Phase 1 finance pages remain available as workspace tools and stay labeled as such.
+Command Center now shows operational estimates for the current organization when Day 3 ledgers exist. Payments, payroll, tax filing, banking, Stripe, and QuickBooks are not implemented.
 
 ## 10. Server-side authorization
 
@@ -238,9 +238,9 @@ Manual SQL isolation plan: `supabase/tests/org_isolation.sql` (eight required sc
 | 2 | CRM & Sales | `/dashboard/crm` | Hub to existing leads/clients |
 | 3 | Estimates & Proposals | `/dashboard/estimates` | Planned |
 | 4 | Contracts & Signatures | `/dashboard/contracts` | Planned; e-sign not activated |
-| 5 | Projects | `/dashboard/projects` | Existing Phase 1 |
+| 5 | Projects | `/dashboard/projects` | Day 3 organization ledger |
 | 6 | Invoices & Payments | `/dashboard/invoices` | Planned; Stripe not activated |
-| 7 | Finance & Accounting | `/dashboard/finance` | Existing Phase 1 workspace tools |
+| 7 | Finance & Accounting | `/dashboard/finance` | Day 3 operational estimates + existing definitions |
 | 8 | STS Sheets & Charts | `/dashboard/sheets` | Planned |
 | 9 | Taxes | `/dashboard/taxes` | Existing checklist; not a filing product |
 | 10 | Payroll & Contractors | `/dashboard/payroll` | Planned; payroll processing not activated |
@@ -259,7 +259,7 @@ Existing extra routes (inbox, tasks, notes, content studio, and so on) stay in t
 
 1. **Day 1 (this checkpoint)** — Audit, architecture, org/role/RLS foundation, dashboard shell, Command Center shell, Business Settings + audit.
 2. **Day 2** — Replace email `is_phase1_owner()` with membership roles, private MFA enrollment, and persist CRM leads/clients. Settings persistence remains the Day 1 RPC.
-3. **CRM completion** — Organization-owned leads/clients/activities; no fake pipeline metrics.
+3. **Day 3** — Persist expenses, revenue, projects, and tasks with organization-scoped RLS, audit, and operational estimates.
 4. **Commercial documents** — Estimates then invoices as drafts; prefixes from settings; no live charges.
 5. **Projects + calendar automations** — Assigned-work rules for contractors.
 6. **Documents/receipts on org-scoped storage**.
@@ -299,7 +299,7 @@ Reserved, unused on Day 1: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_P
 
 ## 18. Tenant-isolation testing plan
 
-This Cloud Agent environment now has a disposable local Supabase stack (`project_id = "sts-media"`). Application-layer Vitest still covers in-memory and mocked sessions. Executable SQL is `supabase/tests/day1_isolation_runtime.sql` plus `supabase/tests/day2_isolation_runtime.sql` (executed locally as `anon` / `authenticated`). The manual plan remains in `supabase/tests/org_isolation.sql`. Setup notes: `docs/day-1-local-supabase-setup.md`. Evidence: `docs/day-1-foundation-verification.md` and `docs/day-2-hardening-verification.md`.
+This Cloud Agent environment now has a disposable local Supabase stack (`project_id = "sts-media"`). Application-layer Vitest still covers in-memory and mocked sessions. Executable SQL is `supabase/tests/day1_isolation_runtime.sql`, `supabase/tests/day2_isolation_runtime.sql`, and `supabase/tests/day3_isolation_runtime.sql` (executed locally as `anon` / `authenticated`). The manual plan remains in `supabase/tests/org_isolation.sql`. Setup notes: `docs/day-1-local-supabase-setup.md`. Evidence: `docs/day-1-foundation-verification.md`, `docs/day-2-hardening-verification.md`, and `docs/day-3-finance-operations-verification.md`.
 
 | # | Scenario | Application evidence | SQL evidence (after migrations on a branch DB) |
 | --- | --- | --- | --- |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeMrr, cashAmount, computeFinance, recognizedRevenueAmount } from "./finance";
+import { activeMrr, cashAmount, computeFinance, computeFinanceFromLedgers, recognizedRevenueAmount } from "./finance";
 import { createSeedWorkspace } from "./data/seed";
 import type { RevenueEntry, SubscriptionRecord } from "./types";
 
@@ -89,5 +89,16 @@ describe("finance definitions", () => {
       .filter((item) => !item.archived)
       .reduce((total, item) => total + item.totalAmount, 0);
     expect(year.totalExpenses).toBe(sum);
+  });
+
+  it("computes ledger totals from empty organization datasets as zeros", () => {
+    const empty = computeFinanceFromLedgers([], [], [], [], {
+      from: new Date("2026-01-01"),
+      to: new Date("2026-12-31T23:59:59"),
+    });
+    expect(empty.grossRevenue).toBe(0);
+    expect(empty.totalExpenses).toBe(0);
+    expect(empty.netProfit).toBe(0);
+    expect(empty.outstandingInvoices).toBe(0);
   });
 });

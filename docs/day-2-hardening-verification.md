@@ -109,6 +109,7 @@ Public contact submissions still create in-memory leads. Payments, payroll, tax 
 - Do not copy a disposable local Auth user UUID into production.
 - Production must keep public signup disabled.
 - Remaining ledgers are still in-process memory.
+- Day 3 adds organization-owned expenses, revenue, projects, and tasks on a later branch; Day 2 itself does not persist those ledgers.
 - MFA recovery codes are not issued.
 - An already-issued bearer JWT can remain valid until expiry after logout (unchanged Supabase behavior).
 - Hosted/production Supabase was not migrated. Do not treat this isolated pass as production readiness.
