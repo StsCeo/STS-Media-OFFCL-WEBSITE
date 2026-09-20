@@ -16,7 +16,7 @@ This document is the Day 1 foundation audit and architecture checkpoint for the 
 | Charts | Recharts | Used by existing Phase 1 finance pages, not by the Day 1 Command Center totals. |
 | Tests | Vitest **5** | `src/**/*.test.ts`, Node environment. |
 | Lint | ESLint 9 + `eslint-config-next` | |
-| Hosting (intended) | Vercel + domain `stsmedia.co` | No `vercel.json` in repo; project settings live in the Vercel dashboard. |
+| Hosting (intended) | Vercel + domain `stsmedia.co` | `vercel.json` enables Git deployments on `main` only (`git.deploymentEnabled`: `main` true, `*` false). Other project settings live in the Vercel dashboard. |
 
 **Day 1 baseline (this checkpoint):** recorded after inspect, repair, and verification. Commands and exit codes belong in the Day 1 completion report. Do not treat demo totals as filed books.
 

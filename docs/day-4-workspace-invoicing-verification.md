@@ -160,7 +160,7 @@ npm run build
 - Recurrence, reminders, malware scanning, and PDF export are future work.
 - Phase 1 owner-scoped `documents` bucket remains separate from `org-documents`.
 - Demo mode still uses in-memory notes/documents/events/`workspaceInvoices`.
-- Automatic Vercel Previews are created by the GitHub integration, not by this repository. See `docs/vercel-preview-safety.md`. The owner must confirm Preview is isolated from production Supabase.
+- `vercel.json` enables Git auto-deployments on `main` only. See `docs/vercel-preview-safety.md`. The owner must still confirm any existing Preview is isolated from production Supabase.
 
 ## 10. Production deployment order and prerequisites
 

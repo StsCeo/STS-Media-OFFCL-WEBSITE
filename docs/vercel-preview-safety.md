@@ -6,13 +6,13 @@ This checklist is for the repository owner. It does **not** claim that any hoste
 
 | Check | Finding |
 | --- | --- |
-| `vercel.json` | Not present in the repository |
+| `vercel.json` | Present. `git.deploymentEnabled` is `{ "main": true, "*": false }` so only `main` auto-deploys |
 | GitHub Actions deploy workflows | None under `.github/` |
 | Tracked `.vercel` project metadata | Ignored by `.gitignore`; not tracked |
 | Tracked `.env*` / local Supabase secrets | Ignored; not tracked |
-| Preview trigger in this repo | None. Automatic previews come from the external GitHub/Vercel integration, not from a tracked deploy script |
+| Preview trigger in this repo | None besides the GitHub/Vercel integration. Non-`main` Git auto-deployments are disabled in `vercel.json` |
 
-Do not add a speculative branch block in this repository. Preview and production deployment settings live in the Vercel dashboard.
+This file does not change production domains, environment variables, or dashboard-only project settings. The owner should still confirm the existing PR #8 Preview and Preview environment isolation.
 
 ## Manual owner actions
 
