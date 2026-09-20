@@ -28,7 +28,7 @@ import type {
 } from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
-import { clearCurrentAuth, createSupabaseServer, getSession, organizationRoleFor, requireBusinessSettingsWrite, requireCrmWrite, requireOwnerWrite, sessionOrganizationId } from "@/lib/auth/session";
+import { clearCurrentAuth, createSupabaseServer, getSession, organizationRoleFor, requireBusinessSettingsWrite, requireCrmWrite, requireFinanceWrite, requireOperationsWrite, requireOwnerWrite, requireRevenueWrite, sessionOrganizationId } from "@/lib/auth/session";
 import { recordOrganizationAudit, updateOrganizationBusinessSettings } from "@/lib/org/store";
 import { saveOrganizationSettingsInDatabase } from "@/lib/org/database";
 import {
@@ -40,6 +40,24 @@ import {
   saveCrmLeadInDatabase,
   shouldUseCrmDatabase,
 } from "@/lib/org/crm";
+import {
+  archiveOpsExpenseInDatabase,
+  archiveOpsProjectInDatabase,
+  archiveOpsRevenueInDatabase,
+  archiveOpsTaskInDatabase,
+  GENERIC_OPS_ERROR,
+  loadOpsExpense,
+  loadOpsProject,
+  loadOpsRevenue,
+  loadOpsTask,
+  normalizeExpenseInput,
+  normalizeRevenueInput,
+  saveOpsExpenseInDatabase,
+  saveOpsProjectInDatabase,
+  saveOpsRevenueInDatabase,
+  saveOpsTaskInDatabase,
+  shouldUseOpsDatabase,
+} from "@/lib/org/operations";
 import { draftBusinessSettings, GENERIC_SETTINGS_ERROR, parseBusinessSettingsForm } from "@/lib/org/settings";
 import { demoSessionCookieOptions, getDemoSessionSecret, signDemoSession } from "@/lib/auth/demo-session";
 import { GENERIC_AUTH_ERROR, normalizeEmail } from "@/lib/auth/owner";
@@ -287,6 +305,22 @@ export async function saveLegalPage(formData: FormData) {
 export async function upsertExpense(input: Partial<Expense> & { id?: string }) {
   await assertSameOrigin();
   await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseOpsDatabase(session.user)) {
+    const write = await requireFinanceWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_OPS_ERROR);
+    const supabase = await factory();
+    const current = input.id ? await loadOpsExpense(supabase, write.organizationId, input.id) : null;
+    const payload = normalizeExpenseInput(input, current);
+    const saved = await saveOpsExpenseInDatabase(supabase, write.organizationId, payload);
+    if ("error" in saved) throw new Error(GENERIC_OPS_ERROR);
+    stampAudit("expense_upsert", saved.id, "Expense ledger updated.");
+    revalidatePath("/dashboard/expenses");
+    revalidatePath("/dashboard/finance");
+    revalidatePath("/dashboard");
+    return;
+  }
   mutateWorkspace((state) => {
     if (input.id) {
       const current = state.expenses.find((item) => item.id === input.id);
@@ -344,6 +378,22 @@ export async function upsertExpense(input: Partial<Expense> & { id?: string }) {
 export async function archiveExpenses(ids: string[]) {
   await assertSameOrigin();
   await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseOpsDatabase(session.user)) {
+    const write = await requireFinanceWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_OPS_ERROR);
+    const supabase = await factory();
+    for (const id of ids) {
+      const saved = await archiveOpsExpenseInDatabase(supabase, write.organizationId, id);
+      if ("error" in saved) throw new Error(GENERIC_OPS_ERROR);
+    }
+    stampAudit("expense_archive", ids.join(","), "Expenses archived.");
+    revalidatePath("/dashboard/expenses");
+    revalidatePath("/dashboard/finance");
+    revalidatePath("/dashboard");
+    return;
+  }
   mutateWorkspace((state) => {
     state.expenses.forEach((item) => {
       if (ids.includes(item.id)) item.archived = true;
@@ -356,6 +406,11 @@ export async function archiveExpenses(ids: string[]) {
 export async function deleteExpenses(ids: string[]) {
   await assertSameOrigin();
   await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseOpsDatabase(session.user)) {
+    await archiveExpenses(ids);
+    return;
+  }
   mutateWorkspace((state) => {
     state.expenses = state.expenses.filter((item) => !ids.includes(item.id));
   });
@@ -366,14 +421,46 @@ export async function deleteExpenses(ids: string[]) {
 export async function duplicateExpense(id: string) {
   await assertSameOrigin();
   await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseOpsDatabase(session.user)) {
+    const write = await requireFinanceWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_OPS_ERROR);
+    const supabase = await factory();
+    const source = await loadOpsExpense(supabase, write.organizationId, id);
+    if (!source) return;
+    await upsertExpense({ ...source, id: undefined, description: `${source.description} (copy)` });
+    return;
+  }
   const source = getWorkspace().expenses.find((item) => item.id === id);
   if (!source) return;
   await upsertExpense({ ...source, id: undefined, description: `${source.description} (copy)` });
 }
 
-export async function upsertRevenue(input: Partial<RevenueEntry> & { id?: string }) {
+export async function upsertRevenue(input: Partial<RevenueEntry> & { id?: string; paymentMethod?: string; paidDate?: string | null; invoiceNumber?: string }) {
   await assertSameOrigin();
   await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseOpsDatabase(session.user)) {
+    const write = await requireRevenueWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_OPS_ERROR);
+    const supabase = await factory();
+    const current = input.id ? await loadOpsRevenue(supabase, write.organizationId, input.id) : null;
+    const payload = normalizeRevenueInput(input, current);
+    const saved = await saveOpsRevenueInDatabase(supabase, write.organizationId, payload, {
+      paymentMethod: input.paymentMethod,
+      paidDate: input.paidDate,
+      invoiceNumber: input.invoiceNumber,
+      recurring: input.type === "recurring_maintenance",
+    });
+    if ("error" in saved) throw new Error(GENERIC_OPS_ERROR);
+    stampAudit("revenue_upsert", saved.id, "Revenue ledger updated.");
+    revalidatePath("/dashboard/revenue");
+    revalidatePath("/dashboard/finance");
+    revalidatePath("/dashboard");
+    return;
+  }
   mutateWorkspace((state) => {
     if (input.id) {
       const current = state.revenue.find((item) => item.id === input.id);
@@ -402,6 +489,33 @@ export async function upsertRevenue(input: Partial<RevenueEntry> & { id?: string
   });
   stampAudit("revenue_upsert", input.id || "new", "Revenue ledger updated.");
   revalidatePath("/dashboard/revenue");
+  revalidatePath("/dashboard/finance");
+  revalidatePath("/dashboard");
+}
+
+export async function archiveRevenue(id: string) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseOpsDatabase(session.user)) {
+    const write = await requireRevenueWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_OPS_ERROR);
+    const supabase = await factory();
+    const saved = await archiveOpsRevenueInDatabase(supabase, write.organizationId, id);
+    if ("error" in saved) throw new Error(GENERIC_OPS_ERROR);
+    stampAudit("revenue_archive", id, "Revenue archived.");
+    revalidatePath("/dashboard/revenue");
+    revalidatePath("/dashboard/finance");
+    revalidatePath("/dashboard");
+    return;
+  }
+  mutateWorkspace((state) => {
+    state.revenue = state.revenue.filter((item) => item.id !== id);
+  });
+  stampAudit("revenue_archive", id, "Revenue archived.");
+  revalidatePath("/dashboard/revenue");
+  revalidatePath("/dashboard/finance");
   revalidatePath("/dashboard");
 }
 
@@ -456,6 +570,41 @@ export async function upsertLead(input: Partial<Lead> & { id?: string }) {
 export async function upsertProject(input: Partial<Project> & { id?: string }) {
   await assertSameOrigin();
   await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseOpsDatabase(session.user)) {
+    const write = await requireOperationsWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_OPS_ERROR);
+    const supabase = await factory();
+    const current = input.id ? await loadOpsProject(supabase, write.organizationId, input.id) : null;
+    const payload: Project = {
+      id: input.id || current?.id || "",
+      name: input.name || current?.name || "New project",
+      clientId: input.clientId ?? current?.clientId ?? "",
+      packageId: input.packageId ?? current?.packageId ?? null,
+      stage: input.stage || current?.stage || "lead",
+      startDate: input.startDate || current?.startDate || new Date().toISOString().slice(0, 10),
+      deadline: input.deadline || current?.deadline || "",
+      budget: Number(input.budget ?? current?.budget ?? 0),
+      amountInvoiced: Number(input.amountInvoiced ?? current?.amountInvoiced ?? 0),
+      amountCollected: Number(input.amountCollected ?? current?.amountCollected ?? 0),
+      directCost: Number(input.directCost ?? current?.directCost ?? 0),
+      githubRepo: current?.githubRepo || "",
+      vercelProject: current?.vercelProject || "",
+      productionUrl: current?.productionUrl || "",
+      domain: current?.domain || "",
+      maintenancePlan: current?.maintenancePlan || "",
+      credentialsReference: current?.credentialsReference || "Stored outside this system. Record only the location of the vault, never the secret.",
+      notes: input.notes ?? current?.notes ?? "",
+      atRisk: Boolean(input.atRisk ?? current?.atRisk),
+    };
+    const saved = await saveOpsProjectInDatabase(supabase, write.organizationId, payload);
+    if ("error" in saved) throw new Error(GENERIC_OPS_ERROR);
+    stampAudit("project_upsert", saved.id, "Project updated.");
+    revalidatePath("/dashboard/projects");
+    revalidatePath("/dashboard");
+    return;
+  }
   mutateWorkspace((state) => {
     if (input.id) {
       const current = state.projects.find((item) => item.id === input.id);
@@ -487,6 +636,29 @@ export async function upsertProject(input: Partial<Project> & { id?: string }) {
   stampAudit("project_upsert", input.id || "new", "Project updated.");
   revalidatePath("/dashboard/projects");
   revalidatePath("/dashboard");
+}
+
+export async function archiveProject(id: string) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseOpsDatabase(session.user)) {
+    const write = await requireOperationsWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_OPS_ERROR);
+    const supabase = await factory();
+    const saved = await archiveOpsProjectInDatabase(supabase, write.organizationId, id);
+    if ("error" in saved) throw new Error(GENERIC_OPS_ERROR);
+    stampAudit("project_archive", id, "Project archived.");
+    revalidatePath("/dashboard/projects");
+    revalidatePath("/dashboard");
+    return;
+  }
+  mutateWorkspace((state) => {
+    state.projects = state.projects.filter((item) => item.id !== id);
+  });
+  stampAudit("project_archive", id, "Project archived.");
+  revalidatePath("/dashboard/projects");
 }
 
 export async function savePortfolio(formData: FormData) {
@@ -794,6 +966,31 @@ export async function saveClientForm(formData: FormData) {
 export async function upsertTask(input: Partial<TaskItem> & { id?: string }) {
   await assertSameOrigin();
   await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseOpsDatabase(session.user)) {
+    const write = await requireOperationsWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_OPS_ERROR);
+    const supabase = await factory();
+    const current = input.id ? await loadOpsTask(supabase, write.organizationId, input.id) : null;
+    const payload: TaskItem = {
+      id: input.id || current?.id || "",
+      title: input.title || current?.title || "New task",
+      projectId: input.projectId ?? current?.projectId ?? null,
+      clientId: input.clientId ?? current?.clientId ?? null,
+      dueDate: input.dueDate ?? current?.dueDate ?? null,
+      status: input.status || current?.status || "todo",
+      priority: input.priority || current?.priority || "medium",
+      assignee: input.assignee || current?.assignee || "Owner",
+      notes: input.notes ?? current?.notes ?? "",
+    };
+    const saved = await saveOpsTaskInDatabase(supabase, write.organizationId, payload);
+    if ("error" in saved) throw new Error(GENERIC_OPS_ERROR);
+    stampAudit("task_upsert", saved.id, "Task saved.");
+    revalidatePath("/dashboard/tasks");
+    revalidatePath("/dashboard");
+    return;
+  }
   mutateWorkspace((state) => {
     if (input.id) {
       const current = state.tasks.find((item) => item.id === input.id);
@@ -815,6 +1012,29 @@ export async function upsertTask(input: Partial<TaskItem> & { id?: string }) {
   stampAudit("task_upsert", input.id || "new", "Task saved.");
   revalidatePath("/dashboard/tasks");
   revalidatePath("/dashboard");
+}
+
+export async function archiveTask(id: string) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseOpsDatabase(session.user)) {
+    const write = await requireOperationsWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_OPS_ERROR);
+    const supabase = await factory();
+    const saved = await archiveOpsTaskInDatabase(supabase, write.organizationId, id);
+    if ("error" in saved) throw new Error(GENERIC_OPS_ERROR);
+    stampAudit("task_archive", id, "Task archived.");
+    revalidatePath("/dashboard/tasks");
+    revalidatePath("/dashboard");
+    return;
+  }
+  mutateWorkspace((state) => {
+    state.tasks = state.tasks.filter((item) => item.id !== id);
+  });
+  stampAudit("task_archive", id, "Task archived.");
+  revalidatePath("/dashboard/tasks");
 }
 
 export async function saveTaskForm(formData: FormData) {
@@ -851,6 +1071,24 @@ export async function saveProjectForm(formData: FormData) {
     notes: sanitizeText(String(formData.get("notes") || "")),
     atRisk: formData.get("atRisk") === "on",
   });
+}
+
+export async function archiveProjectForm(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  await archiveProject(id);
+}
+
+export async function archiveTaskForm(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  await archiveTask(id);
+}
+
+export async function archiveRevenueForm(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  await archiveRevenue(id);
 }
 
 export async function saveNoteForm(formData: FormData) {

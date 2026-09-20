@@ -5,7 +5,7 @@ import { archiveExpenses, deleteExpenses, duplicateExpense, upsertExpense, uploa
 import { Badge, Button, Card, inputClass } from "@/components/ui";
 import { expensesForLedgerView, parseExpenseLedgerView, type ExpenseLedgerView } from "@/lib/expenses";
 import { uploadFileError } from "@/lib/security/files";
-import { EXPENSE_CATEGORIES, type Expense } from "@/lib/types";
+import { OPS_EXPENSE_CATEGORIES, type Expense } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 
 const columns: { key: keyof Expense; label: string }[] = [
@@ -45,6 +45,8 @@ export function ExpenseLedger({
   const [editing, setEditing] = useState<Expense | null>(null);
   const [receipt, setReceipt] = useState<Expense | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formNotice, setFormNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const pageSize = 10;
 
@@ -101,7 +103,7 @@ export function ExpenseLedger({
         <input className={inputClass + " max-w-xs"} placeholder="Search vendor, description…" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} />
         <select className={inputClass + " max-w-xs"} value={category} onChange={(e) => setCategory(e.target.value)}>
           <option value="">All categories</option>
-          {EXPENSE_CATEGORIES.map((item) => (
+          {OPS_EXPENSE_CATEGORIES.map((item) => (
             <option key={item}>{item}</option>
           ))}
         </select>
@@ -116,6 +118,8 @@ export function ExpenseLedger({
       <p className="text-sm text-muted">
         Showing {filtered.length} records{view === "missing" ? " without receipts" : ""}. Total in view: <span className="font-mono">{formatCurrency(yearTotal)}</span>. Saved views: Missing receipts, Drafts needing confirmation.
       </p>
+      {formNotice ? <p className="text-sm text-forest" role="status">{formNotice}</p> : null}
+      {formError && !editing ? <p className="text-sm text-danger" role="alert">{formError}</p> : null}
       {selected.length ? (
         <div className="flex gap-2">
           <Button size="sm" variant="secondary" disabled={pending} onClick={() => start(() => archiveExpenses(selected))}>Archive selected</Button>
@@ -192,25 +196,36 @@ export function ExpenseLedger({
               event.preventDefault();
               const data = new FormData(event.currentTarget);
               start(async () => {
-                await upsertExpense({
-                  id: editing.id.startsWith("new") ? undefined : editing.id,
-                  transactionDate: String(data.get("transactionDate")),
-                  postedDate: String(data.get("postedDate")),
-                  vendor: String(data.get("vendor")),
-                  description: String(data.get("description")),
-                  pretaxAmount: Number(data.get("pretaxAmount")),
-                  salesTax: Number(data.get("salesTax")),
-                  category: String(data.get("category")),
-                  subcategory: String(data.get("subcategory")),
-                  businessPurpose: String(data.get("businessPurpose")),
-                  paymentAccount: String(data.get("paymentAccount")),
-                  paymentMethod: String(data.get("paymentMethod")),
-                  billingFrequency: String(data.get("billingFrequency")) as Expense["billingFrequency"],
-                  confirmationStatus: String(data.get("confirmationStatus")) as Expense["confirmationStatus"],
-                  notes: String(data.get("notes")),
-                  receiptStatus: String(data.get("receiptStatus")) as Expense["receiptStatus"],
-                });
-                setEditing(null);
+                setFormError(null);
+                try {
+                  const reimbursable = data.get("reimbursable") === "on";
+                  await upsertExpense({
+                    id: editing.id.startsWith("new") ? undefined : editing.id,
+                    transactionDate: String(data.get("transactionDate")),
+                    postedDate: String(data.get("postedDate")),
+                    vendor: String(data.get("vendor")),
+                    description: String(data.get("description")),
+                    pretaxAmount: Number(data.get("pretaxAmount")),
+                    salesTax: Number(data.get("salesTax")),
+                    category: String(data.get("category")),
+                    subcategory: String(data.get("subcategory")),
+                    businessPurpose: String(data.get("businessPurpose")),
+                    paymentAccount: String(data.get("paymentAccount")),
+                    paymentMethod: String(data.get("paymentMethod")),
+                    billingFrequency: String(data.get("billingFrequency")) as Expense["billingFrequency"],
+                    confirmationStatus: String(data.get("confirmationStatus")) as Expense["confirmationStatus"],
+                    notes: String(data.get("notes")),
+                    receiptStatus: String(data.get("receiptStatus")) as Expense["receiptStatus"],
+                    reimbursable,
+                    reimbursementStatus: reimbursable
+                      ? (String(data.get("reimbursementStatus")) as Expense["reimbursementStatus"])
+                      : "n/a",
+                  });
+                  setFormNotice("Expense saved.");
+                  setEditing(null);
+                } catch {
+                  setFormError("The expense could not be saved. Check amounts, dates, and required fields.");
+                }
               });
             }}
           >
@@ -223,7 +238,7 @@ export function ExpenseLedger({
               <input name="pretaxAmount" type="number" step="0.01" className={inputClass} defaultValue={editing.pretaxAmount} />
               <input name="salesTax" type="number" step="0.01" className={inputClass} defaultValue={editing.salesTax} />
               <select name="category" className={inputClass} defaultValue={editing.category}>
-                {EXPENSE_CATEGORIES.map((item) => <option key={item}>{item}</option>)}
+                {OPS_EXPENSE_CATEGORIES.map((item) => <option key={item}>{item}</option>)}
               </select>
               <input name="subcategory" className={inputClass} defaultValue={editing.subcategory} placeholder="Subcategory" />
               <input name="businessPurpose" className={inputClass} defaultValue={editing.businessPurpose} placeholder="Business purpose" />
@@ -243,8 +258,18 @@ export function ExpenseLedger({
                 <option value="attached">Attached</option>
                 <option value="needs_review">Needs review</option>
               </select>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="reimbursable" defaultChecked={editing.reimbursable} />
+                Reimbursable
+              </label>
+              <select name="reimbursementStatus" className={inputClass} defaultValue={editing.reimbursementStatus}>
+                <option value="n/a">Not applicable</option>
+                <option value="pending">Pending reimbursement</option>
+                <option value="reimbursed">Reimbursed</option>
+              </select>
               <textarea name="notes" className={inputClass + " md:col-span-2 h-20"} defaultValue={editing.notes} />
             </div>
+            {formError ? <p className="mt-3 text-sm text-danger" role="alert">{formError}</p> : null}
             <div className="mt-4 flex gap-2">
               <Button type="submit">Save</Button>
               <Button type="button" variant="secondary" onClick={() => setEditing(null)}>Cancel</Button>

@@ -5,7 +5,9 @@ import { getSession } from "@/lib/auth/session";
 import { briefing } from "@/lib/insights";
 import { getWorkspace } from "@/lib/data/store";
 import { getBusinessOsContext } from "@/lib/org/context";
+import { loadVisibleOpsRecords } from "@/lib/org/operations-context";
 import { implementedBusinessOsHrefs } from "@/lib/nav";
+import { formatCurrency } from "@/lib/utils";
 
 export const metadata = { title: "Command Center" };
 
@@ -27,6 +29,7 @@ export default async function OverviewPage() {
   const today = briefing(workspace);
   const session = await getSession();
   const os = await getBusinessOsContext(session.user);
+  const { totals, source, estimateNote, unavailable } = await loadVisibleOpsRecords();
   const organization = os.organization;
   const settings = os.settings;
   const orgActivity = os.audit;
@@ -43,12 +46,60 @@ export default async function OverviewPage() {
       <PageHeader
         eyebrow="STS Media Business OS"
         title="Command Center"
-        description="Owner operations shell. Financial totals are not calculated here until Business OS ledgers exist. Existing workspace tools remain in their sections."
+        description="Owner operations shell. Finance and operations totals below are operational estimates for the current organization, not formal accounting or tax reports."
       />
 
       <div className="mb-6">
         <QuickActions />
       </div>
+
+      <Card className="mb-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">Operational estimates</h2>
+          <Badge tone="info">{source === "postgres" ? "Organization ledger" : "Workspace"}</Badge>
+        </div>
+        {unavailable ? (
+          <p className="text-sm text-muted">Organization ledgers could not be loaded. Totals were not taken from local fallback data.</p>
+        ) : (
+          <>
+            <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Total revenue</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.totalRevenue)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Total expenses</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.totalExpenses)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Net income</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.netIncome)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Outstanding revenue</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.outstandingRevenue)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Unreimbursed expenses</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.unreimbursedExpenses)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Active projects</dt>
+                <dd className="mt-1 font-mono text-lg">{totals.activeProjects}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Open tasks</dt>
+                <dd className="mt-1 font-mono text-lg">{totals.openTasks}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Overdue tasks</dt>
+                <dd className="mt-1 font-mono text-lg">{totals.overdueTasks}</dd>
+              </div>
+            </dl>
+            <p className="mt-4 text-xs text-muted">{estimateNote}</p>
+          </>
+        )}
+      </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
@@ -85,7 +136,7 @@ export default async function OverviewPage() {
             <Badge>Placeholder</Badge>
           </div>
           <p className="text-sm text-muted">
-            Revenue, profit, tax, and payroll totals are not shown on Command Center until organization-owned financial records exist in the Business OS. Existing Phase 1 ledgers stay on Finance, Income, and Expenses.
+            Organization identity and invoice defaults. Ledger totals are operational estimates in the card above, not tax, payroll, or audited financial statements.
           </p>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div>
