@@ -1,7 +1,7 @@
 import { defaultBusinessProfile } from "./business-defaults";
 import { defaultTaxChecklist } from "../tax";
 import { createSeedWorkspace } from "./seed";
-import type { WorkspaceState } from "../types";
+import type { WorkspaceState, WorkspaceInvoice } from "../types";
 
 type GlobalStore = typeof globalThis & {
   __stsWorkspace?: WorkspaceState;
@@ -16,6 +16,11 @@ function ensurePhase1(state: WorkspaceState): WorkspaceState {
   if (!Array.isArray(state.notes)) state.notes = [];
   if (!Array.isArray(state.osDocuments)) state.osDocuments = [];
   if (!Array.isArray(state.workspaceInvoices)) state.workspaceInvoices = [];
+  for (const invoice of state.workspaceInvoices) {
+    const row = invoice as WorkspaceInvoice & { sourceEstimateId?: string | null; sourceEstimateNumber?: string };
+    if (row.sourceEstimateId === undefined) row.sourceEstimateId = null;
+    if (row.sourceEstimateNumber === undefined) row.sourceEstimateNumber = "";
+  }
   if (!Array.isArray(state.workspaceEstimates)) state.workspaceEstimates = [];
   if (!Array.isArray(state.osTransactions)) state.osTransactions = [];
   if (!Array.isArray(state.taxChecklist)) state.taxChecklist = defaultTaxChecklist(2026);

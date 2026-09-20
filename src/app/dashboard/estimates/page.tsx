@@ -8,12 +8,12 @@ import { loadVisibleEstimates } from "@/lib/org/estimates-context";
 export const metadata = { title: "Estimates & Quotes" };
 
 export default async function EstimatesPage() {
-  const { estimates, clients, source, unavailable, summaries } = await loadVisibleEstimates();
+  const { estimates, clients, convertedInvoiceIds, source, unavailable, summaries } = await loadVisibleEstimates();
   return (
     <div>
       <PageHeader
         title="Estimates & Quotes"
-        description="Organization-scoped operational quotes. Ready records a lifecycle state only. This page does not send email, generate PDFs, collect signatures, convert to invoices, or take payment."
+        description="Organization-scoped operational quotes. Ready records a lifecycle state only. An accepted, active quote can create one draft invoice. This page does not send email, store a PDF, collect signatures, or take payment."
       />
       {unavailable ? (
         <Card className="mb-4">
@@ -44,7 +44,7 @@ export default async function EstimatesPage() {
         <h2 className="mb-4 font-semibold">Create draft</h2>
         <EstimateForm clients={clients} />
       </Card>
-      <EstimatesBoard estimates={estimates} clients={clients} />
+      <EstimatesBoard estimates={estimates} clients={clients} convertedInvoiceIds={convertedInvoiceIds} />
     </div>
   );
 }

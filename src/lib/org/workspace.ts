@@ -51,6 +51,7 @@ export const INVOICE_ISSUE_RPC = "sts_issue_ws_invoice";
 export const INVOICE_PAY_RPC = "sts_record_ws_invoice_payment";
 export const INVOICE_VOID_RPC = "sts_void_ws_invoice";
 export const INVOICE_ARCHIVE_RPC = "sts_archive_ws_invoice";
+export const ESTIMATE_CONVERT_RPC = "sts_convert_ws_estimate_to_invoice";
 export const ORG_DOCUMENTS_BUCKET = "org-documents";
 
 const UUID_RE =
@@ -158,6 +159,8 @@ export function mapInvoiceRow(row: Record<string, unknown>, lines: WorkspaceInvo
     totalCents: Number(row.total_cents || 0),
     amountPaidCents: Number(row.amount_paid_cents || 0),
     lines,
+    sourceEstimateId: (row.source_estimate_id as string | null) ?? null,
+    sourceEstimateNumber: String(row.source_estimate_number || ""),
     issuedAt: row.issued_at ? String(row.issued_at) : null,
     paidAt: row.paid_at ? String(row.paid_at) : null,
     voidedAt: row.voided_at ? String(row.voided_at) : null,
@@ -376,6 +379,13 @@ export async function voidWorkspaceInvoice(supabase: SupabaseClient, organizatio
 
 export async function archiveWorkspaceInvoice(supabase: SupabaseClient, organizationId: string, id: string) {
   return rpcId(supabase, INVOICE_ARCHIVE_RPC, { p_organization_id: organizationId, p_id: id });
+}
+
+export async function convertEstimateToInvoice(supabase: SupabaseClient, organizationId: string, estimateId: string) {
+  return rpcId(supabase, ESTIMATE_CONVERT_RPC, {
+    p_organization_id: organizationId,
+    p_estimate_id: estimateId,
+  });
 }
 
 export async function createSignedDocumentUrl(supabase: SupabaseClient, storagePath: string, expiresIn = 60) {

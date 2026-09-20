@@ -61,6 +61,7 @@ export default async function InvoicesPage() {
                 <div>
                   <p className="font-semibold">{invoice.invoiceNumber}</p>
                   <p className="text-sm">{invoice.clientBusinessName || "Client assigned on issue"}</p>
+                  {invoice.sourceEstimateNumber ? <p className="text-xs text-muted">From estimate {invoice.sourceEstimateNumber}</p> : null}
                   <p className="mt-1 font-mono text-lg">{formatCents(invoice.totalCents, invoice.currency)}</p>
                 </div>
                 <Badge tone={statusTone(status)}>{status}</Badge>

@@ -1,10 +1,11 @@
 import { centsToDollars } from "@/lib/money";
 import { sanitizeText } from "@/lib/validation";
-import type { WorkspaceEstimate, WorkspaceEstimateStatus } from "@/lib/types";
+import type { WorkspaceEstimate, WorkspaceEstimateStatus, WorkspaceInvoice } from "@/lib/types";
 
 export const GENERIC_ESTIMATE_ERROR = "The estimate could not be saved.";
+export const GENERIC_CONVERT_ERROR = "The estimate could not be converted to an invoice.";
 export const ESTIMATE_RECORD_NOTE =
-  "Operational customer estimates. Ready records a lifecycle state only. No email, PDF, e-signature, invoice conversion, or payment is connected.";
+  "Operational customer estimates. Ready records a lifecycle state only. Accepted quotes can create one draft invoice. No email, stored PDF, e-signature, or payment is connected.";
 
 export const ESTIMATE_STATUSES: WorkspaceEstimateStatus[] = [
   "draft",
@@ -21,6 +22,80 @@ export const ESTIMATE_STATUS_TRANSITIONS: Record<WorkspaceEstimateStatus, Worksp
   declined: [],
   expired: [],
 };
+
+export function canConvertEstimateToInvoice(
+  estimate: Pick<WorkspaceEstimate, "status" | "archived">,
+) {
+  return estimate.status === "accepted" && !estimate.archived;
+}
+
+export function addUtcDays(isoDate: string, days: number) {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return isoDate;
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function draftInvoiceFromAcceptedEstimate(
+  estimate: WorkspaceEstimate,
+  invoiceId: string,
+  now = new Date().toISOString(),
+): WorkspaceInvoice | null {
+  if (!canConvertEstimateToInvoice(estimate) || !estimate.lines.length) return null;
+  const lines = estimate.lines.map((line, index) => ({
+    position: index + 1,
+    description: line.description,
+    quantity: line.quantity,
+    unitCents: line.unitCents,
+    lineTotalCents: line.quantity * line.unitCents,
+  }));
+  const totals = computeInvoiceSnapshotTotals(estimate);
+  if (!totals || totals.totalCents !== estimate.totalCents) return null;
+  const issueDate = estimate.issueDate || now.slice(0, 10);
+  return {
+    id: invoiceId,
+    invoiceNumber: `DRAFT-${invoiceId.replace(/[^a-zA-Z0-9]/g, "").slice(-16) || Date.now()}`,
+    status: "draft",
+    clientId: estimate.clientId,
+    issueDate,
+    dueDate: addUtcDays(issueDate, 15),
+    currency: estimate.currency || "USD",
+    notes: estimate.customerNotes,
+    paymentInstructions: estimate.terms.slice(0, 2000),
+    orgLegalName: estimate.orgLegalName,
+    orgDisplayName: estimate.orgDisplayName,
+    clientBusinessName: estimate.clientBusinessName,
+    clientContactName: estimate.clientContactName,
+    clientEmail: estimate.clientEmail,
+    subtotalCents: totals.subtotalCents,
+    discountCents: totals.discountCents,
+    taxCents: totals.taxCents,
+    totalCents: totals.totalCents,
+    amountPaidCents: 0,
+    lines,
+    sourceEstimateId: estimate.id,
+    sourceEstimateNumber: estimate.estimateNumber,
+    issuedAt: null,
+    paidAt: null,
+    voidedAt: null,
+    archived: false,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function computeInvoiceSnapshotTotals(estimate: Pick<WorkspaceEstimate, "lines" | "taxCents" | "totalCents">) {
+  const subtotalCents = estimate.lines.reduce((sum, line) => sum + line.quantity * line.unitCents, 0);
+  const discountCents = estimate.lines.reduce((sum, line) => sum + line.discountCents, 0);
+  const taxCents = estimate.taxCents;
+  if (discountCents > subtotalCents) return null;
+  return {
+    subtotalCents,
+    discountCents,
+    taxCents,
+    totalCents: subtotalCents - discountCents + taxCents,
+  };
+}
 
 export function canTransitionEstimateStatus(
   from: WorkspaceEstimateStatus,

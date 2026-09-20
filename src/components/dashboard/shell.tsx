@@ -93,7 +93,7 @@ export function DashboardShell({
       <CommandPalette />
       <InactivityGuard />
       {demo ? (
-        <div className="bg-forest px-4 py-2 text-center text-xs text-white">
+        <div className="no-print bg-forest px-4 py-2 text-center text-xs text-white">
           Demo workspace — labeled draft data, not production books. Supabase Auth is required before this is a live command center.
         </div>
       ) : null}
@@ -133,7 +133,7 @@ export function DashboardShell({
         </aside>
 
         {mobileOpen ? (
-          <div className="fixed inset-0 z-40 md:hidden">
+          <div className="no-print fixed inset-0 z-40 md:hidden">
             <button className="absolute inset-0 bg-black/50" aria-label="Close menu" onClick={() => setMobileOpen(false)} />
             <aside id={menuId} className="relative flex h-full w-[min(100%,20rem)] flex-col overflow-y-auto bg-obsidian p-4 text-ink">
               <div className="flex items-center justify-between gap-3">

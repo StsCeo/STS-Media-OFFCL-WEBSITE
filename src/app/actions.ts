@@ -77,6 +77,7 @@ import {
   archiveWorkspaceInvoice,
   archiveWorkspaceNote,
   computeInvoiceTotals,
+  convertEstimateToInvoice,
   generatedDocumentPath,
   issueWorkspaceInvoice,
   loadWorkspaceDocument,
@@ -95,10 +96,13 @@ import {
   voidWorkspaceInvoice,
 } from "@/lib/org/workspace";
 import {
+  GENERIC_CONVERT_ERROR,
   GENERIC_ESTIMATE_ERROR,
   archiveWorkspaceEstimate,
+  canConvertEstimateToInvoice,
   canTransitionEstimateStatus,
   computeEstimateTotals,
+  draftInvoiceFromAcceptedEstimate,
   parseEstimateLinesFromForm,
   restoreWorkspaceEstimate,
   saveWorkspaceEstimate,
@@ -1775,6 +1779,8 @@ export async function saveInvoiceForm(formData: FormData) {
         unitCents: line.unitCents,
         lineTotalCents: line.quantity * line.unitCents,
       })),
+      sourceEstimateId: current?.sourceEstimateId ?? null,
+      sourceEstimateNumber: current?.sourceEstimateNumber ?? "",
       issuedAt: null,
       paidAt: null,
       voidedAt: null,
@@ -2170,6 +2176,58 @@ export async function restoreEstimateForm(formData: FormData) {
   revalidatePath("/dashboard/estimates");
   revalidatePath("/dashboard");
   return { ok: true as const };
+}
+
+export async function convertEstimateToInvoiceForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Choose an estimate to convert." };
+  const session = await getSession();
+  if (
+    shouldUseEstimateDatabase(session.user) &&
+    shouldUseWorkspaceDatabase(session.user) &&
+    session.user?.organizationId
+  ) {
+    await requireInvoiceWrite();
+    const factory = createSupabaseServer();
+    if (!factory) return { error: GENERIC_CONVERT_ERROR };
+    const supabase = await factory();
+    const saved = await convertEstimateToInvoice(supabase, session.user.organizationId, id);
+    if ("error" in saved) return { error: GENERIC_CONVERT_ERROR };
+    stampAudit("estimate_converted_to_invoice", saved.id, "Draft invoice created from an accepted estimate. Nothing was emailed or charged.");
+    revalidatePath("/dashboard/estimates");
+    revalidatePath("/dashboard/invoices");
+    revalidatePath("/dashboard");
+    return { ok: true as const, invoiceId: saved.id };
+  }
+  let invoiceId = "";
+  let denied = false;
+  mutateWorkspace((state) => {
+    const existing = state.workspaceInvoices.find((item) => item.sourceEstimateId === id);
+    if (existing) {
+      invoiceId = existing.id;
+      return;
+    }
+    const estimate = state.workspaceEstimates.find((item) => item.id === id);
+    if (!estimate || !canConvertEstimateToInvoice(estimate)) {
+      denied = true;
+      return;
+    }
+    const next = draftInvoiceFromAcceptedEstimate(estimate, `winv-${Date.now()}`);
+    if (!next) {
+      denied = true;
+      return;
+    }
+    invoiceId = next.id;
+    state.workspaceInvoices.unshift(next);
+  });
+  if (denied || !invoiceId) return { error: GENERIC_CONVERT_ERROR };
+  stampAudit("estimate_converted_to_invoice", invoiceId, "Draft invoice created from an accepted estimate. Nothing was emailed or charged.");
+  revalidatePath("/dashboard/estimates");
+  revalidatePath("/dashboard/invoices");
+  revalidatePath("/dashboard");
+  return { ok: true as const, invoiceId };
 }
 
 export async function saveOsTransactionForm(formData: FormData) {
