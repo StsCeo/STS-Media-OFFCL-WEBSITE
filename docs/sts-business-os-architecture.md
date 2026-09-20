@@ -101,7 +101,7 @@ If the legacy `organizations` table from init.sql already exists, the Day 1 migr
 - Local demo session (`source=demo`, demo mode on): in-memory `src/lib/org/store.ts`. Process restart loses demo org data.
 - Configured Supabase session (`source=supabase`): PostgreSQL via the user-scoped client and `sts_save_business_settings`. Organization IDs come from the session membership. If the database is unavailable, the save returns a generic error and **does not** write the in-memory store.
 - Day 2 CRM leads/clients persist through `sts_save_crm_*`.
-- Day 3 expenses, revenue, projects, and tasks persist through `sts_save_ops_*` / `sts_archive_ops_*` on `ops_*` tables. Demo sessions stay in-memory.
+- Day 3 expenses, revenue, projects, and tasks persist through `sts_save_ops_*` / `sts_archive_ops_*` on `ops_*` tables. Authenticated sessions cannot hard-delete those rows; archival is the supported removal path. Demo sessions stay in-memory.
 
 Manual owner membership insert: `supabase/manual/provision-owner-membership.sql` (blocked until the owner supplies the Auth user UUID).
 

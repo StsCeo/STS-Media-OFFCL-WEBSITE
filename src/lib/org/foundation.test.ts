@@ -60,7 +60,12 @@ describe("business OS foundation migration", () => {
       "20260919123000_day2_crm_leads_clients.sql",
       "20260920120000_day3_finance_operations.sql",
       "20260920121000_day3_finance_operations_rpcs.sql",
+      "20260920130000_day3_ops_no_hard_delete.sql",
     ]);
+    const noDelete = readFileSync("supabase/migrations/20260920130000_day3_ops_no_hard_delete.sql", "utf8");
+    expect(noDelete).toContain("revoke delete on public.ops_expenses");
+    expect(noDelete).toContain("drop policy if exists ops_expenses_delete_privileged");
+    expect(noDelete).not.toMatch(/create policy[\s\S]{0,80}for delete/i);
     const day3 = readFileSync("supabase/migrations/20260920120000_day3_finance_operations.sql", "utf8");
     expect(day3).toContain("ops_expenses");
     expect(day3).toContain("integer not null");

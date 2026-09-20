@@ -4,7 +4,7 @@ import { DEFAULT_OWNER_EMAIL, GENERIC_AUTH_ERROR, isAllowedOwnerEmail } from "./
 import { canAccessDashboard } from "./auth/session";
 import { createSeedWorkspace } from "./data/seed";
 import { getWorkspace, resetWorkspace } from "./data/store";
-import { backupFilename, buildWorkspaceBackup } from "./export-backup";
+import { buildWorkspaceBackup } from "./export-backup";
 import { dollarsToCents } from "./money";
 import { buildMasterTransactionLog } from "./os-transactions";
 import { allowedFile } from "./security/origin";

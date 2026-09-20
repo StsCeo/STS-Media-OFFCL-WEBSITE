@@ -408,6 +408,7 @@ export async function deleteExpenses(ids: string[]) {
   await requireOwnerWrite();
   const session = await getSession();
   if (shouldUseOpsDatabase(session.user)) {
+    // Organization ledgers have no authenticated hard-delete path.
     await archiveExpenses(ids);
     return;
   }

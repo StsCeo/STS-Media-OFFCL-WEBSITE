@@ -124,7 +124,7 @@ export function ExpenseLedger({
         <div className="flex gap-2">
           <Button size="sm" variant="secondary" disabled={pending} onClick={() => start(() => archiveExpenses(selected))}>Archive selected</Button>
           <Button size="sm" variant="danger" disabled={pending} onClick={() => {
-            if (confirm("Delete selected expenses? This cannot be undone in demo storage.")) start(() => deleteExpenses(selected));
+            if (confirm("Remove selected expenses? Organization records are archived. Demo storage removal cannot be undone.")) start(() => deleteExpenses(selected));
           }}>Delete selected</Button>
         </div>
       ) : null}

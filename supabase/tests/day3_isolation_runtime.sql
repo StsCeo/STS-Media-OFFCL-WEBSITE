@@ -433,7 +433,69 @@ begin
     pg_temp.sts_day3_expense_sql(org_a, p_vendor := 'Cross Org', p_description := 'Hijack'),
     'owner B cannot save an expense into org A'
   );
+  perform pg_temp.sts_day3_expect_blocked_write(
+    format('delete from public.ops_expenses where id = %L::uuid', expense_a),
+    'owner B cannot hard-delete org A expenses'
+  );
+  perform pg_temp.sts_day3_expect_blocked_write(
+    format('delete from public.ops_revenue where id = %L::uuid', revenue_a),
+    'owner B cannot hard-delete org A revenue'
+  );
+
+  perform pg_temp.sts_day3_impersonate(owner_a, 'owner-a@day3.test');
+  perform pg_temp.sts_day3_expect_blocked_write(
+    format('delete from public.ops_expenses where id = %L::uuid', expense_a),
+    'owner cannot hard-delete expenses'
+  );
+  perform pg_temp.sts_day3_expect_blocked_write(
+    format('delete from public.ops_revenue where id = %L::uuid', revenue_a),
+    'owner cannot hard-delete revenue'
+  );
+  perform pg_temp.sts_day3_expect_blocked_write(
+    format('delete from public.ops_projects where id = %L::uuid', project_a),
+    'owner cannot hard-delete projects'
+  );
+  perform pg_temp.sts_day3_expect_blocked_write(
+    format('delete from public.ops_tasks where id = %L::uuid', task_a),
+    'owner cannot hard-delete tasks'
+  );
+  execute format('select public.sts_archive_ops_revenue(%L::uuid, %L::uuid)', org_a, revenue_a) into revenue_a;
+  perform pg_temp.sts_day3_expect(revenue_a is not null, 'owner can still archive revenue');
+
+  perform pg_temp.sts_day3_impersonate(admin_a, 'admin-a@day3.test');
+  perform pg_temp.sts_day3_expect_blocked_write(
+    format('delete from public.ops_projects where id = %L::uuid', project_a),
+    'administrator cannot hard-delete projects'
+  );
+  execute format('select public.sts_archive_ops_task(%L::uuid, %L::uuid)', org_a, task_a) into task_a;
+  perform pg_temp.sts_day3_expect(task_a is not null, 'administrator can still archive a task');
+
+  perform pg_temp.sts_day3_impersonate(member_a, 'member-a@day3.test');
+  perform pg_temp.sts_day3_expect_blocked_write(
+    format('delete from public.ops_expenses where id = %L::uuid', expense_a),
+    'employee cannot hard-delete expenses'
+  );
+  perform pg_temp.sts_day3_expect_blocked_write(
+    format('delete from public.ops_tasks where id = %L::uuid', task_a),
+    'employee cannot hard-delete tasks'
+  );
+
+  perform pg_temp.sts_day3_impersonate(accountant_a, 'accountant-a@day3.test');
+  perform pg_temp.sts_day3_expect_blocked_write(
+    format('delete from public.ops_expenses where id = %L::uuid', expense_a),
+    'accountant cannot hard-delete expenses'
+  );
+  perform pg_temp.sts_day3_expect_blocked_write(
+    format('delete from public.ops_revenue where id = %L::uuid', revenue_a),
+    'accountant cannot hard-delete revenue'
+  );
 
   perform pg_temp.sts_day3_as_postgres();
+  execute format('select count(*) from public.ops_expenses where id = %L::uuid', expense_a) into n;
+  perform pg_temp.sts_day3_expect(n = 1, 'archived expense row still exists after denied deletes');
+  execute format('select count(*) from public.ops_revenue where id = %L::uuid', revenue_a) into n;
+  perform pg_temp.sts_day3_expect(n = 1, 'archived revenue row still exists after denied deletes');
+  execute format('select count(*) from public.audit_events where organization_id = %L::uuid and action like %L', org_a, 'ops_%.archived') into n;
+  perform pg_temp.sts_day3_expect(n >= 1, 'archive operations still write audit events');
   raise notice 'DAY3_ISOLATION_RUNTIME_PASSED';
 end $$;

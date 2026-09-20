@@ -15,6 +15,7 @@ EXPENSE_MARK = Path("/tmp/sts-local/day3-expense.id")
 REVENUE_MARK = Path("/tmp/sts-local/day3-revenue.id")
 PROJECT_MARK = Path("/tmp/sts-local/day3-project.id")
 TASK_MARK = Path("/tmp/sts-local/day3-task.id")
+ARCHIVE_MARK = Path("/tmp/sts-local/day3-archived-expense.id")
 ORG_A = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"
 ORG_B = "ffffffff-ffff-4fff-8fff-ffffffffffff"
 OWNER_A_EMAIL = "owner-a@day3.test"
@@ -304,6 +305,27 @@ def persist_phase(env: dict[str, str]) -> None:
         if payload[0].get("organization_id") != ORG_A:
             fail(f"persisted {label} organization mismatch")
         pass_(f"{label} remained after local restart")
+    if not ARCHIVE_MARK.exists():
+        fail("missing archived-expense persistence marker")
+    archive_id = ARCHIVE_MARK.read_text().strip()
+    status, payload, _ = request(
+        "GET",
+        f"{env['REST_URL']}/ops_expenses?id=eq.{archive_id}&select=id,organization_id,archived_at",
+        auth_headers(env, admin=True),
+    )
+    if status != 200 or not isinstance(payload, list) or not payload:
+        fail(f"archived expense missing after restart (http {status})")
+    if payload[0].get("organization_id") != ORG_A or not payload[0].get("archived_at"):
+        fail("archived expense did not remain archived after restart")
+    pass_("archived expense remained after local restart")
+    audit_status, audit_payload, _ = request(
+        "GET",
+        f"{env['REST_URL']}/audit_events?entity_type=eq.ops_expense&action=eq.ops_expense.archived&select=id,organization_id,action",
+        auth_headers(env, admin=True),
+    )
+    if audit_status != 200 or not isinstance(audit_payload, list) or not audit_payload:
+        fail(f"archive audit events missing after restart (http {audit_status})")
+    pass_("archive audit events remained after local restart")
     print("DAY3_LOCAL_AUTH_REST_PASSED")
 
 
@@ -458,6 +480,35 @@ def main() -> None:
     if unpaid_paid[0] in (200, 201):
         fail("paid revenue without payment information unexpectedly succeeded")
     pass_(f"paid revenue without payment information failed closed (http {unpaid_paid[0]})")
+
+    def rest_delete(token: str, table: str, record_id: str) -> int:
+        status, _, _ = request(
+            "DELETE",
+            f"{env['REST_URL']}/{table}?id=eq.{record_id}",
+            auth_headers(env, token),
+        )
+        return status
+
+    for role_email, table, record_id, label in (
+        (OWNER_A_EMAIL, "ops_expenses", expense_id, "owner"),
+        (ADMIN_A_EMAIL, "ops_projects", project_id, "admin"),
+        (MEMBER_A_EMAIL, "ops_tasks", task_id, "employee"),
+        (ACCOUNTANT_A_EMAIL, "ops_expenses", expense_id, "accountant"),
+        (OWNER_B_EMAIL, "ops_revenue", revenue_id, "other-organization owner"),
+    ):
+        delete_status = rest_delete(tokens[role_email], table, record_id)
+        if delete_status in (200, 204):
+            fail(f"{label} REST hard-delete unexpectedly succeeded (http {delete_status})")
+        pass_(f"{label} REST hard-delete failed closed (http {delete_status})")
+
+    archive_status, archive_id = rpc(env, tokens[OWNER_A_EMAIL], "sts_archive_ops_expense", {
+        "p_organization_id": ORG_A,
+        "p_id": expense_id,
+    })
+    if archive_status not in (200, 201) or not archive_id:
+        fail(f"owner archive expense http {archive_status}")
+    ARCHIVE_MARK.write_text(str(archive_id))
+    pass_("owner REST archive still succeeded")
 
     rest_insert, payload, _ = request(
         "POST",

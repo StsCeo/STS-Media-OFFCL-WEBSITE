@@ -56,6 +56,7 @@ fi
 EXPECTED=(
   "supabase/migrations/20260920120000_day3_finance_operations.sql"
   "supabase/migrations/20260920121000_day3_finance_operations_rpcs.sql"
+  "supabase/migrations/20260920130000_day3_ops_no_hard_delete.sql"
 )
 for file in "${EXPECTED[@]}"; do
   if [[ ! -f "$file" ]]; then
