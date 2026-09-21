@@ -135,10 +135,9 @@ function base32Decode(secret) {
   }
   return Buffer.from(bytes);
 }
-function totpNow(secret) {
-  const remaining = 30 - ((Date.now() / 1000) % 30);
+function totpNow(secret, nextWindow) {
   return new Promise((resolve) => {
-    const run = () => {
+    const compute = () => {
       const key = base32Decode(secret);
       const counter = Math.floor(Date.now() / 1000 / 30);
       const buf = Buffer.alloc(8);
@@ -154,8 +153,14 @@ function totpNow(secret) {
         1000000;
       resolve(String(code).padStart(6, "0"));
     };
-    if (remaining < 2.5) setTimeout(run, Math.ceil((remaining + 0.4) * 1000));
-    else run();
+    const remaining = 30 - ((Date.now() / 1000) % 30);
+    const waitMs = nextWindow
+      ? Math.ceil((remaining + 0.5) * 1000)
+      : remaining < 2.5
+        ? Math.ceil((remaining + 0.4) * 1000)
+        : 0;
+    if (waitMs > 0) setTimeout(compute, waitMs);
+    else compute();
   });
 }
 
@@ -211,20 +216,27 @@ await page.click('input[name="password"]');
 await page.keyboard.type(password, { delay: 0 });
 await page.click('form button[type="submit"]');
 try {
-  await waitPath(page, ["/mfa/verify", "/accountant"]);
+  await page.waitForFunction(() => {
+    const path = location.pathname;
+    if (path === "/mfa/verify") return true;
+    if (document.querySelector("input[name='code']")) return true;
+    if (document.querySelector("[data-surface='accountant']")) return true;
+    return false;
+  }, { timeout: 45000 });
 } catch {
   note("after password url=" + sanitize(page.url()));
   fail("password sign-in did not open MFA or Accountant Center");
 }
 
-if (new URL(page.url()).pathname === "/mfa/verify") {
+const needsMfa = new URL(page.url()).pathname === "/mfa/verify" || Boolean(await page.$("input[name='code']"));
+if (needsMfa) {
   await page.waitForSelector('input[name="code"]');
-  const fresh = await totpNow(totpSecret);
-  await page.click('input[name="code"]');
+  const fresh = await totpNow(totpSecret, true);
+  await page.click('input[name="code"]', { clickCount: 3 });
   await page.keyboard.type(fresh, { delay: 0 });
   await page.click('form button[type="submit"]');
   try {
-    await waitPath(page, ["/accountant"]);
+    await page.waitForFunction(() => Boolean(document.querySelector("[data-surface='accountant']")), { timeout: 45000 });
   } catch {
     const body = sanitize(await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => ""));
     note("after MFA url=" + sanitize(page.url()) + " body=" + body.slice(0, 240));
