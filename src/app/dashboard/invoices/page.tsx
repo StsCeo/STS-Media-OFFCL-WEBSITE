@@ -1,7 +1,9 @@
 import { InvoiceForm } from "@/components/dashboard/invoice-form";
+import { ClientPortalPublishControls } from "@/components/dashboard/client-portal-publish";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { formatCents } from "@/lib/money";
 import { formatCurrency } from "@/lib/utils";
+import { loadClientPortalOwnerIndex, visibilityFor } from "@/lib/org/client-portal";
 import { derivedInvoiceStatus, INVOICE_RECORD_NOTE } from "@/lib/org/workspace";
 import { loadVisibleWorkspaceRecords } from "@/lib/org/workspace-context";
 
@@ -16,7 +18,10 @@ function statusTone(status: string): "neutral" | "info" | "success" | "warning" 
 }
 
 export default async function InvoicesPage() {
-  const { invoices, clients, estimates, kickoffByInvoiceId, source, unavailable, summaries } = await loadVisibleWorkspaceRecords();
+  const [{ invoices, clients, estimates, kickoffByInvoiceId, source, unavailable, summaries }, portal] = await Promise.all([
+    loadVisibleWorkspaceRecords(),
+    loadClientPortalOwnerIndex(),
+  ]);
   return (
     <div>
       <PageHeader
@@ -72,6 +77,17 @@ export default async function InvoicesPage() {
                 <Badge tone={statusTone(status)}>{status}</Badge>
               </div>
               <InvoiceForm invoice={invoice} clients={clients} kickoffProjectId={kickoffProjectId} canKickoff={canKickoff} />
+              <ClientPortalPublishControls
+                sourceType="invoice"
+                visibility={visibilityFor(
+                  portal,
+                  "invoice",
+                  invoice.id,
+                  invoice.clientId,
+                  invoice.clientBusinessName || clients.find((client) => client.id === invoice.clientId)?.businessName || "this client",
+                  Boolean(invoice.archived),
+                )}
+              />
             </Card>
           );
         })}

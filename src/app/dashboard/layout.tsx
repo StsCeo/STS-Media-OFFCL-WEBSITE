@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/shell";
-import { getSession, canAccessAccountantCenter, canAccessDashboard } from "@/lib/auth/session";
+import { getSession, canAccessAccountantCenter, canAccessClientPortal, canAccessDashboard } from "@/lib/auth/session";
 import { SIDEBAR_COOKIE, THEME_COOKIE } from "@/lib/config";
 import { parseTheme } from "@/lib/theme/palettes";
 
@@ -12,6 +12,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (session.status === "needs_mfa") redirect("/mfa/verify?next=/dashboard");
   if (canAccessAccountantCenter(session.user) && !canAccessDashboard(session.user)) {
     redirect("/accountant");
+  }
+  if (canAccessClientPortal(session.user) && !canAccessDashboard(session.user)) {
+    redirect("/client");
   }
   if (!canAccessDashboard(session.user)) redirect("/login?next=/dashboard");
   const collapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "1";

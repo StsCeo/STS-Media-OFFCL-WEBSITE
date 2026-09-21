@@ -808,6 +808,10 @@ html[data-palette="warm-earth"] [data-surface="dashboard"] nav a[aria-current="p
   box-shadow: var(--shadow-card);
 }
 
+.client-invoice-hero {
+  background: linear-gradient(135deg, var(--violet) 0%, #4f46e5 52%, var(--electric) 100%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .lift, .lift:hover,
@@ -833,5 +837,11 @@ html[data-palette="warm-earth"] [data-surface="dashboard"] nav a[aria-current="p
   body { background: white; color: black; }
   main { padding: 0 !important; }
   .print-document { box-shadow: none !important; }
+  .client-invoice-hero {
+    background: #20202b !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   a[href]::after { content: none !important; }
 }

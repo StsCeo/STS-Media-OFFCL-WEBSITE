@@ -181,9 +181,34 @@ export function canAccessAccountantCenter(user: SessionUser | null) {
   return hasAccountantReadRole(user);
 }
 
+export function hasClientPortalRole(user: SessionUser | null) {
+  if (!user) return false;
+  if (user.source === "demo") return false;
+  if (user.membershipStatus !== "active") return false;
+  if (!user.organizationId) return false;
+  if (!user.mfaVerified) return false;
+  return user.organizationRole === "client";
+}
+
+export function canAccessClientPortal(user: SessionUser | null) {
+  return hasClientPortalRole(user);
+}
+
 export async function requireAccountantRead() {
   const session = await getSession();
   if (!canAccessAccountantCenter(session.user)) {
+    throw new Error("Unauthorized");
+  }
+  const organizationId = sessionOrganizationId(session.user);
+  if (!organizationId) {
+    throw new Error("Unauthorized");
+  }
+  return { ...session, organizationId };
+}
+
+export async function requireClientPortal() {
+  const session = await getSession();
+  if (!canAccessClientPortal(session.user)) {
     throw new Error("Unauthorized");
   }
   const organizationId = sessionOrganizationId(session.user);

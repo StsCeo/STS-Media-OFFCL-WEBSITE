@@ -3,7 +3,7 @@ import { AuthFlowUnavailable } from "@/components/auth/unavailable";
 import { AuthShell } from "@/components/auth/shell";
 import { MfaVerifyForm } from "@/components/auth/recovery-forms";
 import { describeMfaPage } from "@/lib/auth/phase1-flows";
-import { canAccessAccountantCenter, canAccessDashboard, getSession } from "@/lib/auth/session";
+import { canAccessAccountantCenter, canAccessClientPortal, canAccessDashboard, getSession } from "@/lib/auth/session";
 import { isDemoModeEnabled, isProductionEnv, isSupabaseConfigured } from "@/lib/config";
 import { isSafeRedirect } from "@/lib/utils";
 
@@ -27,6 +27,9 @@ export default async function MfaVerifyPage({ searchParams }: { searchParams: Pr
     if (next) redirect(next);
     if (canAccessAccountantCenter(session.user) && !canAccessDashboard(session.user)) {
       redirect("/accountant");
+    }
+    if (canAccessClientPortal(session.user) && !canAccessDashboard(session.user)) {
+      redirect("/client");
     }
     redirect("/dashboard");
   }

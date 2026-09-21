@@ -79,6 +79,7 @@ import {
   computeInvoiceTotals,
   convertEstimateToInvoice,
   generatedDocumentPath,
+  isPersistedWorkspaceId,
   issueWorkspaceInvoice,
   loadWorkspaceDocument,
   loadWorkspaceEvent,
@@ -112,6 +113,13 @@ import {
   shouldUseEstimateDatabase,
   validateEstimateLines,
 } from "@/lib/org/estimates";
+import {
+  disableClientPortalIdentity,
+  linkClientPortalIdentity,
+  publishClientPortalRecord,
+  unpublishClientPortalRecord,
+} from "@/lib/org/client-portal";
+import { isClientPortalSourceType } from "@/lib/org/client-portal-model";
 import {
   canStartProjectFromInvoice,
   draftProjectFromConvertedInvoice,
@@ -2435,5 +2443,96 @@ export async function createQuickRecord(formData: FormData) {
     data.set("body", "Created from Command Center");
     await saveNoteForm(data);
   }
+}
+
+const GENERIC_PORTAL_ERROR = "The client portal record could not be updated.";
+
+function revalidateClientPortalSurfaces() {
+  revalidatePath("/dashboard/client-portal");
+  revalidatePath("/dashboard/estimates");
+  revalidatePath("/dashboard/invoices");
+  revalidatePath("/dashboard/projects");
+  revalidatePath("/dashboard/documents");
+  revalidatePath("/client");
+}
+
+export async function publishClientPortalRecordForm(formData: FormData) {
+  await assertSameOrigin();
+  const session = await requireOwnerWrite();
+  const sourceType = String(formData.get("sourceType") || "");
+  const sourceId = String(formData.get("sourceId") || "");
+  const confirmed = String(formData.get("confirmClient") || "") === "1";
+  if (!isClientPortalSourceType(sourceType) || !isPersistedWorkspaceId(sourceId) || !confirmed) {
+    return { error: GENERIC_PORTAL_ERROR };
+  }
+  if (!shouldUseWorkspaceDatabase(session.user)) {
+    return { error: GENERIC_PORTAL_ERROR };
+  }
+  const factory = createSupabaseServer();
+  if (!factory) return { error: GENERIC_PORTAL_ERROR };
+  const supabase = await factory();
+  const result = await publishClientPortalRecord(supabase, sourceType, sourceId);
+  if ("error" in result) return { error: GENERIC_PORTAL_ERROR };
+  revalidateClientPortalSurfaces();
+  return { ok: true };
+}
+
+export async function unpublishClientPortalRecordForm(formData: FormData) {
+  await assertSameOrigin();
+  const session = await requireOwnerWrite();
+  const sourceType = String(formData.get("sourceType") || "");
+  const sourceId = String(formData.get("sourceId") || "");
+  if (!isClientPortalSourceType(sourceType) || !isPersistedWorkspaceId(sourceId)) {
+    return { error: GENERIC_PORTAL_ERROR };
+  }
+  if (!shouldUseWorkspaceDatabase(session.user)) {
+    return { error: GENERIC_PORTAL_ERROR };
+  }
+  const factory = createSupabaseServer();
+  if (!factory) return { error: GENERIC_PORTAL_ERROR };
+  const supabase = await factory();
+  const result = await unpublishClientPortalRecord(supabase, sourceType, sourceId);
+  if ("error" in result) return { error: GENERIC_PORTAL_ERROR };
+  revalidateClientPortalSurfaces();
+  return { ok: true };
+}
+
+export async function linkClientPortalIdentityForm(formData: FormData) {
+  await assertSameOrigin();
+  const session = await requireOwnerWrite();
+  const userId = String(formData.get("userId") || "");
+  const crmClientId = String(formData.get("crmClientId") || "");
+  if (!isPersistedWorkspaceId(userId) || !isPersistedWorkspaceId(crmClientId)) {
+    return { error: GENERIC_PORTAL_ERROR };
+  }
+  if (!shouldUseWorkspaceDatabase(session.user)) {
+    return { error: GENERIC_PORTAL_ERROR };
+  }
+  const factory = createSupabaseServer();
+  if (!factory) return { error: GENERIC_PORTAL_ERROR };
+  const supabase = await factory();
+  const result = await linkClientPortalIdentity(supabase, userId, crmClientId);
+  if ("error" in result) return { error: GENERIC_PORTAL_ERROR };
+  revalidateClientPortalSurfaces();
+  return { ok: true };
+}
+
+export async function disableClientPortalIdentityForm(formData: FormData) {
+  await assertSameOrigin();
+  const session = await requireOwnerWrite();
+  const identityId = String(formData.get("identityId") || "");
+  if (!isPersistedWorkspaceId(identityId)) {
+    return { error: GENERIC_PORTAL_ERROR };
+  }
+  if (!shouldUseWorkspaceDatabase(session.user)) {
+    return { error: GENERIC_PORTAL_ERROR };
+  }
+  const factory = createSupabaseServer();
+  if (!factory) return { error: GENERIC_PORTAL_ERROR };
+  const supabase = await factory();
+  const result = await disableClientPortalIdentity(supabase, identityId);
+  if ("error" in result) return { error: GENERIC_PORTAL_ERROR };
+  revalidateClientPortalSurfaces();
+  return { ok: true };
 }
 
