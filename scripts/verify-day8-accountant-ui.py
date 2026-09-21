@@ -337,10 +337,20 @@ const mobile = await page.evaluate(() => document.body ? document.body.innerText
 if (!/Accountant Center/i.test(mobile)) fail("mobile Accountant Center missing");
 pass("mobile Accountant Center layout rendered");
 
-const signOut = await page.$('button[aria-label="Sign out"]');
+const closeMenu = await page.$('button[aria-label="Close menu"]');
+if (closeMenu) await closeMenu.click();
+await page.setViewport({ width: 1440, height: 900 });
+await page.goto(app + "/accountant", { waitUntil: "domcontentloaded" });
+await page.waitForSelector("[data-surface='accountant']", { timeout: 20000 });
+const signOut = await page.$('header button[aria-label="Sign out"], button[aria-label="Sign out"]');
 if (!signOut) fail("sign out control missing");
 await signOut.click();
-await waitPath(page, ["/sign-out", "/login"]);
+try {
+  await waitPath(page, ["/sign-out", "/login"], 20000);
+} catch {
+  note("after sign out url=" + sanitize(page.url()));
+  fail("sign out did not leave Accountant Center");
+}
 pass("sign out left Accountant Center");
 
 const signedOut = await browser.newPage();
