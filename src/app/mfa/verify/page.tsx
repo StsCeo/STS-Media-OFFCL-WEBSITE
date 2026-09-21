@@ -22,9 +22,10 @@ export default async function MfaVerifyPage({ searchParams }: { searchParams: Pr
     production: isProductionEnv(),
   });
 
+  const nextPath = typeof params.next === "string" && isSafeRedirect(params.next) ? params.next : "";
+
   if (session.user?.mfaVerified) {
-    const next = typeof params.next === "string" && isSafeRedirect(params.next) ? params.next : "";
-    if (next) redirect(next);
+    if (nextPath) redirect(nextPath);
     if (canAccessAccountantCenter(session.user) && !canAccessDashboard(session.user)) {
       redirect("/accountant");
     }
@@ -44,7 +45,7 @@ export default async function MfaVerifyPage({ searchParams }: { searchParams: Pr
 
   return (
     <AuthShell title="Two-factor challenge" description="Enter a code from your authenticator app. This check is enforced on the server, not only in the browser.">
-      <MfaVerifyForm next={typeof params.next === "string" ? params.next : "/dashboard"} />
+      <MfaVerifyForm next={nextPath || "/dashboard"} />
     </AuthShell>
   );
 }
