@@ -279,6 +279,8 @@ describe("sign-out and idle expiration", () => {
 
     const response = await proxy(dashboardRequest());
     expect(response.headers.get("location")).toContain("/login");
+    const accountant = await proxy(new NextRequest("http://localhost:3000/accountant"));
+    expect(accountant.headers.get("location")).toContain("/login");
   });
 
   it("signs out of Supabase when it is configured", async () => {

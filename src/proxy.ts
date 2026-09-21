@@ -3,7 +3,7 @@ import { DEMO_COOKIE, isDemoModeEnabled, isSupabaseConfigured } from "@/lib/conf
 import { verifyDemoSession } from "@/lib/auth/demo-session";
 import { updateSupabaseSession } from "@/lib/supabase/proxy";
 
-const PROTECTED = ["/dashboard"];
+const PROTECTED = ["/dashboard", "/accountant"];
 const MFA_PATH = "/mfa/verify";
 
 export async function proxy(request: NextRequest) {
@@ -37,5 +37,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/dashboard"],
+  matcher: ["/dashboard/:path*", "/dashboard", "/accountant/:path*", "/accountant"],
 };

@@ -1,4 +1,4 @@
-"""Local JWT AAL helpers for Day 1–7 Auth/REST/Storage checks.
+"""Local JWT AAL helpers for Day 1–8 Auth/REST/Storage checks.
 
 Never prints tokens, TOTP secrets, QR contents, or environment values.
 Keep any temporary secret only in memory.
@@ -182,3 +182,51 @@ def expect_denied_or_empty(status: int, count: int | None, label: str) -> None:
         print(f"PASS {label}")
         return
     fail(f"{label} http {status} count {count}")
+
+
+def find_auth_user_id(env: dict[str, str], email: str) -> str | None:
+    page = 1
+    while page <= 20:
+        status, payload = _request(
+            "GET",
+            f"{env['API_URL']}/auth/v1/admin/users?page={page}&per_page=200",
+            _admin_headers(env),
+        )
+        if status != 200 or not isinstance(payload, dict):
+            return None
+        users = payload.get("users") or []
+        if not isinstance(users, list):
+            return None
+        match = next(
+            (item for item in users if isinstance(item, dict) and item.get("email") == email),
+            None,
+        )
+        if match and match.get("id"):
+            return str(match["id"])
+        if len(users) < 200:
+            return None
+        page += 1
+    return None
+
+
+def upsert_auth_user(env: dict[str, str], email: str, password: str) -> str:
+    status, payload = _request(
+        "POST",
+        f"{env['API_URL']}/auth/v1/admin/users",
+        _admin_headers(env),
+        {"email": email, "password": password, "email_confirm": True},
+    )
+    if status in (200, 201) and isinstance(payload, dict) and payload.get("id"):
+        return str(payload["id"])
+    user_id = find_auth_user_id(env, email)
+    if not user_id:
+        fail("auth user missing after admin create")
+    status, _ = _request(
+        "PUT",
+        f"{env['API_URL']}/auth/v1/admin/users/{user_id}",
+        _admin_headers(env),
+        {"password": password, "email_confirm": True},
+    )
+    if status not in (200, 201):
+        fail(f"could not set password (http {status})")
+    return user_id

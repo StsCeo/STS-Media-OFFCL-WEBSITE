@@ -42,13 +42,21 @@ describe("organization roles", () => {
 
   it("keeps accountants out of ownership, credentials, and unrelated sections", () => {
     expect(hasPermission("accountant", "section.accountant")).toBe(true);
+    expect(hasPermission("accountant", "section.finance")).toBe(true);
     expect(hasPermission("accountant", "settings.business.read")).toBe(true);
+    expect(hasPermission("accountant", "section.invoices")).toBe(true);
+    expect(hasPermission("accountant", "section.command-center")).toBe(false);
+    expect(hasPermission("accountant", "section.taxes")).toBe(false);
+    expect(hasPermission("accountant", "section.documents")).toBe(false);
+    expect(hasPermission("accountant", "section.reports")).toBe(false);
+    expect(hasPermission("accountant", "section.projects")).toBe(false);
+    expect(hasPermission("accountant", "section.estimates")).toBe(false);
+    expect(hasPermission("accountant", "section.calendar")).toBe(false);
+    expect(hasPermission("accountant", "section.payroll")).toBe(false);
     expect(hasPermission("accountant", "settings.business.write")).toBe(false);
     expect(hasPermission("accountant", "security.ownership")).toBe(false);
     expect(hasPermission("accountant", "credentials.read")).toBe(false);
     expect(hasPermission("accountant", "section.integrations")).toBe(false);
-    expect(hasPermission("accountant", "section.invoices")).toBe(true);
-    expect(hasPermission("accountant", "section.documents")).toBe(true);
     expect(hasPermission("employee", "section.invoices")).toBe(false);
     expect(hasPermission("employee", "section.calendar")).toBe(true);
     expect(hasPermission("employee", "section.documents")).toBe(true);

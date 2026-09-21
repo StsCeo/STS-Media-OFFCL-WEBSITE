@@ -68,8 +68,9 @@ Do not paste secrets, connection strings, cookie values, or environment-variable
    21. `supabase/migrations/20260920170000_day6_estimate_to_invoice.sql`
    22. `supabase/migrations/20260920180000_day7_schedule_automations.sql`
    23. `supabase/migrations/20260920181000_day7_schedule_rpcs.sql`
+   24. `supabase/migrations/20260920190000_day8_accountant_center.sql`
 
-   To apply Day 2 through Day 7 onto an existing local stack **without** wiping Auth users, use `npx supabase db push --local` (or `DAY7_DB_RESET=0 bash scripts/verify-day7-local-supabase.sh`). Do not reset if you need to keep local MFA factors.
+   To apply Day 2 through Day 8 onto an existing local stack **without** wiping Auth users, use `npx supabase db push --local` (or `DAY8_DB_RESET=0 bash scripts/verify-day8-local-supabase.sh`). Do not reset if you need to keep local MFA factors.
 7. Run the isolation script:
 
    ```bash

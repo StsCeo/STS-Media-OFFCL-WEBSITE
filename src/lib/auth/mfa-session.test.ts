@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GENERIC_AUTH_ERROR } from "@/lib/auth/owner";
-import { canAccessDashboard, getSession } from "@/lib/auth/session";
+import { canAccessAccountantCenter, canAccessDashboard, getSession } from "@/lib/auth/session";
 import { shouldUseWorkspaceDatabase } from "@/lib/org/workspace";
 import { verifyMfaCode } from "@/app/actions";
 
@@ -151,6 +151,53 @@ describe("trusted AAL MFA session", () => {
     const session = await getSession();
     expect(session.status).toBe("authenticated");
     expect(canAccessDashboard(session.user)).toBe(false);
+    expect(canAccessAccountantCenter(session.user)).toBe(false);
+  });
+
+  it("gives accountants the dedicated center at aal2 without opening the Command Center", async () => {
+    fromLimit.mockResolvedValue({
+      data: [{ organization_id: ORG_ID, role: "accountant", status: "active" }],
+      error: null,
+    });
+    getUser.mockResolvedValue({ data: { user: ownerUser("accountant@day8.test") }, error: null });
+    assuranceLevel.current = "aal1";
+    const aal1 = await getSession();
+    expect(canAccessDashboard(aal1.user)).toBe(false);
+    expect(canAccessAccountantCenter(aal1.user)).toBe(false);
+    assuranceLevel.current = "aal2";
+    const aal2 = await getSession();
+    expect(aal2.user?.organizationRole).toBe("accountant");
+    expect(canAccessDashboard(aal2.user)).toBe(false);
+    expect(canAccessAccountantCenter(aal2.user)).toBe(true);
+  });
+
+  it("lets owner and administrator review the accountant center at aal2", async () => {
+    assuranceLevel.current = "aal2";
+    const owner = await getSession();
+    expect(canAccessDashboard(owner.user)).toBe(true);
+    expect(canAccessAccountantCenter(owner.user)).toBe(true);
+    fromLimit.mockResolvedValue({
+      data: [{ organization_id: ORG_ID, role: "administrator", status: "active" }],
+      error: null,
+    });
+    const admin = await getSession();
+    expect(canAccessAccountantCenter(admin.user)).toBe(true);
+  });
+
+  it("denies contractor and client sessions from the accountant center even at aal2", async () => {
+    assuranceLevel.current = "aal2";
+    fromLimit.mockResolvedValue({
+      data: [{ organization_id: ORG_ID, role: "contractor", status: "active" }],
+      error: null,
+    });
+    const contractor = await getSession();
+    expect(canAccessAccountantCenter(contractor.user)).toBe(false);
+    fromLimit.mockResolvedValue({
+      data: [{ organization_id: ORG_ID, role: "client", status: "active" }],
+      error: null,
+    });
+    const client = await getSession();
+    expect(canAccessAccountantCenter(client.user)).toBe(false);
   });
 
   it("verifies a provider-accepted TOTP challenge and redirects", async () => {

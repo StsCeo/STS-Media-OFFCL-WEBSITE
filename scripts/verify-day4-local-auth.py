@@ -12,7 +12,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from local_aal import enroll_totp_aal2, expect_denied_or_empty, jwt_aal
+from local_aal import enroll_totp_aal2, expect_denied_or_empty, jwt_aal, upsert_auth_user
 
 ENV_FILE = Path("/tmp/sts-local/status.env")
 NOTE_MARK = Path("/tmp/sts-local/day4-note.id")
@@ -81,35 +81,7 @@ def auth_headers(env: dict[str, str], token: str | None = None, admin: bool = Fa
 
 
 def upsert_user(env: dict[str, str], email: str, password: str) -> str:
-    status, payload, _ = request(
-        "POST",
-        f"{env['API_URL']}/auth/v1/admin/users",
-        auth_headers(env, admin=True),
-        {"email": email, "password": password, "email_confirm": True},
-    )
-    if status in (200, 201) and isinstance(payload, dict) and payload.get("id"):
-        return str(payload["id"])
-    status, payload, _ = request(
-        "GET",
-        f"{env['API_URL']}/auth/v1/admin/users?email={email}",
-        auth_headers(env, admin=True),
-    )
-    if status != 200 or not isinstance(payload, dict):
-        fail(f"could not load auth user {email} (http {status})")
-    users = payload.get("users") or []
-    match = next((item for item in users if item.get("email") == email), None)
-    if not match:
-        fail(f"auth user {email} missing after admin create")
-    user_id = str(match["id"])
-    status, _, _ = request(
-        "PUT",
-        f"{env['API_URL']}/auth/v1/admin/users/{user_id}",
-        auth_headers(env, admin=True),
-        {"password": password, "email_confirm": True},
-    )
-    if status not in (200, 201):
-        fail(f"could not set password for {email} (http {status})")
-    return user_id
+    return upsert_auth_user(env, email, password)
 
 
 def password_login(env: dict[str, str], email: str, password: str) -> tuple[int, str | None]:
@@ -442,9 +414,8 @@ def main() -> None:
     pass_("administrator REST invoice read succeeded")
 
     acc_read_status, acc_count = rest_count(env, tokens[ACCOUNTANT_A_EMAIL], "ws_invoices")
-    if acc_read_status != 200 or not acc_count:
-        fail("accountant could not read invoices")
-    pass_("accountant REST invoice read succeeded")
+    expect_denied_or_empty(acc_read_status, acc_count, "accountant REST ws_invoices")
+    pass_("accountant REST cannot select invoice base table")
 
     b_status, b_count = rest_count(env, tokens[OWNER_B_EMAIL], "ws_invoices")
     if b_status == 200 and b_count == 0:
@@ -569,9 +540,8 @@ def main() -> None:
     pass_("document metadata saved after private upload")
 
     acc_doc_status, acc_doc_count = rest_count(env, tokens[ACCOUNTANT_A_EMAIL], "ws_documents")
-    if acc_doc_status != 200 or not acc_doc_count:
-        fail("accountant could not read document metadata")
-    pass_("accountant REST document read succeeded")
+    expect_denied_or_empty(acc_doc_status, acc_doc_count, "accountant REST ws_documents")
+    pass_("accountant REST cannot select document metadata")
 
     a1_get_status, _, _ = request(
         "GET",

@@ -80,13 +80,9 @@ const ADMINISTRATOR_PERMISSIONS: Permission[] = OWNER_PERMISSIONS.filter(
 );
 
 const ACCOUNTANT_PERMISSIONS: Permission[] = [
-  "section.command-center",
-  "section.finance",
-  "section.taxes",
-  "section.invoices",
-  "section.documents",
-  "section.reports",
   "section.accountant",
+  "section.finance",
+  "section.invoices",
   "settings.business.read",
 ];
 

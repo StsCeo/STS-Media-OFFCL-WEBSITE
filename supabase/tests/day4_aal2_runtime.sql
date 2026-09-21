@@ -288,7 +288,7 @@ begin
 
   perform pg_temp.sts_aal_impersonate(accountant_a, 'accountant-a@day4-aal.test', 'aal2');
   execute 'select count(*) from public.ws_invoices' into n;
-  perform pg_temp.sts_aal_expect(n = 1, 'accountant AAL2 can read invoices');
+  perform pg_temp.sts_aal_expect(n = 0, 'accountant AAL2 cannot select invoice base table');
   perform pg_temp.sts_aal_expect_exception(
     format('select public.sts_issue_ws_invoice(%L::uuid, %L::uuid)', org_a, invoice_id),
     'accountant AAL2 cannot issue an invoice'

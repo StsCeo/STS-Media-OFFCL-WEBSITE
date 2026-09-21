@@ -369,7 +369,7 @@ begin
 
   perform pg_temp.sts_day1_impersonate(accountant_a, 'accountant-a@day1.test');
   execute 'select count(*) from public.business_settings' into n;
-  perform pg_temp.sts_day1_expect(n = 1, 'accountant can read settings');
+  perform pg_temp.sts_day1_expect(n = 0, 'accountant cannot read business settings');
   execute 'select count(*) from public.audit_events' into n;
   perform pg_temp.sts_day1_expect(n = 0, 'accountant cannot read audit events');
   execute format('update public.organizations set legal_name = %L where id = %L::uuid', 'No', org_a);
