@@ -80,25 +80,25 @@ function fromDemoWorkspace() {
 export async function listAccountantInvoices(supabase: SupabaseClient) {
   const { data, error } = await supabase.rpc(ACCOUNTANT_INVOICES_RPC);
   if (error) return { error: true as const };
-  return (data ?? []).map((row) => mapAccountantInvoiceRow(row as Record<string, unknown>));
+  return ((data ?? []) as Record<string, unknown>[]).map((row) => mapAccountantInvoiceRow(row));
 }
 
 export async function listAccountantExpenses(supabase: SupabaseClient) {
   const { data, error } = await supabase.rpc(ACCOUNTANT_EXPENSES_RPC);
   if (error) return { error: true as const };
-  return (data ?? []).map((row) => mapAccountantExpenseRow(row as Record<string, unknown>));
+  return ((data ?? []) as Record<string, unknown>[]).map((row) => mapAccountantExpenseRow(row));
 }
 
 export async function listAccountantRevenue(supabase: SupabaseClient) {
   const { data, error } = await supabase.rpc(ACCOUNTANT_REVENUE_RPC);
   if (error) return { error: true as const };
-  return (data ?? []).map((row) => mapAccountantRevenueRow(row as Record<string, unknown>));
+  return ((data ?? []) as Record<string, unknown>[]).map((row) => mapAccountantRevenueRow(row));
 }
 
 export async function listAccountantFinanceAudit(supabase: SupabaseClient) {
   const { data, error } = await supabase.rpc(ACCOUNTANT_AUDIT_RPC);
   if (error) return { error: true as const };
-  return (data ?? []).map((row) => mapAccountantAuditRow(row as Record<string, unknown>));
+  return ((data ?? []) as Record<string, unknown>[]).map((row) => mapAccountantAuditRow(row));
 }
 
 export async function recordAccountantExport(
