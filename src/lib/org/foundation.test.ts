@@ -76,6 +76,7 @@ describe("business OS foundation migration", () => {
       "20260920190000_day8_accountant_center.sql",
       "20260920191000_day8_accountant_base_table_lockdown.sql",
       "20260920200000_day9_client_portal.sql",
+      "20260921120000_day10_legacy_table_lockdown.sql",
     ]);
     const noDelete = readFileSync("supabase/migrations/20260920130000_day3_ops_no_hard_delete.sql", "utf8");
     expect(noDelete).toContain("revoke delete on public.ops_expenses");
