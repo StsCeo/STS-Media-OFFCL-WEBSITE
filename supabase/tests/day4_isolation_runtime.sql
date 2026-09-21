@@ -256,7 +256,7 @@ begin
 
   perform pg_temp.sts_day4_impersonate(accountant_a, 'accountant-a@day4.test');
   execute 'select count(*) from public.ws_documents' into n;
-  perform pg_temp.sts_day4_expect(n = 1, 'accountant can read documents');
+  perform pg_temp.sts_day4_expect(n = 0, 'accountant cannot select documents');
   execute 'select count(*) from public.ws_notes' into n;
   perform pg_temp.sts_day4_expect(n = 0, 'accountant cannot read notes');
   perform pg_temp.sts_day4_expect_exception(

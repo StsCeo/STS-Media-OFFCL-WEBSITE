@@ -18,9 +18,9 @@ import {
 } from "@/lib/org/accountant-model";
 import { shouldUseOpsDatabase } from "@/lib/org/operations";
 
-export const ACCOUNTANT_INVOICES_VIEW = "sts_accountant_invoices";
-export const ACCOUNTANT_EXPENSES_VIEW = "sts_accountant_expenses";
-export const ACCOUNTANT_REVENUE_VIEW = "sts_accountant_revenue";
+export const ACCOUNTANT_INVOICES_RPC = "sts_list_accountant_invoices";
+export const ACCOUNTANT_EXPENSES_RPC = "sts_list_accountant_expenses";
+export const ACCOUNTANT_REVENUE_RPC = "sts_list_accountant_revenue";
 export const ACCOUNTANT_AUDIT_RPC = "sts_list_accountant_finance_audit";
 export const ACCOUNTANT_EXPORT_RPC = "sts_record_accountant_export";
 
@@ -77,38 +77,20 @@ function fromDemoWorkspace() {
   return { invoices, expenses, revenue };
 }
 
-export async function listAccountantInvoices(supabase: SupabaseClient, organizationId: string) {
-  const { data, error } = await supabase
-    .from(ACCOUNTANT_INVOICES_VIEW)
-    .select(
-      "id,invoice_number,status,issue_date,due_date,currency,client_business_name,subtotal_cents,tax_cents,total_cents,amount_paid_cents,paid_at,archived_at",
-    )
-    .eq("organization_id", organizationId)
-    .order("issue_date", { ascending: false });
+export async function listAccountantInvoices(supabase: SupabaseClient) {
+  const { data, error } = await supabase.rpc(ACCOUNTANT_INVOICES_RPC);
   if (error) return { error: true as const };
   return (data ?? []).map((row) => mapAccountantInvoiceRow(row as Record<string, unknown>));
 }
 
-export async function listAccountantExpenses(supabase: SupabaseClient, organizationId: string) {
-  const { data, error } = await supabase
-    .from(ACCOUNTANT_EXPENSES_VIEW)
-    .select(
-      "id,transaction_date,vendor,description,category,currency,total_cents,reimbursable,reimbursement_status,archived_at",
-    )
-    .eq("organization_id", organizationId)
-    .order("transaction_date", { ascending: false });
+export async function listAccountantExpenses(supabase: SupabaseClient) {
+  const { data, error } = await supabase.rpc(ACCOUNTANT_EXPENSES_RPC);
   if (error) return { error: true as const };
   return (data ?? []).map((row) => mapAccountantExpenseRow(row as Record<string, unknown>));
 }
 
-export async function listAccountantRevenue(supabase: SupabaseClient, organizationId: string) {
-  const { data, error } = await supabase
-    .from(ACCOUNTANT_REVENUE_VIEW)
-    .select(
-      "id,earned_date,entry_type,description,invoice_number,currency,amount_cents,payment_status,archived_at",
-    )
-    .eq("organization_id", organizationId)
-    .order("earned_date", { ascending: false });
+export async function listAccountantRevenue(supabase: SupabaseClient) {
+  const { data, error } = await supabase.rpc(ACCOUNTANT_REVENUE_RPC);
   if (error) return { error: true as const };
   return (data ?? []).map((row) => mapAccountantRevenueRow(row as Record<string, unknown>));
 }
@@ -116,7 +98,7 @@ export async function listAccountantRevenue(supabase: SupabaseClient, organizati
 export async function listAccountantFinanceAudit(supabase: SupabaseClient) {
   const { data, error } = await supabase.rpc(ACCOUNTANT_AUDIT_RPC);
   if (error) return { error: true as const };
-  return (data ?? []).map((row: Record<string, unknown>) => mapAccountantAuditRow(row));
+  return (data ?? []).map((row) => mapAccountantAuditRow(row as Record<string, unknown>));
 }
 
 export async function recordAccountantExport(
@@ -188,36 +170,16 @@ export async function loadAccountantCenter(): Promise<{
   }
 
   const supabase = await factory();
-  const organizationId = session.user.organizationId;
-  const query = Promise.all([
-    listAccountantInvoices(supabase, organizationId),
-    listAccountantExpenses(supabase, organizationId),
-    listAccountantRevenue(supabase, organizationId),
+  const [invoices, expenses, revenue, audit] = await Promise.all([
+    listAccountantInvoices(supabase),
+    listAccountantExpenses(supabase),
+    listAccountantRevenue(supabase),
     listAccountantFinanceAudit(supabase),
   ]);
-  const settled = await Promise.race([
-    query,
-    new Promise<"timeout">((resolve) => {
-      setTimeout(() => resolve("timeout"), 8000);
-    }),
-  ]);
-  if (settled === "timeout") {
-    return {
-      invoices: [],
-      expenses: [],
-      revenue: [],
-      audit: [],
-      overview: emptyOverview(),
-      source: "postgres",
-      unavailable: true,
-      ...notes,
-    };
-  }
-  const [invoices, expenses, revenue, audit] = settled;
   if (
-    "error" in (invoices as { error?: true }) ||
-    "error" in (expenses as { error?: true }) ||
-    "error" in (revenue as { error?: true })
+    "error" in invoices ||
+    "error" in expenses ||
+    "error" in revenue
   ) {
     return {
       invoices: [],
@@ -230,18 +192,15 @@ export async function loadAccountantCenter(): Promise<{
       ...notes,
     };
   }
-  const safeInvoices = invoices as AccountantInvoiceRow[];
-  const safeExpenses = expenses as AccountantExpenseRow[];
-  const safeRevenue = revenue as AccountantRevenueRow[];
   return {
-    invoices: safeInvoices,
-    expenses: safeExpenses,
-    revenue: safeRevenue,
-    audit: "error" in (audit as { error?: true }) ? [] : (audit as AccountantAuditRow[]),
+    invoices,
+    expenses,
+    revenue,
+    audit: "error" in audit ? [] : audit,
     overview: accountantOverview({
-      invoices: safeInvoices,
-      expenses: safeExpenses,
-      revenue: safeRevenue,
+      invoices,
+      expenses,
+      revenue,
     }),
     source: "postgres",
     unavailable: false,

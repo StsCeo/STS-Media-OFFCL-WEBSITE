@@ -83,6 +83,7 @@ EXPECTED=(
   "supabase/migrations/20260920180000_day7_schedule_automations.sql"
   "supabase/migrations/20260920181000_day7_schedule_rpcs.sql"
   "supabase/migrations/20260920190000_day8_accountant_center.sql"
+  "supabase/migrations/20260920191000_day8_accountant_base_table_lockdown.sql"
 )
 for file in "${EXPECTED[@]}"; do
   if [[ ! -f "$file" ]]; then

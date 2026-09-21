@@ -5,6 +5,7 @@ import { ACCOUNTANT_READONLY_NOTE } from "@/lib/org/accountant-model";
 import { formatCurrency } from "@/lib/utils";
 
 export const metadata = { title: "Accountant Center" };
+export const dynamic = "force-dynamic";
 
 function money(amount: number) {
   return formatCurrency(amount);
@@ -185,6 +186,39 @@ export default async function AccountantPage() {
                   <td className="py-2">
                     {expense.reimbursementStatus}
                     {expense.archived ? <Badge tone="warning">Archived</Badge> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
+      <Card className="mb-6 overflow-x-auto">
+        <h2 className="mb-3 text-lg font-semibold">Revenue</h2>
+        {data.revenue.length === 0 ? (
+          <p className="text-sm text-muted">No operational revenue in this organization.</p>
+        ) : (
+          <table className="min-w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-line text-xs uppercase text-muted">
+                <th className="py-2 pr-3">Earned</th>
+                <th className="py-2 pr-3">Type</th>
+                <th className="py-2 pr-3">Description</th>
+                <th className="py-2 pr-3">Amount</th>
+                <th className="py-2">Payment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.revenue.map((entry) => (
+                <tr key={entry.id} className="border-b border-line/70">
+                  <td className="py-2 pr-3 font-mono">{entry.earnedDate}</td>
+                  <td className="py-2 pr-3">{entry.entryType}</td>
+                  <td className="py-2 pr-3">{entry.description}</td>
+                  <td className="py-2 pr-3 font-mono">{money(entry.amountCents / 100)}</td>
+                  <td className="py-2">
+                    {entry.paymentStatus}
+                    {entry.archived ? <Badge tone="warning">Archived</Badge> : null}
                   </td>
                 </tr>
               ))}

@@ -434,9 +434,8 @@ def main() -> None:
     pass_("organization admin REST can read org A projects")
 
     acc_status, acc_count = rest_count(env, tokens[ACCOUNTANT_A_EMAIL], "ops_expenses")
-    if acc_status != 200 or not acc_count or acc_count < 1:
-        fail(f"accountant REST ops_expenses http {acc_status} count {acc_count}")
-    pass_("accountant REST can read org A expenses")
+    expect_denied_or_empty(acc_status, acc_count, "accountant REST ops_expenses")
+    pass_("accountant REST cannot select expense base table")
 
     acc_write = save_expense(env, tokens[ACCOUNTANT_A_EMAIL], ORG_A, "Accountant write")
     if acc_write[0] in (200, 201):

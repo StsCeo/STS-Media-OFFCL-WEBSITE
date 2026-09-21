@@ -405,9 +405,9 @@ begin
 
   perform pg_temp.sts_day3_impersonate(accountant_a, 'accountant-a@day3.test');
   execute 'select count(*) from public.ops_expenses' into n;
-  perform pg_temp.sts_day3_expect(n >= 1, 'accountant can read expenses');
+  perform pg_temp.sts_day3_expect(n = 0, 'accountant cannot select expense base table');
   execute 'select count(*) from public.ops_revenue' into n;
-  perform pg_temp.sts_day3_expect(n >= 1, 'accountant can read revenue');
+  perform pg_temp.sts_day3_expect(n = 0, 'accountant cannot select revenue base table');
   perform pg_temp.sts_day3_expect_exception(
     pg_temp.sts_day3_expense_sql(org_a, p_vendor := 'Accountant Co', p_description := 'Unauthorized write'),
     'accountant cannot write expenses'

@@ -271,14 +271,15 @@ def persist_phase(env: dict[str, str]) -> None:
     if expenses[0].get("organization_id") != ORG_A:
         fail("persisted expense changed organization")
     pass_("expense record remained after local restart")
-    view_status, _, _ = request(
-        "GET",
-        f"{env['REST_URL']}/sts_accountant_invoices?select=id&limit=1",
+    rpc_status, rpc_payload, _ = request(
+        "POST",
+        f"{env['REST_URL']}/rpc/sts_list_accountant_invoices",
         auth_headers(env, admin=True),
+        {},
     )
-    if view_status not in (200, 401, 403):
-        fail(f"accountant invoice view missing after restart (http {view_status})")
-    pass_("accountant invoice view remains queryable after restart")
+    if rpc_status == 404 or (isinstance(rpc_payload, dict) and rpc_payload.get("code") == "PGRST202"):
+        fail("accountant invoice read function missing after restart")
+    pass_("accountant invoice read function remains after restart")
     print("DAY8_LOCAL_AUTH_REST_PASSED")
 
 
@@ -329,8 +330,10 @@ def main() -> None:
         aal1_tokens[email] = token
     pass_("synthetic Day 8 password logins succeeded at AAL1")
 
-    a1_status, a1_count = rest_count(env, aal1_tokens[ACCOUNTANT_A_EMAIL], "sts_accountant_invoices")
-    expect_denied_or_empty(a1_status, a1_count, "AAL1 accountant REST invoice view")
+    a1_status, a1_payload = rpc(env, aal1_tokens[ACCOUNTANT_A_EMAIL], "sts_list_accountant_invoices", {})
+    if a1_status in (200, 201) and a1_payload:
+        fail("AAL1 accountant listed invoices through the safe read function")
+    pass_("AAL1 accountant invoice read function denied")
     a1_export, _ = rpc(env, aal1_tokens[ACCOUNTANT_A_EMAIL], "sts_record_accountant_export", {
         "p_export_type": "invoices",
         "p_row_count": 1,
@@ -439,37 +442,87 @@ def main() -> None:
         fail("could not issue invoice")
     INVOICE_MARK.write_text(invoice_id)
 
-    acc_status, invoices, _ = request(
-        "GET",
-        f"{env['REST_URL']}/sts_accountant_invoices?select=id,invoice_number,status,client_business_name,total_cents,archived_at",
-        auth_headers(env, tokens[ACCOUNTANT_A_EMAIL]),
-    )
+    acc_status, invoices = rpc(env, tokens[ACCOUNTANT_A_EMAIL], "sts_list_accountant_invoices", {})
     if acc_status != 200 or not isinstance(invoices, list) or not invoices:
-        fail(f"accountant AAL2 invoice view http {acc_status}")
-    assert_minimized(invoices, "accountant invoice view")
+        fail(f"accountant AAL2 invoice function http {acc_status}")
+    assert_minimized(invoices, "accountant invoice function")
     if invoices[0].get("client_business_name") != "North Client":
-        fail("accountant invoice view missing client business name")
-    pass_("accountant AAL2 can read minimized invoice view")
+        fail("accountant invoice function missing client business name")
+    if any(key in invoices[0] for key in WITHHELD_KEYS):
+        fail("accountant invoice function exposed withheld keys")
+    pass_("accountant AAL2 can read allowlisted invoices through the safe function")
 
-    acc_exp_status, expenses, _ = request(
-        "GET",
-        f"{env['REST_URL']}/sts_accountant_expenses?select=id,description,category,total_cents,reimbursement_status,archived_at",
-        auth_headers(env, tokens[ACCOUNTANT_A_EMAIL]),
-    )
+    acc_exp_status, expenses = rpc(env, tokens[ACCOUNTANT_A_EMAIL], "sts_list_accountant_expenses", {})
     if acc_exp_status != 200 or not isinstance(expenses, list) or not expenses:
-        fail("accountant expense view missing rows")
-    assert_minimized(expenses, "accountant expense view")
-    pass_("accountant AAL2 can read minimized expense view")
+        fail("accountant expense function missing rows")
+    assert_minimized(expenses, "accountant expense function")
+    pass_("accountant AAL2 can read allowlisted expenses through the safe function")
 
-    admin_status, admin_rows, _ = request(
-        "GET",
-        f"{env['REST_URL']}/sts_accountant_revenue?select=id,amount_cents,payment_status,entry_type,archived_at",
-        auth_headers(env, tokens[ADMIN_A_EMAIL]),
-    )
+    admin_status, admin_rows = rpc(env, tokens[ADMIN_A_EMAIL], "sts_list_accountant_revenue", {})
     if admin_status != 200 or not isinstance(admin_rows, list) or not admin_rows:
-        fail("administrator could not oversee accountant revenue view")
-    assert_minimized(admin_rows, "admin revenue view")
-    pass_("administrator can oversee accountant views")
+        fail("administrator could not oversee accountant revenue function")
+    assert_minimized(admin_rows, "admin revenue function")
+    pass_("administrator can oversee accountant read functions")
+
+    admin_base_status, admin_base_count = rest_count(env, tokens[ADMIN_A_EMAIL], "ws_invoices")
+    if admin_base_status != 200 or not admin_base_count:
+        fail("administrator lost invoice base-table SELECT")
+    pass_("administrator can still select invoice base table")
+
+    owner_base_status, owner_base_count = rest_count(env, tokens[OWNER_A_EMAIL], "ops_expenses")
+    if owner_base_status != 200 or not owner_base_count:
+        fail("owner lost expense base-table SELECT")
+    pass_("owner can still select expense base table")
+
+    for table in (
+        "ws_invoices",
+        "ws_invoice_lines",
+        "ws_invoice_counters",
+        "ops_expenses",
+        "ops_revenue",
+        "ws_documents",
+        "business_settings",
+    ):
+        status, count = rest_count(env, tokens[ACCOUNTANT_A_EMAIL], table)
+        expect_denied_or_empty(status, count, f"accountant REST {table}")
+
+    probe_selects = (
+        ("ws_invoices", "id,notes,payment_instructions,client_email,client_contact_name,client_id"),
+        ("ws_invoices", "*"),
+        ("ws_invoices", "*,ws_invoice_lines(*)"),
+        ("ops_expenses", "id,notes,payment_account,payment_method,client_id,project_id"),
+        ("ops_revenue", "id,notes,payment_method,client_id,project_id"),
+        ("ws_documents", "id,storage_path,description,client_id,uploaded_by"),
+        ("business_settings", "organization_id,default_payment_terms,notification_settings"),
+    )
+    for table, select in probe_selects:
+        status, payload, _ = request(
+            "GET",
+            f"{env['REST_URL']}/{table}?select={select}",
+            auth_headers(env, tokens[ACCOUNTANT_A_EMAIL]),
+        )
+        if status in (200, 206) and isinstance(payload, list) and payload:
+            fail(f"accountant REST probe returned rows for {table} select")
+        if status in (200, 206) and isinstance(payload, list):
+            assert_minimized(payload, f"accountant REST probe {table}")
+    pass_("accountant REST probes of withheld base-table columns returned no rows")
+
+    injected_org, injected_payload = rpc(
+        env,
+        tokens[ACCOUNTANT_A_EMAIL],
+        "sts_list_accountant_invoices",
+        {"p_organization_id": ORG_B, "organization_id": ORG_B},
+    )
+    if injected_org in (200, 201) and isinstance(injected_payload, list):
+        dumped = json.dumps(injected_payload)
+        if "South Client" in dumped or "Org B paid job" in dumped:
+            fail("accountant invoice function accepted a client-supplied organization")
+        assert_minimized(injected_payload, "accountant invoice function extra args")
+        pass_("accountant invoice function ignored extra organization arguments")
+    elif injected_org in (400, 404, 405):
+        pass_("accountant invoice function rejected extra organization arguments")
+    else:
+        fail(f"accountant invoice extra-argument probe http {injected_org}")
 
     for email, label in (
         (EMPLOYEE_A_EMAIL, "employee"),
@@ -478,8 +531,10 @@ def main() -> None:
         (STRANGER_EMAIL, "stranger"),
         (OWNER_B_EMAIL, "cross-organization owner"),
     ):
-        status, count = rest_count(env, tokens[email], "sts_accountant_invoices")
-        expect_denied_or_empty(status, count, f"{label} REST accountant invoice view")
+        status, payload = rpc(env, tokens[email], "sts_list_accountant_invoices", {})
+        if status in (200, 201) and payload:
+            fail(f"{label} listed accountant invoices")
+        pass_(f"{label} accountant invoice function denied")
 
     write_status, _ = rpc(env, tokens[ACCOUNTANT_A_EMAIL], "sts_save_ops_expense", {
         "p_organization_id": ORG_A,

@@ -228,25 +228,45 @@ describe("accountant CSV safety", () => {
 });
 
 describe("day 8 migrations", () => {
-  it("adds minimized accountant views and sanitized export audit helpers", () => {
+  it("adds minimized accountant helpers and closes base-table SELECT for accountants", () => {
     const files = readdirSync("supabase/migrations").filter((name) => name.endsWith(".sql")).sort();
-    expect(files).toEqual(expect.arrayContaining(["20260920190000_day8_accountant_center.sql"]));
+    expect(files).toEqual(
+      expect.arrayContaining([
+        "20260920190000_day8_accountant_center.sql",
+        "20260920191000_day8_accountant_base_table_lockdown.sql",
+      ]),
+    );
     const sql = readFileSync("supabase/migrations/20260920190000_day8_accountant_center.sql", "utf8");
     expect(sql).toContain("sts_can_read_accountant_center");
     expect(sql).toContain("sts_accountant_session_organization");
-    expect(sql).toContain("security_invoker");
-    expect(sql).toContain("sts_accountant_invoices");
     expect(sql).toContain("sts_list_accountant_finance_audit");
     expect(sql).toContain("accountant.exported");
     expect(sql).toContain("set search_path = public");
     expect(sql).not.toMatch(/client_email|payment_instructions|payment_method|payment_account/);
     expect(sql).not.toMatch(/grant execute[\s\S]{0,80}to anon/i);
+    const lockdown = readFileSync("supabase/migrations/20260920191000_day8_accountant_base_table_lockdown.sql", "utf8");
+    expect(lockdown).toContain("sts_list_accountant_invoices");
+    expect(lockdown).toContain("sts_list_accountant_expenses");
+    expect(lockdown).toContain("sts_list_accountant_revenue");
+    expect(lockdown).toContain("security definer");
+    expect(lockdown).toContain("set search_path = public");
+    expect(lockdown).toContain("sts_accountant_session_organization()");
+    expect(lockdown).toContain("drop view if exists public.sts_accountant_invoices");
+    expect(lockdown).not.toMatch(/create or replace function public.sts_list_accountant_\w+\([^)]*p_org/i);
+    expect(lockdown).not.toMatch(/execute\s+'/i);
+    expect(lockdown).not.toMatch(/client_email|payment_instructions|payment_method|payment_account|client_id|project_id/);
+    expect(lockdown).not.toMatch(/grant execute[\s\S]{0,80}to anon/i);
+    expect(lockdown).toMatch(/array\['owner', 'administrator', 'employee'\]/);
+    expect(readFileSync("src/lib/org/accountant.ts", "utf8")).toContain("sts_list_accountant_invoices");
+    expect(readFileSync("src/lib/org/accountant.ts", "utf8")).not.toMatch(/\.from\(["']sts_accountant_/);
+    expect(readFileSync("src/lib/org/accountant.ts", "utf8")).not.toMatch(/\.eq\(["']organization_id["']/);
     expect(readFileSync("src/app/accountant/page.tsx", "utf8")).toContain("Accountant Center");
     expect(readFileSync("src/app/accountant/page.tsx", "utf8")).not.toMatch(/type=["']submit["']/i);
     expect(readFileSync("src/app/accountant/page.tsx", "utf8")).not.toMatch(/sts_save_|sts_archive_|sts_issue_|sts_record_ws_invoice_payment|sts_reconcile_/);
     const exportRoute = readFileSync("src/app/accountant/export/[type]/route.ts", "utf8");
     expect(exportRoute).toContain("requireAccountantRead");
     expect(exportRoute).toContain("hasAccountantReadRole");
+    expect(exportRoute).toContain("listAccountantInvoices");
     expect(exportRoute).not.toMatch(/searchParams\.get\(['"]organization_id['"]\)/);
     expect(exportRoute).not.toMatch(/console\.(log|info|debug|dir)\(/);
     expect(readFileSync("vercel.json", "utf8")).toContain('"main": true');

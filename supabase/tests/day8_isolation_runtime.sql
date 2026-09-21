@@ -190,9 +190,17 @@ declare
   meta jsonb;
   hidden integer;
 begin
-  if to_regclass('public.sts_accountant_invoices') is null
+  if to_regprocedure('public.sts_list_accountant_invoices()') is null
+     or to_regprocedure('public.sts_list_accountant_expenses()') is null
+     or to_regprocedure('public.sts_list_accountant_revenue()') is null
      or to_regprocedure('public.sts_record_accountant_export(text,integer)') is null then
     raise exception 'day8 isolation aborted: accountant helpers are missing';
+  end if;
+  if to_regclass('public.sts_accountant_invoices') is not null
+     or to_regclass('public.sts_accountant_expenses') is not null
+     or to_regclass('public.sts_accountant_revenue') is not null
+     or to_regclass('public.sts_accountant_monthly_summary') is not null then
+    raise exception 'day8 isolation aborted: accountant views must be dropped';
   end if;
 
   perform pg_temp.sts_day8_as_postgres();
@@ -224,13 +232,13 @@ begin
   on conflict (organization_id) do update set estimate_prefix = excluded.estimate_prefix;
 
   perform pg_temp.sts_day8_as_anon();
-  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.sts_accountant_invoices', 'anon cannot select accountant invoices');
-  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.sts_accountant_expenses', 'anon cannot select accountant expenses');
+  perform pg_temp.sts_day8_expect_exception('select count(*) from public.sts_list_accountant_invoices()', 'anon cannot list accountant invoices');
+  perform pg_temp.sts_day8_expect_exception('select count(*) from public.sts_list_accountant_expenses()', 'anon cannot list accountant expenses');
   perform pg_temp.sts_day8_expect_exception('select public.sts_list_accountant_finance_audit()', 'anon cannot list finance audit');
   perform pg_temp.sts_day8_expect_exception($sql$select public.sts_record_accountant_export('invoices', 1)$sql$, 'anon cannot record export');
 
   perform pg_temp.sts_day8_impersonate(accountant_a, 'accountant-a@day8.test', 'aal1');
-  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.sts_accountant_invoices', 'AAL1 accountant cannot read invoice view');
+  perform pg_temp.sts_day8_expect_exception('select count(*) from public.sts_list_accountant_invoices()', 'AAL1 accountant cannot list invoices');
   if public.sts_accountant_session_organization() is not null then
     raise exception 'day8 isolation failed: AAL1 accountant session organization is denied';
   end if;
@@ -238,18 +246,18 @@ begin
   perform pg_temp.sts_day8_expect_exception($sql$select public.sts_record_accountant_export('invoices', 1)$sql$, 'AAL1 accountant cannot export');
 
   perform pg_temp.sts_day8_impersonate(stranger, 'stranger@day8.test', 'aal2');
-  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.sts_accountant_revenue', 'no-membership user cannot read accountant revenue');
+  perform pg_temp.sts_day8_expect_exception('select count(*) from public.sts_list_accountant_revenue()', 'no-membership user cannot list accountant revenue');
   perform pg_temp.sts_day8_expect_exception('select public.sts_list_accountant_finance_audit()', 'no-membership user cannot list finance audit');
 
   perform pg_temp.sts_day8_impersonate(employee_a, 'employee-a@day8.test', 'aal2');
-  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.sts_accountant_invoices', 'employee cannot read accountant invoice view');
+  perform pg_temp.sts_day8_expect_exception('select count(*) from public.sts_list_accountant_invoices()', 'employee cannot list accountant invoices');
   perform pg_temp.sts_day8_expect_exception($sql$select public.sts_record_accountant_export('expenses', 1)$sql$, 'employee cannot record accountant export');
 
   perform pg_temp.sts_day8_impersonate(contractor_a, 'contractor-a@day8.test', 'aal2');
-  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.sts_accountant_expenses', 'contractor cannot read accountant expenses');
+  perform pg_temp.sts_day8_expect_exception('select count(*) from public.sts_list_accountant_expenses()', 'contractor cannot list accountant expenses');
 
   perform pg_temp.sts_day8_impersonate(client_a, 'client-a@day8.test', 'aal2');
-  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.sts_accountant_invoices', 'client cannot read accountant invoices');
+  perform pg_temp.sts_day8_expect_exception('select count(*) from public.sts_list_accountant_invoices()', 'client cannot list accountant invoices');
 
   perform pg_temp.sts_day8_impersonate(owner_a, 'owner-a@day8.test', 'aal2');
   select public.sts_save_crm_client(org_a, null, 'North Client', 'Casey', 'casey@day8.test', '555-0100', 'Auto', 'active', 'Internal CRM note') into crm_client_a;
@@ -332,13 +340,25 @@ begin
   );
 
   perform pg_temp.sts_day8_impersonate(accountant_a, 'accountant-a@day8.test', 'aal2');
-  execute $sql$select count(*) from public.sts_accountant_invoices where organization_id = $1$sql$ into n using org_a;
-  perform pg_temp.sts_day8_expect(n = 5, 'accountant AAL2 can read org A invoice view');
-  execute $sql$select count(*) from public.sts_accountant_invoices where organization_id = $1$sql$ into n using org_b;
-  perform pg_temp.sts_day8_expect(n = 0, 'accountant cannot read org B invoices');
-  execute $sql$select count(*) from public.sts_accountant_revenue where organization_id = $1 and description = 'Org B paid job'$sql$ into n using org_b;
+  execute $sql$select count(*) from public.sts_list_accountant_invoices()$sql$ into n;
+  perform pg_temp.sts_day8_expect(n = 5, 'accountant AAL2 can list org A invoices through the safe read function');
+  execute $sql$select count(*) from public.sts_list_accountant_invoices() where client_business_name = 'South Client'$sql$ into n;
+  perform pg_temp.sts_day8_expect(n = 0, 'accountant invoice function cannot return another organization');
+  execute $sql$select count(*) from public.sts_list_accountant_revenue() where description = 'Org B paid job'$sql$ into n;
   perform pg_temp.sts_day8_expect(n = 0, 'accountant cannot read org B revenue');
 
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ws_invoices', 'accountant cannot select invoice base table');
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ws_invoice_lines', 'accountant cannot select invoice lines');
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ws_invoice_counters', 'accountant cannot select invoice counters');
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ops_expenses', 'accountant cannot select expense base table');
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ops_revenue', 'accountant cannot select revenue base table');
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ws_documents', 'accountant cannot select documents');
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.business_settings', 'accountant cannot select business settings');
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ws_invoices where notes <> ''''', 'accountant cannot select invoice notes');
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ws_invoices where payment_instructions <> ''''', 'accountant cannot select payment instructions');
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ws_invoices where client_email <> ''''', 'accountant cannot select client email');
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ops_expenses where payment_account <> ''''', 'accountant cannot select expense payment account');
+  perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ops_revenue where notes <> ''''', 'accountant cannot select revenue notes');
   perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ops_projects', 'accountant cannot select projects');
   perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ops_tasks', 'accountant cannot select tasks');
   perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ws_notes', 'accountant cannot select notes');
@@ -346,65 +366,72 @@ begin
   perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ws_estimates', 'accountant cannot select estimates');
   perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.crm_clients', 'accountant cannot select CRM clients');
   perform pg_temp.sts_day8_expect_exception(
-    'select notes from public.sts_accountant_invoices',
-    'accountant invoice view has no notes column'
+    'select notes from public.sts_list_accountant_invoices()',
+    'accountant invoice function has no notes column'
   );
   perform pg_temp.sts_day8_expect_exception(
-    'select payment_instructions from public.sts_accountant_invoices',
-    'accountant invoice view has no payment instructions column'
+    'select payment_instructions from public.sts_list_accountant_invoices()',
+    'accountant invoice function has no payment instructions column'
+  );
+  perform pg_temp.sts_day8_expect_exception(
+    $sql$select public.sts_list_accountant_invoices('a8a8a8a8-a8a8-48a8-88a8-a8a8a8a8a8a8'::uuid)$sql$,
+    'accountant invoice function rejects a client-supplied organization id'
   );
 
   select count(*) into hidden
-  from information_schema.columns
-  where table_schema = 'public'
-    and table_name = 'sts_accountant_invoices'
-    and column_name in ('notes', 'payment_instructions', 'client_email', 'client_contact_name', 'client_id');
-  perform pg_temp.sts_day8_expect(hidden = 0, 'invoice view withholds notes, emails, and payment instructions');
+  from information_schema.routines r
+  join information_schema.parameters p
+    on r.specific_name = p.specific_name
+   and r.specific_schema = p.specific_schema
+  where r.specific_schema = 'public'
+    and r.routine_name = 'sts_list_accountant_invoices'
+    and p.parameter_mode = 'OUT'
+    and p.parameter_name in ('notes', 'payment_instructions', 'client_email', 'client_contact_name', 'client_id');
+  perform pg_temp.sts_day8_expect(hidden = 0, 'invoice function withholds notes, emails, and payment instructions');
   select count(*) into hidden
-  from information_schema.columns
-  where table_schema = 'public'
-    and table_name in ('sts_accountant_expenses', 'sts_accountant_revenue')
-    and column_name in ('notes', 'payment_account', 'payment_method', 'client_id', 'project_id');
-  perform pg_temp.sts_day8_expect(hidden = 0, 'expense and revenue views withhold notes and payment details');
+  from information_schema.routines r
+  join information_schema.parameters p
+    on r.specific_name = p.specific_name
+   and r.specific_schema = p.specific_schema
+  where r.specific_schema = 'public'
+    and r.routine_name in ('sts_list_accountant_expenses', 'sts_list_accountant_revenue')
+    and p.parameter_mode = 'OUT'
+    and p.parameter_name in ('notes', 'payment_account', 'payment_method', 'client_id', 'project_id');
+  perform pg_temp.sts_day8_expect(hidden = 0, 'expense and revenue functions withhold notes and payment details');
 
   execute $sql$
     select coalesce(sum(amount_cents), 0)
-    from public.sts_accountant_revenue
-    where organization_id = $1
-      and archived_at is null
+    from public.sts_list_accountant_revenue()
+    where archived_at is null
       and payment_status = 'paid'
       and entry_type <> 'refund'
-  $sql$ into paid_cents using org_a;
+  $sql$ into paid_cents;
   execute $sql$
     select coalesce(sum(amount_cents), 0)
-    from public.sts_accountant_revenue
-    where organization_id = $1
-      and archived_at is null
+    from public.sts_list_accountant_revenue()
+    where archived_at is null
       and payment_status in ('unpaid', 'pending')
-  $sql$ into outstanding_cents using org_a;
+  $sql$ into outstanding_cents;
   execute $sql$
     select coalesce(sum(total_cents), 0)
-    from public.sts_accountant_expenses
-    where organization_id = $1 and archived_at is null
-  $sql$ into expense_cents using org_a;
+    from public.sts_list_accountant_expenses()
+    where archived_at is null
+  $sql$ into expense_cents;
   execute $sql$
     select coalesce(sum(total_cents), 0)
-    from public.sts_accountant_expenses
-    where organization_id = $1
-      and archived_at is null
+    from public.sts_list_accountant_expenses()
+    where archived_at is null
       and reimbursable
       and reimbursement_status <> 'reimbursed'
-  $sql$ into unreimbursed_cents using org_a;
+  $sql$ into unreimbursed_cents;
   perform pg_temp.sts_day8_expect(paid_cents = 100000, 'paid revenue excludes refunds, estimates, and archived rows');
   perform pg_temp.sts_day8_expect(outstanding_cents = 25000, 'outstanding revenue is unpaid operational revenue');
   perform pg_temp.sts_day8_expect(expense_cents = 24000, 'non-archived expenses include unreimbursed live rows only as live expenses');
   perform pg_temp.sts_day8_expect(unreimbursed_cents = 4000, 'unreimbursed expenses are pending reimbursable rows');
-  execute $sql$select count(*) from public.sts_accountant_revenue where description = 'Estimate is not revenue'$sql$ into n;
+  execute $sql$select count(*) from public.sts_list_accountant_revenue() where description = 'Estimate is not revenue'$sql$ into n;
   perform pg_temp.sts_day8_expect(n = 0, 'estimates are not sourced as accountant revenue');
-  execute $sql$select count(*) from public.sts_accountant_invoices where archived_at is not null and organization_id = $1$sql$ into n using org_a;
-  perform pg_temp.sts_day8_expect(n = 1, 'archived invoices remain visible and labeled in the view');
-  execute $sql$select count(*) from public.sts_accountant_monthly_summary where organization_id = $1$sql$ into n using org_a;
-  perform pg_temp.sts_day8_expect(n >= 1, 'accountant can read monthly operational summary');
+  execute $sql$select count(*) from public.sts_list_accountant_invoices() where archived_at is not null$sql$ into n;
+  perform pg_temp.sts_day8_expect(n = 1, 'archived invoices remain visible and labeled in the function');
 
   perform pg_temp.sts_day8_expect_exception(
     format($sql$insert into public.ws_invoices (organization_id, invoice_number, status, currency, client_business_name, subtotal_cents, discount_cents, tax_cents, total_cents, amount_paid_cents) values (%L, 'HACK-1', 'draft', 'USD', 'Nope', 0, 0, 0, 0, 0)$sql$, org_a),
@@ -475,16 +502,16 @@ begin
   perform pg_temp.sts_day8_expect(n = 1, 'ordinary accountant reads are not audited');
 
   perform pg_temp.sts_day8_impersonate(admin_a, 'admin-a@day8.test', 'aal2');
-  execute $sql$select count(*) from public.sts_accountant_invoices where organization_id = $1$sql$ into n using org_a;
-  perform pg_temp.sts_day8_expect(n = 5, 'administrator can oversee accountant invoice view');
-  perform pg_temp.sts_day8_expect_exception(
-    format($sql$update public.sts_accountant_invoices set invoice_number = 'HACK' where organization_id = %L::uuid$sql$, org_a),
-    'administrator cannot write through the accountant invoice view'
-  );
+  execute $sql$select count(*) from public.sts_list_accountant_invoices()$sql$ into n;
+  perform pg_temp.sts_day8_expect(n = 5, 'administrator can oversee accountant invoice function');
+  execute $sql$select count(*) from public.ws_invoices$sql$ into n;
+  perform pg_temp.sts_day8_expect(n = 5, 'administrator can still select invoice base table');
 
   perform pg_temp.sts_day8_impersonate(owner_a, 'owner-a@day8.test', 'aal2');
   execute $sql$select count(*) from public.sts_list_accountant_finance_audit() where action like 'ws_invoice.%' or action like 'ops_%' or action = 'accountant.exported'$sql$ into n;
   perform pg_temp.sts_day8_expect(n >= 1, 'owner can read sanitized finance audit through the accountant RPC');
+  execute $sql$select count(*) from public.ops_expenses$sql$ into n;
+  perform pg_temp.sts_day8_expect(n >= 1, 'owner can still select expense base table');
 
   raise notice 'DAY8_ISOLATION_RUNTIME_PASSED';
 end;

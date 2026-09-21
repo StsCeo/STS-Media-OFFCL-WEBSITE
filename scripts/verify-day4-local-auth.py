@@ -414,9 +414,8 @@ def main() -> None:
     pass_("administrator REST invoice read succeeded")
 
     acc_read_status, acc_count = rest_count(env, tokens[ACCOUNTANT_A_EMAIL], "ws_invoices")
-    if acc_read_status != 200 or not acc_count:
-        fail("accountant could not read invoices")
-    pass_("accountant REST invoice read succeeded")
+    expect_denied_or_empty(acc_read_status, acc_count, "accountant REST ws_invoices")
+    pass_("accountant REST cannot select invoice base table")
 
     b_status, b_count = rest_count(env, tokens[OWNER_B_EMAIL], "ws_invoices")
     if b_status == 200 and b_count == 0:
@@ -541,9 +540,8 @@ def main() -> None:
     pass_("document metadata saved after private upload")
 
     acc_doc_status, acc_doc_count = rest_count(env, tokens[ACCOUNTANT_A_EMAIL], "ws_documents")
-    if acc_doc_status != 200 or not acc_doc_count:
-        fail("accountant could not read document metadata")
-    pass_("accountant REST document read succeeded")
+    expect_denied_or_empty(acc_doc_status, acc_doc_count, "accountant REST ws_documents")
+    pass_("accountant REST cannot select document metadata")
 
     a1_get_status, _, _ = request(
         "GET",

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AccountantShell } from "@/components/accountant/shell";
@@ -6,6 +7,10 @@ import { THEME_COOKIE } from "@/lib/config";
 import { parseTheme } from "@/lib/theme/palettes";
 
 export const dynamic = "force-dynamic";
+
+function AccountantRecordsFallback() {
+  return <p className="text-sm text-muted">Loading operational records…</p>;
+}
 
 export default async function AccountantLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -20,7 +25,7 @@ export default async function AccountantLayout({ children }: { children: React.R
       email={session.user.email || ""}
       canOpenDashboard={canAccessDashboard(session.user)}
     >
-      {children}
+      <Suspense fallback={<AccountantRecordsFallback />}>{children}</Suspense>
     </AccountantShell>
   );
 }

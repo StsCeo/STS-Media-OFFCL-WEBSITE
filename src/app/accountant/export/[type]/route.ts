@@ -37,19 +37,22 @@ export async function GET(
   context: { params: Promise<{ type: string }> },
 ) {
   const session = await getSession();
+  if (!session.user) {
+    const url = new URL("/login", request.url);
+    url.searchParams.set("next", "/accountant");
+    return NextResponse.redirect(url);
+  }
   if (session.status === "needs_mfa") {
     const url = new URL("/mfa/verify", request.url);
     url.searchParams.set("next", "/accountant");
     return NextResponse.redirect(url);
   }
 
-  let organizationId: string;
   try {
     const authorized = await requireAccountantRead();
     if (!hasAccountantReadRole(authorized.user) || !canAccessAccountantCenter(authorized.user)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    organizationId = authorized.organizationId;
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -71,9 +74,9 @@ export async function GET(
   }
   const supabase = await factory();
   const [invoices, expenses, revenue] = await Promise.all([
-    listAccountantInvoices(supabase, organizationId),
-    listAccountantExpenses(supabase, organizationId),
-    listAccountantRevenue(supabase, organizationId),
+    listAccountantInvoices(supabase),
+    listAccountantExpenses(supabase),
+    listAccountantRevenue(supabase),
   ]);
   if ("error" in invoices || "error" in expenses || "error" in revenue) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
