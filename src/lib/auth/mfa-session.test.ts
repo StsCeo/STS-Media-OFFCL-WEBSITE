@@ -184,6 +184,22 @@ describe("trusted AAL MFA session", () => {
     expect(canAccessAccountantCenter(admin.user)).toBe(true);
   });
 
+  it("denies contractor and client sessions from the accountant center even at aal2", async () => {
+    assuranceLevel.current = "aal2";
+    fromLimit.mockResolvedValue({
+      data: [{ organization_id: ORG_ID, role: "contractor", status: "active" }],
+      error: null,
+    });
+    const contractor = await getSession();
+    expect(canAccessAccountantCenter(contractor.user)).toBe(false);
+    fromLimit.mockResolvedValue({
+      data: [{ organization_id: ORG_ID, role: "client", status: "active" }],
+      error: null,
+    });
+    const client = await getSession();
+    expect(canAccessAccountantCenter(client.user)).toBe(false);
+  });
+
   it("verifies a provider-accepted TOTP challenge and redirects", async () => {
     listFactors.mockResolvedValue({
       data: { totp: [{ id: "factor-1", status: "verified" }], phone: [] },

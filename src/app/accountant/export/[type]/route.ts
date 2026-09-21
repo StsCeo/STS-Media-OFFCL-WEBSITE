@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { canAccessAccountantCenter, createSupabaseServer, getSession, sessionOrganizationId } from "@/lib/auth/session";
+import {
+  canAccessAccountantCenter,
+  createSupabaseServer,
+  getSession,
+  hasAccountantReadRole,
+  requireAccountantRead,
+} from "@/lib/auth/session";
 import {
   listAccountantExpenses,
   listAccountantInvoices,
@@ -36,13 +42,18 @@ export async function GET(
     url.searchParams.set("next", "/accountant");
     return NextResponse.redirect(url);
   }
-  if (!canAccessAccountantCenter(session.user)) {
+
+  let organizationId: string;
+  try {
+    const authorized = await requireAccountantRead();
+    if (!hasAccountantReadRole(authorized.user) || !canAccessAccountantCenter(authorized.user)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    organizationId = authorized.organizationId;
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const organizationId = sessionOrganizationId(session.user);
-  if (!organizationId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+
   const { type } = await context.params;
   if (!isAccountantExportType(type)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

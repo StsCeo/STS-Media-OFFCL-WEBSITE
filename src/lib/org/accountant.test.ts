@@ -244,6 +244,11 @@ describe("day 8 migrations", () => {
     expect(readFileSync("src/app/accountant/page.tsx", "utf8")).toContain("Accountant Center");
     expect(readFileSync("src/app/accountant/page.tsx", "utf8")).not.toMatch(/type=["']submit["']/i);
     expect(readFileSync("src/app/accountant/page.tsx", "utf8")).not.toMatch(/sts_save_|sts_archive_|sts_issue_|sts_record_ws_invoice_payment|sts_reconcile_/);
+    const exportRoute = readFileSync("src/app/accountant/export/[type]/route.ts", "utf8");
+    expect(exportRoute).toContain("requireAccountantRead");
+    expect(exportRoute).toContain("hasAccountantReadRole");
+    expect(exportRoute).not.toMatch(/searchParams\.get\(['"]organization_id['"]\)/);
+    expect(exportRoute).not.toMatch(/console\.(log|info|debug|dir)\(/);
     expect(readFileSync("vercel.json", "utf8")).toContain('"main": true');
     expect(readFileSync("vercel.json", "utf8")).toContain('"*": false');
   });

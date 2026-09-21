@@ -1,4 +1,4 @@
-"""Local JWT AAL helpers for Day 1–7 Auth/REST/Storage checks.
+"""Local JWT AAL helpers for Day 1–8 Auth/REST/Storage checks.
 
 Never prints tokens, TOTP secrets, QR contents, or environment values.
 Keep any temporary secret only in memory.

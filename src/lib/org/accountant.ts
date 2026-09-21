@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createSupabaseServer, getSession } from "@/lib/auth/session";
+import { canAccessAccountantCenter, createSupabaseServer, getSession } from "@/lib/auth/session";
 import { getWorkspace } from "@/lib/data/store";
 import { dollarsToCents } from "@/lib/money";
 import {
@@ -149,7 +149,7 @@ export async function loadAccountantCenter(): Promise<{
     revenueNote: ACCOUNTANT_REVENUE_NOTE,
     archiveNote: ACCOUNTANT_ARCHIVE_NOTE,
   };
-  if (!session.user?.mfaVerified && session.user?.source !== "demo") {
+  if (!canAccessAccountantCenter(session.user)) {
     return {
       invoices: [],
       expenses: [],

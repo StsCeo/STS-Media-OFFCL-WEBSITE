@@ -345,6 +345,14 @@ begin
   perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ws_calendar_events', 'accountant cannot select calendar');
   perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.ws_estimates', 'accountant cannot select estimates');
   perform pg_temp.sts_day8_expect_denied_or_zero('select count(*) from public.crm_clients', 'accountant cannot select CRM clients');
+  perform pg_temp.sts_day8_expect_exception(
+    'select notes from public.sts_accountant_invoices',
+    'accountant invoice view has no notes column'
+  );
+  perform pg_temp.sts_day8_expect_exception(
+    'select payment_instructions from public.sts_accountant_invoices',
+    'accountant invoice view has no payment instructions column'
+  );
 
   select count(*) into hidden
   from information_schema.columns
@@ -395,6 +403,8 @@ begin
   perform pg_temp.sts_day8_expect(n = 0, 'estimates are not sourced as accountant revenue');
   execute $sql$select count(*) from public.sts_accountant_invoices where archived_at is not null and organization_id = $1$sql$ into n using org_a;
   perform pg_temp.sts_day8_expect(n = 1, 'archived invoices remain visible and labeled in the view');
+  execute $sql$select count(*) from public.sts_accountant_monthly_summary where organization_id = $1$sql$ into n using org_a;
+  perform pg_temp.sts_day8_expect(n >= 1, 'accountant can read monthly operational summary');
 
   perform pg_temp.sts_day8_expect_exception(
     format($sql$insert into public.ws_invoices (organization_id, invoice_number, status, currency, client_business_name, subtotal_cents, discount_cents, tax_cents, total_cents, amount_paid_cents) values (%L, 'HACK-1', 'draft', 'USD', 'Nope', 0, 0, 0, 0, 0)$sql$, org_a),
