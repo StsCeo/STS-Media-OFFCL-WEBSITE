@@ -21,6 +21,7 @@ from local_aal import (  # noqa: E402
     _extract_access_token,
     _headers,
     _request,
+    enroll_totp_aal2,
     jwt_aal,
     jwt_claim,
     totp_code,
