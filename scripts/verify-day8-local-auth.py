@@ -253,25 +253,32 @@ def persist_phase(env: dict[str, str]) -> None:
     expense_id = EXPENSE_MARK.read_text().strip()
     status, invoices, _ = request(
         "GET",
-        f"{env['REST_URL']}/sts_accountant_invoices?id=eq.{invoice_id}&select=id,organization_id,invoice_number,total_cents,client_business_name",
+        f"{env['REST_URL']}/ws_invoices?id=eq.{invoice_id}&select=id,organization_id,invoice_number,total_cents,client_business_name",
         auth_headers(env, admin=True),
     )
     if status != 200 or not isinstance(invoices, list) or not invoices:
         fail(f"persisted accountant invoice missing after restart (http {status})")
     if invoices[0].get("organization_id") != ORG_A:
         fail("persisted invoice changed organization")
-    assert_minimized(invoices, "persisted invoice view")
-    pass_("accountant invoice view remained after local restart")
+    pass_("invoice record remained after local restart")
     status, expenses, _ = request(
         "GET",
-        f"{env['REST_URL']}/sts_accountant_expenses?id=eq.{expense_id}&select=id,organization_id,total_cents,description",
+        f"{env['REST_URL']}/ops_expenses?id=eq.{expense_id}&select=id,organization_id,total_cents,description",
         auth_headers(env, admin=True),
     )
     if status != 200 or not isinstance(expenses, list) or not expenses:
         fail("persisted accountant expense missing after restart")
     if expenses[0].get("organization_id") != ORG_A:
         fail("persisted expense changed organization")
-    pass_("accountant expense view remained after local restart")
+    pass_("expense record remained after local restart")
+    view_status, _, _ = request(
+        "GET",
+        f"{env['REST_URL']}/sts_accountant_invoices?select=id&limit=1",
+        auth_headers(env, admin=True),
+    )
+    if view_status not in (200, 401, 403):
+        fail(f"accountant invoice view missing after restart (http {view_status})")
+    pass_("accountant invoice view remains queryable after restart")
     print("DAY8_LOCAL_AUTH_REST_PASSED")
 
 

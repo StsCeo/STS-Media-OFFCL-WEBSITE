@@ -189,12 +189,31 @@ export async function loadAccountantCenter(): Promise<{
 
   const supabase = await factory();
   const organizationId = session.user.organizationId;
-  const [invoices, expenses, revenue, audit] = await Promise.all([
+  const query = Promise.all([
     listAccountantInvoices(supabase, organizationId),
     listAccountantExpenses(supabase, organizationId),
     listAccountantRevenue(supabase, organizationId),
     listAccountantFinanceAudit(supabase),
   ]);
+  const settled = await Promise.race([
+    query,
+    new Promise<"timeout">((resolve) => {
+      setTimeout(() => resolve("timeout"), 8000);
+    }),
+  ]);
+  if (settled === "timeout") {
+    return {
+      invoices: [],
+      expenses: [],
+      revenue: [],
+      audit: [],
+      overview: emptyOverview(),
+      source: "postgres",
+      unavailable: true,
+      ...notes,
+    };
+  }
+  const [invoices, expenses, revenue, audit] = settled;
   if (
     "error" in (invoices as { error?: true }) ||
     "error" in (expenses as { error?: true }) ||
