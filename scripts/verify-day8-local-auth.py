@@ -441,7 +441,7 @@ def main() -> None:
         "p_organization_id": ORG_A,
         "p_id": None,
         "p_client_id": client_id,
-        "p_issue_date": TODAY,
+        "p_issue_date": OVERDUE,
         "p_due_date": OVERDUE,
         "p_currency": "USD",
         "p_notes": "Hidden invoice notes",

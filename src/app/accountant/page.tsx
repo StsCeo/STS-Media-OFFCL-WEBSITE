@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { loadAccountantCenter } from "@/lib/org/accountant";
 import { ACCOUNTANT_READONLY_NOTE } from "@/lib/org/accountant-model";
@@ -82,15 +83,15 @@ export default async function AccountantPage() {
           <p className="text-xs text-muted">Server-generated on demand. No public links or stored files.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a className="btn-secondary inline-flex h-10 items-center rounded-md px-4 text-sm" href="/accountant/export/invoices">
+          <Link className="btn-secondary inline-flex h-10 items-center rounded-md px-4 text-sm" href="/accountant/export/invoices">
             Download invoices CSV
-          </a>
-          <a className="btn-secondary inline-flex h-10 items-center rounded-md px-4 text-sm" href="/accountant/export/revenue">
+          </Link>
+          <Link className="btn-secondary inline-flex h-10 items-center rounded-md px-4 text-sm" href="/accountant/export/revenue">
             Download revenue CSV
-          </a>
-          <a className="btn-secondary inline-flex h-10 items-center rounded-md px-4 text-sm" href="/accountant/export/expenses">
+          </Link>
+          <Link className="btn-secondary inline-flex h-10 items-center rounded-md px-4 text-sm" href="/accountant/export/expenses">
             Download expenses CSV
-          </a>
+          </Link>
         </div>
       </Card>
 
