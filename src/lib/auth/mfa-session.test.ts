@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GENERIC_AUTH_ERROR } from "@/lib/auth/owner";
-import { canAccessAccountantCenter, canAccessDashboard, getSession } from "@/lib/auth/session";
+import { canAccessAccountantCenter, canAccessClientPortal, canAccessDashboard, getSession } from "@/lib/auth/session";
 import { shouldUseWorkspaceDatabase } from "@/lib/org/workspace";
 import { verifyMfaCode } from "@/app/actions";
 
@@ -198,6 +198,18 @@ describe("trusted AAL MFA session", () => {
     });
     const client = await getSession();
     expect(canAccessAccountantCenter(client.user)).toBe(false);
+    expect(canAccessClientPortal(client.user)).toBe(true);
+    expect(canAccessDashboard(client.user)).toBe(false);
+    assuranceLevel.current = "aal1";
+    const aal1Client = await getSession();
+    expect(canAccessClientPortal(aal1Client.user)).toBe(false);
+    assuranceLevel.current = "aal2";
+    fromLimit.mockResolvedValue({
+      data: [{ organization_id: ORG_ID, role: "owner", status: "active" }],
+      error: null,
+    });
+    const owner = await getSession();
+    expect(canAccessClientPortal(owner.user)).toBe(false);
   });
 
   it("verifies a provider-accepted TOTP challenge and redirects", async () => {

@@ -2,13 +2,17 @@ import { EstimateForm } from "@/components/dashboard/estimate-form";
 import { EstimatesBoard } from "@/components/dashboard/estimates-board";
 import { Card, PageHeader } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils";
+import { loadClientPortalOwnerIndex, visibilityFor } from "@/lib/org/client-portal";
 import { ESTIMATE_RECORD_NOTE } from "@/lib/org/estimates";
 import { loadVisibleEstimates } from "@/lib/org/estimates-context";
 
 export const metadata = { title: "Estimates & Quotes" };
 
 export default async function EstimatesPage() {
-  const { estimates, clients, convertedInvoiceIds, source, unavailable, summaries } = await loadVisibleEstimates();
+  const [{ estimates, clients, convertedInvoiceIds, source, unavailable, summaries }, portal] = await Promise.all([
+    loadVisibleEstimates(),
+    loadClientPortalOwnerIndex(),
+  ]);
   return (
     <div>
       <PageHeader
@@ -44,7 +48,24 @@ export default async function EstimatesPage() {
         <h2 className="mb-4 font-semibold">Create draft</h2>
         <EstimateForm clients={clients} />
       </Card>
-      <EstimatesBoard estimates={estimates} clients={clients} convertedInvoiceIds={convertedInvoiceIds} />
+      <EstimatesBoard
+        estimates={estimates}
+        clients={clients}
+        convertedInvoiceIds={convertedInvoiceIds}
+        portalVisibility={Object.fromEntries(
+          estimates.map((estimate) => [
+            estimate.id,
+            visibilityFor(
+              portal,
+              "estimate",
+              estimate.id,
+              estimate.clientId,
+              estimate.clientBusinessName || clients.find((client) => client.id === estimate.clientId)?.businessName || "this client",
+              Boolean(estimate.archived),
+            ),
+          ]),
+        )}
+      />
     </div>
   );
 }

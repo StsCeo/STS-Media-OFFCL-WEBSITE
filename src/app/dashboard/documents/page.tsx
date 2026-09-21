@@ -1,13 +1,18 @@
 import { archiveDocumentPageForm } from "@/app/actions";
+import { ClientPortalPublishControls } from "@/components/dashboard/client-portal-publish";
 import { DocumentForm } from "@/components/dashboard/document-form";
 import { Button, Card, PageHeader } from "@/components/ui";
+import { loadClientPortalOwnerIndex, visibilityFor } from "@/lib/org/client-portal";
 import { DOCUMENT_SCAN_NOTE } from "@/lib/org/workspace";
 import { loadVisibleWorkspaceRecords } from "@/lib/org/workspace-context";
 
 export const metadata = { title: "Documents" };
 
 export default async function DocumentsPage() {
-  const { documents, clients, projects, source, unavailable } = await loadVisibleWorkspaceRecords();
+  const [{ documents, clients, projects, source, unavailable }, portal] = await Promise.all([
+    loadVisibleWorkspaceRecords(),
+    loadClientPortalOwnerIndex(),
+  ]);
   return (
     <div>
       <PageHeader
@@ -47,6 +52,17 @@ export default async function DocumentsPage() {
               </div>
             </div>
             <DocumentForm document={doc} clients={clients} projects={projects} />
+            <ClientPortalPublishControls
+              sourceType="document"
+              visibility={visibilityFor(
+                portal,
+                "document",
+                doc.id,
+                doc.relatedType === "client" ? doc.relatedId : null,
+                clients.find((client) => client.id === doc.relatedId)?.businessName || "this client",
+                Boolean(doc.archived),
+              )}
+            />
           </Card>
         ))}
       </div>

@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { EstimateForm } from "@/components/dashboard/estimate-form";
+import { ClientPortalPublishControls } from "@/components/dashboard/client-portal-publish";
 import { Badge, Card, EmptyState, Field, inputClass } from "@/components/ui";
 import { formatCents } from "@/lib/money";
 import { derivedEstimateStatus, matchesEstimateSearch } from "@/lib/org/estimates-model";
+import type { ClientPortalVisibility } from "@/lib/org/client-portal-model";
 import type { ClientRecord, WorkspaceEstimate, WorkspaceEstimateStatus } from "@/lib/types";
 
 function statusTone(status: string): "neutral" | "info" | "success" | "warning" | "danger" {
@@ -29,10 +31,12 @@ export function EstimatesBoard({
   estimates,
   clients,
   convertedInvoiceIds,
+  portalVisibility = {},
 }: {
   estimates: WorkspaceEstimate[];
   clients: Pick<ClientRecord, "id" | "businessName">[];
   convertedInvoiceIds?: Record<string, string>;
+  portalVisibility?: Record<string, ClientPortalVisibility>;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("active");
@@ -86,6 +90,9 @@ export function EstimatesBoard({
                 </div>
               </div>
               <EstimateForm estimate={estimate} clients={clients} convertedInvoiceId={convertedInvoiceIds?.[estimate.id]} />
+              {portalVisibility[estimate.id] ? (
+                <ClientPortalPublishControls sourceType="estimate" visibility={portalVisibility[estimate.id]} />
+              ) : null}
             </Card>
           );
         })

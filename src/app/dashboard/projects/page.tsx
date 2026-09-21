@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Badge, Card, PageHeader } from "@/components/ui";
+import { ClientPortalPublishControls } from "@/components/dashboard/client-portal-publish";
 import { ProjectEditor } from "@/components/dashboard/project-editor";
+import { loadClientPortalOwnerIndex, visibilityFor } from "@/lib/org/client-portal";
 import { loadVisibleOpsRecords } from "@/lib/org/operations-context";
 import { formatCurrency } from "@/lib/utils";
 import { PROJECT_STAGES } from "@/lib/types";
@@ -8,7 +10,10 @@ import { PROJECT_STAGES } from "@/lib/types";
 export const metadata = { title: "Projects" };
 
 export default async function ProjectsPage() {
-  const { projects, clients, tasks, source, unavailable, estimateNote } = await loadVisibleOpsRecords();
+  const [{ projects, clients, tasks, source, unavailable, estimateNote }, portal] = await Promise.all([
+    loadVisibleOpsRecords(),
+    loadClientPortalOwnerIndex(),
+  ]);
   return (
     <div>
       <PageHeader title="Projects" description="Delivery stages, money, and risk. Credentials are stored as a vault location reference only." />
@@ -51,6 +56,17 @@ export default async function ProjectsPage() {
               <p className="mt-2 text-sm">{open.length} open tasks · deadline {project.deadline || "none"}</p>
               <div className="mt-4 border-t border-line pt-4">
                 <ProjectEditor project={project} clients={clients} />
+                <ClientPortalPublishControls
+                  sourceType="project"
+                  visibility={visibilityFor(
+                    portal,
+                    "project",
+                    project.id,
+                    project.clientId,
+                    client?.businessName || "this client",
+                    false,
+                  )}
+                />
               </div>
             </Card>
           );
