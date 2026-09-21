@@ -147,7 +147,7 @@ set search_path = public
 as $$
 declare
   org_id uuid;
-  client_id uuid;
+  session_client_id uuid;
 begin
   if auth.uid() is null or not public.sts_session_is_aal2() then
     return;
@@ -163,7 +163,7 @@ begin
     return;
   end if;
   select i.crm_client_id
-    into client_id
+    into session_client_id
   from public.client_portal_identities i
   join public.crm_clients c
     on c.id = i.crm_client_id
@@ -173,11 +173,11 @@ begin
     and i.status = 'active'
     and c.status = 'active'
   limit 1;
-  if client_id is null then
+  if session_client_id is null then
     return;
   end if;
   organization_id := org_id;
-  crm_client_id := client_id;
+  crm_client_id := session_client_id;
   return next;
 end;
 $$;
@@ -229,12 +229,12 @@ set search_path = public
 as $$
 declare
   org_id uuid;
-  client_id uuid;
+  session_client_id uuid;
 begin
   select s.organization_id, s.crm_client_id
-    into org_id, client_id
+    into org_id, session_client_id
   from public.sts_client_portal_session() as s;
-  if org_id is null or client_id is null then
+  if org_id is null or session_client_id is null then
     return;
   end if;
   return query
@@ -246,7 +246,7 @@ begin
   from public.organizations o
   join public.crm_clients c
     on c.organization_id = o.id
-   and c.id = client_id
+   and c.id = session_client_id
   where o.id = org_id
   limit 1;
 end;
@@ -284,12 +284,12 @@ set search_path = public
 as $$
 declare
   org_id uuid;
-  client_id uuid;
+  session_client_id uuid;
 begin
   select s.organization_id, s.crm_client_id
-    into org_id, client_id
+    into org_id, session_client_id
   from public.sts_client_portal_session() as s;
-  if org_id is null or client_id is null then
+  if org_id is null or session_client_id is null then
     raise exception 'not authorized';
   end if;
   return query
@@ -319,10 +319,10 @@ begin
    and p.source_type = 'estimate'
    and p.source_id = e.id
    and p.unpublished_at is null
-   and p.crm_client_id = client_id
+   and p.crm_client_id = session_client_id
   where e.organization_id = org_id
     and e.archived_at is null
-    and e.client_id = client_id
+    and e.client_id = session_client_id
   order by e.issue_date desc nulls last, e.created_at desc
   limit 200;
 end;
@@ -369,7 +369,7 @@ $$;
 create or replace function public.sts_list_client_portal_estimate_lines()
 returns table (
   estimate_id uuid,
-  position integer,
+  line_position integer,
   description text,
   quantity integer,
   unit_cents integer,
@@ -383,12 +383,12 @@ set search_path = public
 as $$
 declare
   org_id uuid;
-  client_id uuid;
+  session_client_id uuid;
 begin
   select s.organization_id, s.crm_client_id
-    into org_id, client_id
+    into org_id, session_client_id
   from public.sts_client_portal_session() as s;
-  if org_id is null or client_id is null then
+  if org_id is null or session_client_id is null then
     raise exception 'not authorized';
   end if;
   return query
@@ -400,7 +400,7 @@ begin
     l.unit_cents,
     l.discount_cents,
     l.line_total_cents
-  from public.ws_estimate_lines l
+  from public.ws_estimate_lines as l
   join public.ws_estimates e
     on e.id = l.estimate_id
    and e.organization_id = l.organization_id
@@ -409,10 +409,10 @@ begin
    and p.source_type = 'estimate'
    and p.source_id = e.id
    and p.unpublished_at is null
-   and p.crm_client_id = client_id
+   and p.crm_client_id = session_client_id
   where l.organization_id = org_id
     and e.archived_at is null
-    and e.client_id = client_id
+    and e.client_id = session_client_id
   order by l.estimate_id, l.position
   limit 2000;
 end;
@@ -443,12 +443,12 @@ set search_path = public
 as $$
 declare
   org_id uuid;
-  client_id uuid;
+  session_client_id uuid;
 begin
   select s.organization_id, s.crm_client_id
-    into org_id, client_id
+    into org_id, session_client_id
   from public.sts_client_portal_session() as s;
-  if org_id is null or client_id is null then
+  if org_id is null or session_client_id is null then
     raise exception 'not authorized';
   end if;
   return query
@@ -474,10 +474,10 @@ begin
    and p.source_type = 'invoice'
    and p.source_id = i.id
    and p.unpublished_at is null
-   and p.crm_client_id = client_id
+   and p.crm_client_id = session_client_id
   where i.organization_id = org_id
     and i.archived_at is null
-    and i.client_id = client_id
+    and i.client_id = session_client_id
   order by i.issue_date desc nulls last, i.created_at desc
   limit 200;
 end;
@@ -520,7 +520,7 @@ $$;
 create or replace function public.sts_list_client_portal_invoice_lines()
 returns table (
   invoice_id uuid,
-  position integer,
+  line_position integer,
   description text,
   quantity integer,
   unit_cents integer,
@@ -533,12 +533,12 @@ set search_path = public
 as $$
 declare
   org_id uuid;
-  client_id uuid;
+  session_client_id uuid;
 begin
   select s.organization_id, s.crm_client_id
-    into org_id, client_id
+    into org_id, session_client_id
   from public.sts_client_portal_session() as s;
-  if org_id is null or client_id is null then
+  if org_id is null or session_client_id is null then
     raise exception 'not authorized';
   end if;
   return query
@@ -549,7 +549,7 @@ begin
     l.quantity,
     l.unit_cents,
     l.line_total_cents
-  from public.ws_invoice_lines l
+  from public.ws_invoice_lines as l
   join public.ws_invoices i
     on i.id = l.invoice_id
    and i.organization_id = l.organization_id
@@ -558,10 +558,10 @@ begin
    and p.source_type = 'invoice'
    and p.source_id = i.id
    and p.unpublished_at is null
-   and p.crm_client_id = client_id
+   and p.crm_client_id = session_client_id
   where l.organization_id = org_id
     and i.archived_at is null
-    and i.client_id = client_id
+    and i.client_id = session_client_id
   order by l.invoice_id, l.position
   limit 2000;
 end;
@@ -584,12 +584,12 @@ set search_path = public
 as $$
 declare
   org_id uuid;
-  client_id uuid;
+  session_client_id uuid;
 begin
   select s.organization_id, s.crm_client_id
-    into org_id, client_id
+    into org_id, session_client_id
   from public.sts_client_portal_session() as s;
-  if org_id is null or client_id is null then
+  if org_id is null or session_client_id is null then
     raise exception 'not authorized';
   end if;
   return query
@@ -607,10 +607,10 @@ begin
    and p.source_type = 'project'
    and p.source_id = pr.id
    and p.unpublished_at is null
-   and p.crm_client_id = client_id
+   and p.crm_client_id = session_client_id
   where pr.organization_id = org_id
     and pr.archived_at is null
-    and pr.client_id = client_id
+    and pr.client_id = session_client_id
   order by pr.due_date desc nulls last, pr.created_at desc
   limit 200;
 end;
@@ -659,12 +659,12 @@ set search_path = public
 as $$
 declare
   org_id uuid;
-  client_id uuid;
+  session_client_id uuid;
 begin
   select s.organization_id, s.crm_client_id
-    into org_id, client_id
+    into org_id, session_client_id
   from public.sts_client_portal_session() as s;
-  if org_id is null or client_id is null then
+  if org_id is null or session_client_id is null then
     raise exception 'not authorized';
   end if;
   return query
@@ -682,10 +682,10 @@ begin
    and p.source_type = 'document'
    and p.source_id = d.id
    and p.unpublished_at is null
-   and p.crm_client_id = client_id
+   and p.crm_client_id = session_client_id
   where d.organization_id = org_id
     and d.archived_at is null
-    and d.client_id = client_id
+    and d.client_id = session_client_id
   order by d.created_at desc
   limit 200;
 end;
@@ -704,16 +704,16 @@ set search_path = public
 as $$
 declare
   org_id uuid;
-  client_id uuid;
+  session_client_id uuid;
   doc_id uuid;
   doc_title text;
   doc_type text;
   doc_size integer;
 begin
   select s.organization_id, s.crm_client_id
-    into org_id, client_id
+    into org_id, session_client_id
   from public.sts_client_portal_session() as s;
-  if org_id is null or client_id is null or p_id is null then
+  if org_id is null or session_client_id is null or p_id is null then
     raise exception 'not authorized';
   end if;
   select d.id, d.display_filename, d.content_type, d.byte_size
@@ -724,11 +724,11 @@ begin
    and p.source_type = 'document'
    and p.source_id = d.id
    and p.unpublished_at is null
-   and p.crm_client_id = client_id
+   and p.crm_client_id = session_client_id
   where d.id = p_id
     and d.organization_id = org_id
     and d.archived_at is null
-    and d.client_id = client_id
+    and d.client_id = session_client_id
   limit 1;
   if doc_id is null then
     raise exception 'not authorized';

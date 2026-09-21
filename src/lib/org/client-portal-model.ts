@@ -209,7 +209,7 @@ export function mapClientPortalInvoice(
 export function mapClientPortalEstimateLine(row: Record<string, unknown>): ClientPortalLine {
   return {
     parentId: text(row.estimate_id),
-    position: Number(row.position || 1),
+    position: Number(row.line_position || row.position || 1),
     description: text(row.description),
     quantity: Number(row.quantity || 1),
     unitCents: cents(row.unit_cents),
@@ -221,7 +221,7 @@ export function mapClientPortalEstimateLine(row: Record<string, unknown>): Clien
 export function mapClientPortalInvoiceLine(row: Record<string, unknown>): ClientPortalLine {
   return {
     parentId: text(row.invoice_id),
-    position: Number(row.position || 1),
+    position: Number(row.line_position || row.position || 1),
     description: text(row.description),
     quantity: Number(row.quantity || 1),
     unitCents: cents(row.unit_cents),

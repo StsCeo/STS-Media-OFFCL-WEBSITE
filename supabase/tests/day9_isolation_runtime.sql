@@ -263,17 +263,17 @@ begin
   perform pg_temp.sts_day9_impersonate(owner_a, 'owner-a@day9.test', 'aal2');
   select public.sts_save_ws_estimate(
     org_a, null, crm_a, 'North quote', 'Customer facing description', current_date, current_date + 21,
-    'USD', 'Internal estimate notes', 'Customer estimate notes', 'Net 15', 'Day9 A', 'Day9 A', 'North Client', 'Casey', 0,
+    'USD', 'Internal estimate notes', 'Customer estimate notes', 'Net 15', 'North Client', 'Casey', 'casey@day9.test', 0,
     '[{"description":"Website quote","quantity":1,"unit_cents":500000,"discount_cents":0}]'::jsonb
   ) into estimate_a;
   select public.sts_save_ws_estimate(
     org_a, null, crm_b, 'East quote', 'Other client quote', current_date, current_date + 21,
-    'USD', 'Internal estimate notes', 'East customer notes', 'Net 15', 'Day9 A', 'Day9 A', 'East Client', 'Drew', 0,
+    'USD', 'Internal estimate notes', 'East customer notes', 'Net 15', 'East Client', 'Drew', 'drew@day9.test', 0,
     '[{"description":"Brand quote","quantity":1,"unit_cents":250000,"discount_cents":0}]'::jsonb
   ) into estimate_b;
   select public.sts_save_ws_estimate(
     org_a, null, crm_a, 'Unpublished quote', 'Should stay hidden', current_date, current_date + 10,
-    'USD', 'Internal unpublished notes', 'Customer unpublished notes', '', 'Day9 A', 'Day9 A', 'North Client', 'Casey', 0,
+    'USD', 'Internal unpublished notes', 'Customer unpublished notes', '', 'North Client', 'Casey', 'casey@day9.test', 0,
     '[{"description":"Hidden quote","quantity":1,"unit_cents":1000,"discount_cents":0}]'::jsonb
   ) into estimate_unpub;
   select public.sts_save_ws_invoice(
