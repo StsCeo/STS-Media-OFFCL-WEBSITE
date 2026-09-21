@@ -116,7 +116,7 @@ export async function listAccountantRevenue(supabase: SupabaseClient, organizati
 export async function listAccountantFinanceAudit(supabase: SupabaseClient) {
   const { data, error } = await supabase.rpc(ACCOUNTANT_AUDIT_RPC);
   if (error) return { error: true as const };
-  return (data ?? []).map((row) => mapAccountantAuditRow(row as Record<string, unknown>));
+  return (data ?? []).map((row: Record<string, unknown>) => mapAccountantAuditRow(row));
 }
 
 export async function recordAccountantExport(

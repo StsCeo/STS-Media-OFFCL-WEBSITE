@@ -1,5 +1,6 @@
 import { centsToDollars } from "@/lib/money";
 import { derivedInvoiceStatus } from "@/lib/org/workspace-model";
+import type { WorkspaceInvoiceStatus } from "@/lib/types";
 import { roundMoney } from "@/lib/utils";
 
 export const ACCOUNTANT_EXPORT_TYPES = ["invoices", "revenue", "expenses"] as const;
@@ -104,8 +105,13 @@ export function accountantCsvDocument(headers: string[], rows: Array<Array<strin
   return `${lines.join("\r\n")}\r\n`;
 }
 
+function asInvoiceStatus(value: string): WorkspaceInvoiceStatus {
+  if (value === "issued" || value === "paid" || value === "void") return value;
+  return "draft";
+}
+
 export function mapAccountantInvoiceRow(row: Record<string, unknown>, today = new Date().toISOString().slice(0, 10)): AccountantInvoiceRow {
-  const status = String(row.status || "draft");
+  const status = asInvoiceStatus(String(row.status || "draft"));
   const dueDate = row.due_date ? String(row.due_date) : null;
   const archived = Boolean(row.archived_at);
   return {
