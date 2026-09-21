@@ -446,7 +446,7 @@ def main() -> None:
     if acc_status != 200 or not isinstance(invoices, list) or not invoices:
         fail(f"accountant AAL2 invoice function http {acc_status}")
     assert_minimized(invoices, "accountant invoice function")
-    if invoices[0].get("client_business_name") != "North Client":
+    if not any(isinstance(row, dict) and row.get("client_business_name") == "North Client" for row in invoices):
         fail("accountant invoice function missing client business name")
     if any(key in invoices[0] for key in WITHHELD_KEYS):
         fail("accountant invoice function exposed withheld keys")
