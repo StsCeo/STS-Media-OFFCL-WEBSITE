@@ -22,7 +22,6 @@ import {
   mapClientPortalProfile,
   mapClientPortalProject,
   mapClientPortalPublication,
-  mapClientPortalVisibility,
   publicationKey,
   type ClientPortalCandidate,
   type ClientPortalDocument,

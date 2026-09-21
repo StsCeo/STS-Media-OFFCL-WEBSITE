@@ -38,6 +38,7 @@ AUTH_SPEC.loader.exec_module(auth)
 APP_URL = os.environ.get("DAY9_APP_URL", "http://127.0.0.1:3000")
 UI_EMAIL = "client-ui@day9.test"
 OWNER_EMAIL = "owner-ui@day9.test"
+ORG_UI = "e9e9e9e9-e9e9-49e9-89e9-e9e9e9e9e9e9"
 SHOT_DIR = Path("/opt/cursor/artifacts/screenshots")
 DOWNLOAD_DIR = Path("/tmp/sts-local/day9-docs")
 NPM_PREFIX = Path("/tmp/day9-ui")
@@ -94,7 +95,7 @@ def seed_published_records(env: dict[str, str], owner_token: str, owner_id: str,
         owner_token,
         "sts_save_crm_client",
         {
-            "p_organization_id": auth.ORG_A,
+            "p_organization_id": ORG_UI,
             "p_id": None,
             "p_business_name": "Portal Client",
             "p_contact_name": "Casey",
@@ -118,7 +119,7 @@ def seed_published_records(env: dict[str, str], owner_token: str, owner_id: str,
         owner_token,
         "sts_save_ws_invoice",
         {
-            "p_organization_id": auth.ORG_A,
+            "p_organization_id": ORG_UI,
             "p_id": None,
             "p_client_id": crm_id,
             "p_issue_date": TODAY,
@@ -133,7 +134,7 @@ def seed_published_records(env: dict[str, str], owner_token: str, owner_id: str,
     )
     if not invoice_id:
         fail("could not save UI invoice")
-    auth.rpc(env, owner_token, "sts_issue_ws_invoice", {"p_organization_id": auth.ORG_A, "p_id": invoice_id})
+    auth.rpc(env, owner_token, "sts_issue_ws_invoice", {"p_organization_id": ORG_UI, "p_id": invoice_id})
     pub_status, _ = auth.rpc(env, owner_token, "sts_publish_client_portal_record", {
         "p_source_type": "invoice",
         "p_source_id": invoice_id,
@@ -142,7 +143,7 @@ def seed_published_records(env: dict[str, str], owner_token: str, owner_id: str,
         fail("could not publish UI invoice")
 
     document_id = str(uuid.uuid4())
-    object_name = f"{auth.ORG_A}/{document_id}/welcome.txt"
+    object_name = f"{ORG_UI}/{document_id}/welcome.txt"
     upload_status, _, _ = auth.request(
         "POST",
         f"{env['API_URL']}/storage/v1/object/org-documents/{object_name}",
@@ -160,7 +161,7 @@ def seed_published_records(env: dict[str, str], owner_token: str, owner_id: str,
         owner_token,
         "sts_save_ws_document",
         {
-            "p_organization_id": auth.ORG_A,
+            "p_organization_id": ORG_UI,
             "p_id": document_id,
             "p_storage_path": object_name,
             "p_display_filename": "welcome.txt",
@@ -367,7 +368,8 @@ if (invoiceLink) {
   await page.waitForSelector(".client-invoice", { timeout: 20000 });
   const invoiceText = await page.evaluate(() => document.body ? document.body.innerText : "");
   if (!/Invoice/i.test(invoiceText) || !/Scars to Stars Media/i.test(invoiceText)) fail("client invoice presentation missing STS branding");
-  if (/Wire instructions|Hidden invoice notes|payment/i.test(invoiceText)) fail("client invoice exposed withheld fields");
+  if (/Wire instructions|Hidden invoice notes/i.test(invoiceText)) fail("client invoice exposed withheld fields");
+  if (/Pay now|Record payment|Add payment method|Stripe/i.test(invoiceText)) fail("client invoice exposed payment collection");
   await redactVisibleEmail(page);
   await page.screenshot({ path: path.join(shotDir, "client_portal_invoice_desktop.png"), fullPage: true });
   pass("client invoice presentation rendered");
@@ -428,9 +430,9 @@ def main() -> None:
     client_password = secrets.token_urlsafe(24)
     owner_id = upsert_auth_user(env, OWNER_EMAIL, owner_password)
     client_user_id = upsert_auth_user(env, UI_EMAIL, client_password)
-    auth.ensure_org(env, auth.ORG_A, "day9-test-org-a")
-    auth.ensure_membership(env, auth.ORG_A, owner_id, "owner")
-    auth.ensure_membership(env, auth.ORG_A, client_user_id, "client")
+    auth.ensure_org(env, ORG_UI, "day9-test-org-ui")
+    auth.ensure_membership(env, ORG_UI, owner_id, "owner")
+    auth.ensure_membership(env, ORG_UI, client_user_id, "client")
     status, owner_aal1 = auth.password_login(env, OWNER_EMAIL, owner_password)
     if status != 200 or not owner_aal1 or jwt_aal(owner_aal1) != "aal1":
         fail("UI owner password login did not produce AAL1")

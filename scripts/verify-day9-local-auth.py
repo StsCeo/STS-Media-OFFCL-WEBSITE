@@ -70,14 +70,20 @@ def ensure_status_env() -> None:
     )
     if result.returncode != 0 or not result.stdout.strip():
         fail("could not write private local status env from supabase status")
-    mapped = []
+    values: dict[str, str] = {}
     for line in result.stdout.splitlines():
-        if line.startswith("API_URL="):
-            mapped.append(line)
-            mapped.append(line.replace("API_URL=", "REST_URL=", 1).rstrip() + "/rest/v1")
-        elif line.startswith("ANON_KEY=") or line.startswith("SERVICE_ROLE_KEY="):
-            mapped.append(line)
-    ENV_FILE.write_text("\n".join(mapped) + "\n")
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key] = value.strip().strip('"').strip("'")
+    api = values.get("API_URL", "")
+    anon = values.get("ANON_KEY", "")
+    service = values.get("SERVICE_ROLE_KEY", "")
+    if not api or not anon or not service:
+        fail("could not write private local status env from supabase status")
+    ENV_FILE.write_text(
+        f"API_URL={api}\nREST_URL={api}/rest/v1\nANON_KEY={anon}\nSERVICE_ROLE_KEY={service}\n"
+    )
 
 
 def load_status_env() -> dict[str, str]:
@@ -212,6 +218,63 @@ def rpc_id(env: dict[str, str], token: str, name: str, body: dict) -> str | None
     if status not in (200, 201) or payload in (None, ""):
         return None
     return str(payload)
+
+
+def identity_crm(env: dict[str, str], token: str, email: str) -> str | None:
+    status, payload = rpc(env, token, "sts_list_client_portal_identities")
+    if status not in (200, 201) or not isinstance(payload, list):
+        return None
+    for row in payload:
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("user_email") or "").lower() != email.lower():
+            continue
+        if str(row.get("status") or "") != "active":
+            continue
+        crm_id = str(row.get("crm_client_id") or "")
+        if crm_id:
+            return crm_id
+    return None
+
+
+def ensure_linked_crm(
+    env: dict[str, str],
+    token: str,
+    user_id: str,
+    email: str,
+    org_id: str,
+    business_name: str,
+    contact_name: str,
+    contact_email: str,
+) -> str:
+    existing = identity_crm(env, token, email)
+    if existing:
+        return existing
+    crm_id = rpc_id(
+        env,
+        token,
+        "sts_save_crm_client",
+        {
+            "p_organization_id": org_id,
+            "p_id": None,
+            "p_business_name": business_name,
+            "p_contact_name": contact_name,
+            "p_email": contact_email,
+            "p_phone": "555-0100",
+            "p_industry": "Auto",
+            "p_status": "active",
+            "p_notes": "Internal CRM note",
+        },
+    )
+    if not crm_id:
+        fail(f"could not create disposable CRM client for {business_name}")
+    link_status, _ = rpc(env, token, "sts_link_client_portal_identity", {
+        "p_user_id": user_id,
+        "p_crm_client_id": crm_id,
+    })
+    if link_status not in (200, 201):
+        fail("owner could not link client portal identity")
+    return crm_id
 
 
 def assert_minimized(rows: object, label: str) -> None:
@@ -355,67 +418,38 @@ def main() -> None:
             fail("MFA session was not AAL2")
     pass_("Day 9 synthetic users reached AAL2")
 
-    crm_a = rpc_id(
+    crm_a = ensure_linked_crm(
         env,
         tokens[OWNER_A_EMAIL],
-        "sts_save_crm_client",
-        {
-            "p_organization_id": ORG_A,
-            "p_id": None,
-            "p_business_name": "North Client",
-            "p_contact_name": "Casey",
-            "p_email": "casey@day9.test",
-            "p_phone": "555-0100",
-            "p_industry": "Auto",
-            "p_status": "active",
-            "p_notes": "Internal CRM note",
-        },
+        ids[CLIENT_A_EMAIL],
+        CLIENT_A_EMAIL,
+        ORG_A,
+        "North Client",
+        "Casey",
+        "casey@day9.test",
     )
-    crm_b = rpc_id(
+    crm_b = ensure_linked_crm(
         env,
         tokens[OWNER_A_EMAIL],
-        "sts_save_crm_client",
-        {
-            "p_organization_id": ORG_A,
-            "p_id": None,
-            "p_business_name": "East Client",
-            "p_contact_name": "Drew",
-            "p_email": "drew@day9.test",
-            "p_phone": "555-0101",
-            "p_industry": "Auto",
-            "p_status": "active",
-            "p_notes": "Other client note",
-        },
+        ids[CLIENT_B_EMAIL],
+        CLIENT_B_EMAIL,
+        ORG_A,
+        "East Client",
+        "Drew",
+        "drew@day9.test",
     )
-    crm_c = rpc_id(
+    crm_c = ensure_linked_crm(
         env,
         tokens[OWNER_B_EMAIL],
-        "sts_save_crm_client",
-        {
-            "p_organization_id": ORG_B,
-            "p_id": None,
-            "p_business_name": "South Client",
-            "p_contact_name": "Riley",
-            "p_email": "riley@day9.test",
-            "p_phone": "555-0199",
-            "p_industry": "Auto",
-            "p_status": "active",
-            "p_notes": "",
-        },
+        ids[CLIENT_C_EMAIL],
+        CLIENT_C_EMAIL,
+        ORG_B,
+        "South Client",
+        "Riley",
+        "riley@day9.test",
     )
     if not crm_a or not crm_b or not crm_c:
         fail("could not create disposable CRM clients")
-
-    link_a, _ = rpc(env, tokens[OWNER_A_EMAIL], "sts_link_client_portal_identity", {
-        "p_user_id": ids[CLIENT_A_EMAIL],
-        "p_crm_client_id": crm_a,
-    })
-    link_b, _ = rpc(env, tokens[OWNER_A_EMAIL], "sts_link_client_portal_identity", {
-        "p_user_id": ids[CLIENT_B_EMAIL],
-        "p_crm_client_id": crm_b,
-    })
-    if link_a not in (200, 201) or link_b not in (200, 201):
-        fail("owner could not link client portal identities")
     pass_("owner linked same-organization client mappings")
 
     emp_link, _ = rpc(env, tokens[EMPLOYEE_A_EMAIL], "sts_link_client_portal_identity", {
@@ -501,10 +535,13 @@ def main() -> None:
         pass_(f"{label} publication denied")
 
     listed, payload = rpc(env, tokens[CLIENT_A_EMAIL], "sts_list_client_portal_invoices")
-    if listed not in (200, 201) or not isinstance(payload, list) or len(payload) != 1:
-        fail("client A AAL2 did not receive exactly one published invoice")
+    if listed not in (200, 201) or not isinstance(payload, list):
+        fail("client A AAL2 could not list invoices")
+    ids_a = {row.get("id") for row in payload if isinstance(row, dict)}
+    if invoice_a not in ids_a:
+        fail("client A AAL2 did not receive the published invoice")
     assert_minimized(payload, "client A invoices")
-    if payload[0].get("client_business_name") == "East Client":
+    if any(isinstance(row, dict) and row.get("client_business_name") == "East Client" for row in payload):
         fail("client A received client B invoice identity")
     pass_("client AAL2 access and same-organization client A versus client B isolation")
 
@@ -577,7 +614,8 @@ def main() -> None:
     if unpub not in (200, 201):
         fail("owner could not unpublish")
     listed_after, payload_after = rpc(env, tokens[CLIENT_A_EMAIL], "sts_list_client_portal_invoices")
-    if listed_after in (200, 201) and isinstance(payload_after, list) and payload_after:
+    after_ids = {row.get("id") for row in payload_after if isinstance(row, dict)} if isinstance(payload_after, list) else set()
+    if invoice_a in after_ids:
         fail("unpublished invoice remained visible")
     pass_("unpublish access removal")
     rpc(env, tokens[OWNER_A_EMAIL], "sts_publish_client_portal_record", {

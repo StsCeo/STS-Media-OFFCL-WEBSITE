@@ -149,7 +149,8 @@ describe("day 9 migrations and surfaces", () => {
     const invoice = readFileSync("src/components/client/invoice-document.tsx", "utf8");
     expect(invoice).toContain("Scars to Stars Media");
     expect(invoice).not.toContain("TechVista");
-    expect(invoice).not.toContain("payment");
+    expect(invoice).toMatch(/Payments, signatures, messaging, and uploads are not available/);
+    expect(invoice).not.toMatch(/Pay now|Stripe|Record payment/i);
     const proxy = readFileSync("src/proxy.ts", "utf8");
     expect(proxy).toContain('"/client"');
     const loader = readFileSync("src/lib/org/client-portal.ts", "utf8");
