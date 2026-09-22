@@ -85,3 +85,5 @@ No client, employee, accountant, or owner records were created.
 - Pull request, merge, or deploy
 - GitHub, Vercel, custom domain, or Stripe connection
 - Real membership or CRM records
+
+Phase 2 hosted Auth, REST, RLS, and storage evidence: `docs/day-11-phase2-hosted-security.md`.

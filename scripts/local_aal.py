@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import http.client
 import json
 import struct
 import sys
@@ -15,6 +16,7 @@ import time
 import urllib.error
 import urllib.request
 from typing import Any
+from urllib.parse import urlparse
 
 
 def fail(msg: str) -> None:
@@ -106,7 +108,7 @@ def _admin_headers(env: dict[str, str]) -> dict[str, str]:
 
 
 def _clear_existing_factors(env: dict[str, str], user_id: str) -> None:
-    if not user_id:
+    if not user_id or not env.get("SERVICE_ROLE_KEY"):
         return
     status, payload = _request(
         "GET",
@@ -128,6 +130,63 @@ def _clear_existing_factors(env: dict[str, str], user_id: str) -> None:
         )
 
 
+def _connection(api_url: str) -> http.client.HTTPConnection:
+    parsed = urlparse(api_url)
+    if parsed.scheme == "http":
+        return http.client.HTTPConnection(parsed.hostname or "127.0.0.1", parsed.port or 80, timeout=20)
+    return http.client.HTTPSConnection(parsed.hostname or "", parsed.port or 443, timeout=20)
+
+
+def _conn_json(
+    conn: http.client.HTTPConnection,
+    method: str,
+    path: str,
+    headers: dict[str, str],
+    body: dict,
+) -> tuple[int, Any]:
+    raw_body = json.dumps(body).encode()
+    conn.request(method, path, body=raw_body, headers=headers)
+    response = conn.getresponse()
+    raw = response.read()
+    try:
+        payload = json.loads(raw.decode() or "null") if raw else None
+    except json.JSONDecodeError:
+        payload = {"_non_json": True}
+    return response.status, payload
+
+
+def _verify_totp_same_connection(env: dict[str, str], aal1_token: str, factor_id: str, secret: str) -> str | None:
+    parsed = urlparse(env["API_URL"])
+    headers = _headers(env, aal1_token)
+    headers["Connection"] = "keep-alive"
+    now = time.time()
+    for offset in (0, -30, 30):
+        conn = _connection(env["API_URL"])
+        try:
+            challenge_status, challenge = _conn_json(
+                conn,
+                "POST",
+                f"{parsed.path}/auth/v1/factors/{factor_id}/challenge",
+                headers,
+                {},
+            )
+            if challenge_status not in (200, 201) or not isinstance(challenge, dict) or not challenge.get("id"):
+                continue
+            verify_status, verified = _conn_json(
+                conn,
+                "POST",
+                f"{parsed.path}/auth/v1/factors/{factor_id}/verify",
+                headers,
+                {"challenge_id": str(challenge["id"]), "code": totp_code(secret, now + offset)},
+            )
+        finally:
+            conn.close()
+        token = _extract_access_token(verified)
+        if verify_status in (200, 201) and token and jwt_aal(token) == "aal2":
+            return token
+    return None
+
+
 def enroll_totp_aal2(env: dict[str, str], aal1_token: str) -> str:
     """Enroll and verify TOTP. Secret stays in memory and is discarded."""
     _clear_existing_factors(env, jwt_claim(aal1_token, "sub"))
@@ -146,31 +205,9 @@ def enroll_totp_aal2(env: dict[str, str], aal1_token: str) -> str:
     if not factor_id or not secret:
         fail("TOTP enroll did not return a usable factor")
 
-    challenge_status, challenge = _request(
-        "POST",
-        f"{env['API_URL']}/auth/v1/factors/{factor_id}/challenge",
-        _headers(env, aal1_token),
-        {},
-    )
-    if challenge_status not in (200, 201) or not isinstance(challenge, dict) or not challenge.get("id"):
-        secret = ""
-        fail(f"TOTP challenge failed (http {challenge_status})")
-    challenge_id = str(challenge["id"])
-
-    aal2_token = None
-    now = time.time()
-    for offset in (0, -30, 30):
-        code = totp_code(secret, now + offset)
-        verify_status, verified = _request(
-            "POST",
-            f"{env['API_URL']}/auth/v1/factors/{factor_id}/verify",
-            _headers(env, aal1_token),
-            {"challenge_id": challenge_id, "code": code},
-        )
-        aal2_token = _extract_access_token(verified)
-        if verify_status in (200, 201) and aal2_token and jwt_aal(aal2_token) == "aal2":
-            break
-        aal2_token = None
+    # Challenge and verify must share a connection. Hosted Auth rejects a
+    # verify whose client address differs from the challenge.
+    aal2_token = _verify_totp_same_connection(env, aal1_token, factor_id, secret)
     secret = ""
     if not aal2_token:
         fail("TOTP verify did not produce an AAL2 session")
