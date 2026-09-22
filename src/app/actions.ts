@@ -1265,7 +1265,12 @@ export async function uploadExpenseReceipt(formData: FormData) {
     return { error: STORAGE_NOT_CONFIGURED_MESSAGE, status: "storage_not_configured" as const };
   }
   const supabase = await factory();
-  const path = `${expenseId}/${Date.now()}-${safeUploadFileName(upload.name)}`;
+  const organizationId = sessionOrganizationId((await getSession()).user);
+  if (!isPersistedWorkspaceId(organizationId) || !/^[A-Za-z0-9_-]{1,80}$/.test(expenseId)) {
+    stampAudit("receipt_upload_failed", expenseId, "Receipt upload rejected because the object path was not organization scoped.");
+    return { error: "The receipt could not be stored.", status: "storage_failed" as const };
+  }
+  const path = `${organizationId}/${expenseId}/${Date.now()}-${safeUploadFileName(upload.name)}`;
   const { error } = await supabase.storage.from("receipts").upload(path, upload, { upsert: false });
   if (error) {
     stampAudit("receipt_upload_failed", expenseId, "Receipt upload failed. The file was not marked attached.");

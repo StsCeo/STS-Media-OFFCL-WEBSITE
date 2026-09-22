@@ -500,45 +500,107 @@ def main() -> None:
         fail("inactive client listed documents")
     pass_("inactive client document RPC denied")
 
-    receipt_path = f"{ORG_A}/day11-receipt-{uuid.uuid4().hex}.txt"
+    receipt_path = f"{ORG_A}/expense-{uuid.uuid4().hex}/day11-receipt.txt"
     receipt_up, _, _ = upload(env, tokens[OWNER_A], "receipts", receipt_path, b"synthetic receipt\n")
     if receipt_up not in (200, 201):
         fail(f"owner receipts upload http {receipt_up}")
     created.append(("receipts", receipt_path))
-    pass_("owner AAL2 receipts upload succeeded")
+    pass_("same-organization owner AAL2 receipts upload succeeded")
     receipt_get, _, _ = download(env, tokens[OWNER_A], "receipts", receipt_path)
     if receipt_get != 200:
         fail(f"owner receipts download http {receipt_get}")
-    pass_("owner AAL2 receipts download succeeded")
-    # receipts and documents policies allow any AAL2 owner or administrator.
-    # They are not path-scoped, unlike org-documents.
-    other_receipt, _, _ = upload(env, tokens[OWNER_B], "receipts", f"{ORG_B}/other-org-receipt.txt", b"other owner\n")
-    if other_receipt not in (200, 201):
-        fail(f"other-organization owner receipts upload http {other_receipt}")
-    created.append(("receipts", f"{ORG_B}/other-org-receipt.txt"))
-    pass_("other-organization AAL2 owner can use the phase-1 receipts bucket")
-    for email, label in ((EMPLOYEE_A, "employee"), (ACCOUNTANT_A, "accountant"), (CLIENT_A, "client"), (STRANGER, "no-membership")):
-        status, _, _ = upload(env, tokens[email], "receipts", f"{ORG_A}/{label.replace(' ', '-')}.txt", b"nope\n")
+    pass_("same-organization owner AAL2 receipts download succeeded")
+    admin_get, _, _ = download(env, tokens[ADMIN_A], "receipts", receipt_path)
+    if admin_get != 200:
+        fail(f"same-organization administrator receipts download http {admin_get}")
+    pass_("same-organization administrator AAL2 receipts download succeeded")
+    own_delete, _, _ = request(
+        "DELETE",
+        f"{env['API_URL']}/storage/v1/object/receipts/{receipt_path}",
+        headers(env, tokens[OWNER_A], json_body=False),
+    )
+    if own_delete in (200, 204):
+        fail("same-organization owner deleted a receipt")
+    pass_(f"same-organization receipt delete remains denied (http {own_delete})")
+
+    other_into_a, _, _ = upload(env, tokens[OWNER_B], "receipts", f"{ORG_A}/expense-cross/nope.txt", b"cross\n")
+    if other_into_a in (200, 201):
+        fail("other-organization owner uploaded into org A receipts")
+    pass_("cross-organization receipts upload denied")
+    other_get, _, _ = download(env, tokens[OWNER_B], "receipts", receipt_path)
+    if other_get == 200:
+        fail("other-organization owner downloaded an org A receipt")
+    pass_(f"cross-organization receipts download denied (http {other_get})")
+    list_status, listed, _ = request(
+        "POST",
+        f"{env['API_URL']}/storage/v1/object/list/receipts",
+        headers(env, tokens[OWNER_B]),
+        {"prefix": f"{ORG_A}/", "limit": 100},
+    )
+    if list_status in (200, 201) and isinstance(listed, list) and listed:
+        fail("other-organization owner listed org A receipts")
+    pass_("cross-organization receipts listing is empty or denied")
+    other_put, _, _ = request(
+        "PUT",
+        f"{env['API_URL']}/storage/v1/object/receipts/{receipt_path}",
+        {**headers(env, tokens[OWNER_B], json_body=False), "Content-Type": "text/plain"},
+        b"overwrite\n",
+    )
+    if other_put in (200, 201):
+        fail("other-organization owner updated an org A receipt")
+    pass_(f"cross-organization receipts update denied (http {other_put})")
+    other_delete, _, _ = request(
+        "DELETE",
+        f"{env['API_URL']}/storage/v1/object/receipts/{receipt_path}",
+        headers(env, tokens[OWNER_B], json_body=False),
+    )
+    if other_delete in (200, 204):
+        fail("other-organization owner deleted an org A receipt")
+    pass_(f"cross-organization receipts delete denied (http {other_delete})")
+    own_b = f"{ORG_B}/expense-{uuid.uuid4().hex}/own.txt"
+    own_b_up, _, _ = upload(env, tokens[OWNER_B], "receipts", own_b, b"own org\n")
+    if own_b_up not in (200, 201):
+        fail(f"other-organization owner same-org receipts upload http {own_b_up}")
+    created.append(("receipts", own_b))
+    pass_("other-organization owner can upload only inside their organization")
+    if download(env, tokens[OWNER_A], "receipts", own_b)[0] == 200:
+        fail("org A owner downloaded an org B receipt")
+    pass_("org A owner cannot read an org B receipt")
+
+    for email, label in (
+        (EMPLOYEE_A, "employee"),
+        (ACCOUNTANT_A, "accountant"),
+        (CLIENT_A, "client"),
+        (CLIENT_INACTIVE, "inactive client"),
+        (STRANGER, "no-membership"),
+    ):
+        status, _, _ = upload(env, tokens[email], "receipts", f"{ORG_A}/expense-{label.replace(' ', '-')}.txt", b"nope\n")
         if status in (200, 201):
             fail(f"{label} receipts upload succeeded")
         got, _, _ = download(env, tokens[email], "receipts", receipt_path)
         if got == 200:
             fail(f"{label} receipts download succeeded")
         pass_(f"{label} receipts access denied")
-    doc_bucket = f"{ORG_A}/day11-private-{uuid.uuid4().hex}.txt"
-    doc_up, _, _ = upload(env, tokens[OWNER_A], "documents", doc_bucket, b"synthetic private\n")
-    if doc_up not in (200, 201):
-        fail(f"owner documents upload http {doc_up}")
-    created.append(("documents", doc_bucket))
-    pass_("owner AAL2 documents upload succeeded")
-    if download(env, tokens[OWNER_A], "documents", doc_bucket)[0] != 200:
-        fail("owner documents download failed")
-    pass_("owner AAL2 documents download succeeded")
+    if upload(env, env["ANON_KEY"], "receipts", f"{ORG_A}/anon.txt", b"nope\n")[0] in (200, 201):
+        fail("anonymous receipts upload succeeded")
+    if download(env, None, "receipts", receipt_path)[0] == 200:
+        fail("anonymous receipts download succeeded")
+    pass_("anonymous receipts access denied")
+
+    legacy_doc = f"{ORG_A}/day11-private-{uuid.uuid4().hex}.txt"
+    doc_up, _, _ = upload(env, tokens[OWNER_A], "documents", legacy_doc, b"synthetic private\n")
+    if doc_up in (200, 201):
+        fail("owner uploaded to the closed documents bucket")
+    pass_(f"unused documents bucket upload denied (http {doc_up})")
+    if download(env, tokens[OWNER_A], "documents", legacy_doc)[0] == 200:
+        fail("owner downloaded from the closed documents bucket")
+    if upload(env, tokens[OWNER_B], "documents", f"{ORG_B}/cross.txt", b"nope\n")[0] in (200, 201):
+        fail("other-organization owner uploaded to the documents bucket")
     if upload(env, tokens[EMPLOYEE_A], "documents", f"{ORG_A}/employee-doc.txt", b"nope\n")[0] in (200, 201):
         fail("employee documents upload succeeded")
-    if download(env, None, "documents", doc_bucket)[0] == 200:
+    if download(env, None, "documents", legacy_doc)[0] == 200:
         fail("anonymous documents download succeeded")
-    pass_("employee and anonymous documents access denied")
+    pass_("documents bucket stays closed for every tested role")
 
     if rpc(env, tokens[OWNER_A], "sts_unpublish_client_portal_record", {"p_source_type": "invoice", "p_source_id": invoice_a})[0] not in (200, 201):
         fail("owner could not unpublish")

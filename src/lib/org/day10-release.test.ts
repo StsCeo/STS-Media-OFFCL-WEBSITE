@@ -5,7 +5,8 @@ import { isSafeRedirect } from "@/lib/utils";
 describe("day 10 release hardening", () => {
   it("keeps migrations chronological and includes the leftover-table lockdown", () => {
     const files = readdirSync("supabase/migrations").filter((name) => name.endsWith(".sql")).sort();
-    expect(files.at(-1)).toBe("20260921120000_day10_legacy_table_lockdown.sql");
+    expect(files.at(-1)).toBe("20260922120000_day11_legacy_bucket_tenant_isolation.sql");
+    expect(files).toContain("20260921120000_day10_legacy_table_lockdown.sql");
     expect(files).toEqual([...files].sort());
     const sql = readFileSync("supabase/migrations/20260921120000_day10_legacy_table_lockdown.sql", "utf8");
     expect(sql).toContain("force row level security");

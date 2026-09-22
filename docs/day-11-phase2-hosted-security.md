@@ -38,7 +38,7 @@ Unpublishing an invoice removed it from the mapped client list.
 
 `org-documents` is path-scoped. Owner and employee AAL2 uploads and the owner download succeeded. Anonymous, no-membership, accountant, client, inactive client, and other-organization downloads and uploads were denied. HTML upload was rejected.
 
-`receipts` and `documents` use `is_phase1_owner()`, which is an AAL2 owner or administrator check and is not limited to an object-path organization. Owner AAL2 upload and download succeeded. Another synthetic organization's AAL2 owner could use `receipts`. Employee, accountant, client, no-membership, and anonymous access was denied. Authenticated delete is not granted, so object removal used the storage catalog delete guard rather than a new policy.
+`receipts` and `documents` originally used `is_phase1_owner()`, which is an AAL2 owner or administrator check and was not limited to an object-path organization. Another synthetic organization's AAL2 owner could use `receipts`. That tenant-isolation gap is closed by `20260922120000_day11_legacy_bucket_tenant_isolation.sql`. See `docs/day-11-storage-tenant-isolation.md`.
 
 ## Cleanup
 
