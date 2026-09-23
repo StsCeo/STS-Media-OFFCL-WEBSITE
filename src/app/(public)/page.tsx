@@ -19,11 +19,10 @@ import { getWorkspace } from "@/lib/data/store";
 import { resources } from "@/lib/content/public";
 import {
   auditDeliverables,
-  homeCare,
-  homePricing,
   trustPoints,
   whySts,
 } from "@/lib/content/home";
+import { PricingBoard } from "@/components/public/pricing/pricing-board";
 import { siteUrl } from "@/lib/config";
 import "@/components/public/home/home.css";
 
@@ -48,10 +47,9 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  const { brand, portfolio, testimonials, packages } = getWorkspace();
+  const { brand, portfolio, testimonials } = getWorkspace();
   const featured = portfolio.filter((item) => item.featured && item.status === "published");
   const publishedQuotes = testimonials.filter((item) => item.published && item.approved);
-  const featuredPackage = packages.find((item) => item.featured && item.active);
 
   const websiteLd = {
     "@context": "https://schema.org",
@@ -272,46 +270,9 @@ export default function HomePage() {
         </section>
       ) : null}
 
-      <section className="public-page">
+      <section className="public-page" id="pricing">
         <div className="public-wrap">
-          <p className="public-kicker">Starting points</p>
-          <h2 className="home-h2 mt-2">Clear starting points. Custom scope where it matters.</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-            Final pricing depends on the agreed scope. Paid software, domains, advertising, ecommerce subscriptions, and
-            third-party costs are separate.
-            {featuredPackage ? ` ${featuredPackage.name} is the featured conversation starter on the packages page.` : ""}
-          </p>
-          <div className="mt-10 grid gap-8 lg:grid-cols-3">
-            {homePricing.map((item) => (
-              <article key={item.name} className="border-t border-line pt-6">
-                <h3 className="font-display text-2xl">{item.name}</h3>
-                <p className="mt-2 text-sm font-medium">{item.price}</p>
-                <p className="mt-2 text-sm text-muted">{item.summary}</p>
-                <ul className="mt-4 list-disc space-y-1 pl-5 text-sm leading-6">
-                  {item.items.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-          <article className="mt-10 border-t border-line pt-6">
-            <h3 className="font-display text-2xl">{homeCare.name}</h3>
-            <p className="mt-2 text-sm font-medium">{homeCare.price}</p>
-            <ul className="mt-4 grid list-disc gap-1 pl-5 text-sm leading-6 md:grid-cols-2">
-              {homeCare.items.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </article>
-          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
-            <Button href="/packages" variant="secondary">
-              Compare Packages
-            </Button>
-            <Link href="/contact" className="text-sm font-medium underline-offset-4 hover:underline">
-              Start a Conversation
-            </Link>
-          </div>
+          <PricingBoard />
         </div>
       </section>
 
