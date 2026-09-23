@@ -7,7 +7,7 @@ export default function TestimonialsPage() {
   const quotes = getWorkspace().testimonials.filter((item) => item.approved && item.published);
   return (
     <div className="bg-ivory text-ink">
-      <div className="mx-auto max-w-4xl px-4 py-16">
+      <div className="public-wrap max-w-4xl public-page">
         <h1 className="font-display text-4xl">Testimonials</h1>
         <p className="mt-4 max-w-2xl text-muted">
           Quotes are managed from the command center and only appear here when they are approved and published. STS Media does not generate customer quotes.
@@ -23,8 +23,8 @@ export default function TestimonialsPage() {
         ) : (
           <div className="mt-10 space-y-4">
             {quotes.map((item) => (
-              <blockquote key={item.id} className="rounded-xl border border-line bg-white p-6">
-                <p className="text-xl leading-8">“{item.quote}”</p>
+              <blockquote key={item.id} className="border-t border-line pt-6">
+                <p className="font-display text-xl leading-8">“{item.quote}”</p>
                 <footer className="mt-3 text-sm text-muted">
                   {item.authorName}
                   {item.authorRole ? `, ${item.authorRole}` : ""}

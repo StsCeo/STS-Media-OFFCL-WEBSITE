@@ -9,7 +9,7 @@ export function PublicCard({
   className?: string;
   as?: "div" | "article" | "blockquote" | "section";
 }) {
-  return <Tag className={cn("public-card lift", className)}>{children}</Tag>;
+  return <Tag className={cn("public-card", className)}>{children}</Tag>;
 }
 
 export function IvoryShell({
@@ -23,13 +23,13 @@ export function IvoryShell({
 }) {
   return (
     <div className="bg-canvas text-ink">
-      <div className={cn("mx-auto px-4 py-16", wide ? "max-w-6xl" : "max-w-3xl", className)}>{children}</div>
+      <div className={cn("public-wrap public-page", wide ? "" : "max-w-3xl", className)}>{children}</div>
     </div>
   );
 }
 
 export function PageKicker({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm font-medium text-muted">{children}</p>;
+  return <p className="public-kicker">{children}</p>;
 }
 
 export function PageTitle({ children }: { children: React.ReactNode }) {

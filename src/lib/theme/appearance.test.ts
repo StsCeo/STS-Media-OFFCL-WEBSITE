@@ -39,6 +39,7 @@ describe("locked Day / Night appearance", () => {
     expect(night.tokens.obsidian).toBe("#0B1020");
     expect(paletteCssVars(night)["--primary"]).toBe("#6D4AFF");
     expect(paletteCssVars(night)["--lavender"]).toBe("#C9B8FF");
+    expect(paletteCssVars(night)["--muted"]).toBe("#D6CFC0");
     expect(paletteCssVars(night)["--sage-light"]).toBeUndefined();
   });
 

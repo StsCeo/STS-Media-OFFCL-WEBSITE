@@ -1,7 +1,7 @@
 export const ownerPath = {
   eyebrow: "For business owners",
   title: "A public presence that matches the work you already do.",
-  lede: "If the shop, practice, or service is already real, the website should be too — clear offer, honest proof, and a way for the right people to reach you.",
+  lede: "If the shop, practice, or service is already real, the website should be too: a clear offer, honest proof, and a way for the right people to reach you.",
   points: [
     {
       title: "A website that explains the business",
@@ -18,7 +18,7 @@ export const ownerPath = {
   ],
   prepare: [
     "What you sell, who it is for, and the one action you want a visitor to take",
-    "Photos or a plan to get them — we will not stock-photo your storefront",
+    "Photos or a plan to get them. We will not stock-photo your storefront.",
     "Any existing domain, hosting, Google Business Profile, or analytics logins",
     "Work you are allowed to show, and work that must stay private",
   ],
@@ -27,7 +27,7 @@ export const ownerPath = {
 export const creatorPath = {
   eyebrow: "For creators",
   title: "Collaboration pages and content systems that stay credible.",
-  lede: "Partnerships, launches, and personal brands need a public story that can be checked. We build the page and the process — not a highlight reel of results that never happened.",
+  lede: "Partnerships, launches, and personal brands need a public story that can be checked. We build the page and the process, not a highlight reel of results that never happened.",
   points: [
     {
       title: "A page with one job",
@@ -106,7 +106,7 @@ export const resources = [
     body: [
       "Write the offer in one sentence: who it is for, what they get, and what happens after they inquire.",
       "List pages you actually need. A home, work, about, and contact path is enough for many businesses. Extra pages should earn their place.",
-      "Gather photographs of the real place, people, and work. If you do not have them yet, say so — we will plan for it instead of filling gaps with stock.",
+      "Gather photographs of the real place, people, and work. If you do not have them yet, say so. We will plan for it instead of filling gaps with stock.",
       "Collect domain, hosting, Google Business Profile, and analytics access, or note that they still need to be set up.",
       "Mark which projects may be shown publicly. Anything without permission stays out of the portfolio.",
     ],

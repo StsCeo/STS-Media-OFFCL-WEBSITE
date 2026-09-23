@@ -15,7 +15,7 @@ export function Logo({
       <span
         className={cn(
           "grid h-9 w-9 place-items-center rounded-full",
-          invert ? "bg-white/10 text-lavender" : "bg-lavender text-violet",
+          invert ? "bg-white/10 text-lavender" : "bg-lavender text-sage",
         )}
         aria-hidden="true"
       >
