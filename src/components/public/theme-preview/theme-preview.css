@@ -252,25 +252,60 @@ html[data-atmosphere="night-luxury"]
 
 html.dark .sts-theme-preview[data-preview-palette="signature-forest"],
 html[data-theme="dark"] .sts-theme-preview[data-preview-palette="signature-forest"] {
-  --canvas: #050706;
+  --canvas: #07131c;
   --ivory: #eaf8f0;
-  --background: #050706;
-  --background-soft: #0b2230;
-  --card: #111a16;
-  --surface: #111a16;
+  --background: #07131c;
+  --background-soft: #12372a;
+  --card: #0b2230;
+  --surface: #0b2230;
   --ink: #eaf8f0;
   --foreground: #eaf8f0;
-  --muted: #b9c8bf;
-  --line: #1d332b;
-  --border: #1d332b;
+  --muted: #9ec9b4;
+  --line: #1a3a4a;
+  --border: #1a3a4a;
   --primary: #7ee2ac;
   --primary-hover: #9aebc0;
-  --primary-ink: #050706;
+  --primary-ink: #07131c;
   --forest: #12372a;
   --sage-dark: #7ee2ac;
   --sage-light: #12372a;
   --focus: #7ee2ac;
-  --lavender: #7ee2ac;
+  --lavender: #12372a;
+  --obsidian: #07131c;
+}
+
+html.dark .sts-theme-preview[data-preview-palette="signature-forest"] header,
+html[data-theme="dark"] .sts-theme-preview[data-preview-palette="signature-forest"] header {
+  background-color: #0b2230 !important;
+  border-bottom-color: color-mix(in srgb, #7ee2ac 22%, #1a3a4a) !important;
+}
+
+html.dark .sts-theme-preview[data-preview-palette="signature-forest"] .public-kicker,
+html[data-theme="dark"] .sts-theme-preview[data-preview-palette="signature-forest"] .public-kicker {
+  color: #7ee2ac;
+}
+
+html.dark .sts-theme-preview[data-preview-palette="signature-forest"] .sts-preview-soft,
+html[data-theme="dark"] .sts-theme-preview[data-preview-palette="signature-forest"] .sts-preview-soft {
+  background: color-mix(in srgb, #12372a 72%, #07131c);
+}
+
+html.dark .sts-theme-preview[data-preview-palette="signature-forest"] footer,
+html[data-theme="dark"] .sts-theme-preview[data-preview-palette="signature-forest"] footer {
+  background-color: #0b2230 !important;
+  border-top-color: color-mix(in srgb, #1f6f5c 40%, #0b2230) !important;
+}
+
+html.dark .sts-theme-preview[data-preview-palette="signature-forest"] .sts-preview-glow,
+html[data-theme="dark"] .sts-theme-preview[data-preview-palette="signature-forest"] .sts-preview-glow {
+  opacity: 0.4;
+}
+
+html.dark .sts-theme-preview[data-preview-palette="signature-forest"] .btn-secondary,
+html[data-theme="dark"] .sts-theme-preview[data-preview-palette="signature-forest"] .btn-secondary {
+  border-color: #7ee2ac;
+  color: #eaf8f0;
+  background: transparent;
 }
 
 .sts-theme-preview[data-preview-palette="emerald-tech"] {
@@ -325,26 +360,60 @@ html[data-theme="dark"] .sts-theme-preview[data-preview-palette="emerald-tech"] 
   --canvas: #faf8f2;
   --ivory: #faf8f2;
   --background: #faf8f2;
-  --background-soft: #e7eee4;
+  --background-soft: #efe6c9;
   --card: #ffffff;
   --surface: #ffffff;
   --ink: #1d261f;
   --foreground: #1d261f;
-  --muted: #4d5b52;
-  --line: #e2ddd0;
-  --border: #e2ddd0;
+  --muted: #5a665c;
+  --line: #e4dcc8;
+  --border: #e4dcc8;
   --primary: #294c3a;
   --primary-hover: #203c2e;
-  --primary-ink: #ffffff;
+  --primary-ink: #faf8f2;
   --forest: #294c3a;
-  --sage: #8bae92;
+  --sage: #bbae92;
   --sage-dark: #294c3a;
-  --sage-light: #dce6d4;
-  --sage-medium: #8bae92;
+  --sage-light: #e8e3d2;
+  --sage-medium: #bbae92;
   --sage-strong: #466b57;
   --gold: #d4b768;
-  --focus: #294c3a;
-  --lavender: #dce6d4;
+  --gold-ink: #7a6428;
+  --focus: #d4b768;
+  --lavender: #e8e3d2;
+}
+
+.sts-theme-preview[data-preview-palette="sage-gold"] header {
+  background-color: color-mix(in srgb, #ffffff 88%, #d4b768 12%) !important;
+  border-bottom-color: color-mix(in srgb, #d4b768 42%, #e4dcc8) !important;
+}
+
+.sts-theme-preview[data-preview-palette="sage-gold"] .public-kicker {
+  color: #294c3a;
+}
+
+.sts-theme-preview[data-preview-palette="sage-gold"] .btn-secondary {
+  border-color: #d4b768;
+  color: #294c3a;
+  background: #ffffff;
+}
+
+.sts-theme-preview[data-preview-palette="sage-gold"] .btn-secondary:hover {
+  background: color-mix(in srgb, #d4b768 18%, #ffffff);
+  border-color: #294c3a;
+}
+
+.sts-theme-preview[data-preview-palette="sage-gold"] .sts-preview-soft {
+  background: color-mix(in srgb, #bbae92 32%, #faf8f2);
+}
+
+.sts-theme-preview[data-preview-palette="sage-gold"] footer {
+  background-color: #faf8f2 !important;
+  border-top-color: color-mix(in srgb, #d4b768 38%, #e4dcc8) !important;
+}
+
+.sts-theme-preview[data-preview-palette="sage-gold"] .sts-preview-glow {
+  opacity: 0.34;
 }
 
 html.dark .sts-theme-preview[data-preview-palette="sage-gold"],
