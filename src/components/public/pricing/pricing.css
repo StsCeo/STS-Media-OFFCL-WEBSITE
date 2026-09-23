@@ -1,6 +1,11 @@
 .sts-pricing {
   font-family: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
   color: var(--ink);
+  scroll-margin-top: 5.5rem;
+}
+
+#pricing {
+  scroll-margin-top: 5.5rem;
 }
 
 .sts-pricing-kicker {

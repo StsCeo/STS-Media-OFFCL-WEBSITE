@@ -112,10 +112,11 @@ function CheckIcon() {
 
 function RocketIcon() {
   return (
-    <svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.7">
-      <path d="M16 5c4 3 7 8 7 13 0 2-1 4-3 5l-4 1-4-1c-2-1-3-3-3-5 0-5 3-10 7-13z" />
-      <circle cx="16" cy="14" r="2" />
-      <path d="M12 24 l2 4 2-2 2 2 2-4" />
+    <svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round">
+      <path d="M16 18 L12 22 v4 l3-1 1-3 3 1 v-4z" />
+      <path d="M16 22 C16 12 20 7 26 6 25 12 20 16 16 18z" />
+      <path d="M16 22 C16 12 12 7 6 6 7 12 12 16 16 18z" />
+      <circle cx="20.5" cy="11.5" r="1.4" />
     </svg>
   );
 }
