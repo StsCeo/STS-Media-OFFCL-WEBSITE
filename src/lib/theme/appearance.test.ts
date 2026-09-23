@@ -20,13 +20,16 @@ describe("locked Day / Night appearance", () => {
     const day = resolveLivePalette("light");
     expect(day.id).toBe("sts-day");
     const vars = paletteCssVars(day);
-    expect(vars["--canvas"]).toBe("#F8F7FC");
-    expect(vars["--ink"]).toBe("#20202B");
-    expect(vars["--primary"]).toBe("#7047EB");
-    expect(vars["--primary-hover"]).toBe("#5B35D4");
-    expect(vars["--lavender"]).toBe("#EDE6FF");
-    expect(vars["--electric"]).toBe("#2563EB");
-    expect(vars["--chart-revenue"]).toBe("#2563EB");
+    expect(vars["--canvas"]).toBe("#F3F5EF");
+    expect(vars["--ink"]).toBe("#111214");
+    expect(vars["--primary"]).toBe("#7048E8");
+    expect(vars["--primary-hover"]).toBe("#5B38D6");
+    expect(vars["--lavender"]).toBe("#DDE7D3");
+    expect(vars["--sage-light"]).toBe("#DDE7D3");
+    expect(vars["--sage-dark"]).toBe("#536250");
+    expect(vars["--electric"]).toBe("#3478F6");
+    expect(vars["--chart-revenue"]).toBe("#3478F6");
+    expect(vars["--sts-gradient"]).toBe("linear-gradient(135deg, #7048E8 0%, #3478F6 100%)");
   });
 
   it("uses Midnight Navy for Night", () => {
@@ -35,6 +38,8 @@ describe("locked Day / Night appearance", () => {
     expect(night.atmosphere).toBe("night-luxury");
     expect(night.tokens.obsidian).toBe("#0B1020");
     expect(paletteCssVars(night)["--primary"]).toBe("#6D4AFF");
+    expect(paletteCssVars(night)["--lavender"]).toBe("#C9B8FF");
+    expect(paletteCssVars(night)["--sage-light"]).toBeUndefined();
   });
 
   it("lets a lookbook preview override the locked pair", () => {
