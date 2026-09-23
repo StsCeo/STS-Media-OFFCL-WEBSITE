@@ -44,8 +44,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-16">
-        <div className="grid gap-4 md:grid-cols-3">
+      <section className="public-section-sage px-4 py-16">
+        <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-3">
           {highlightServices.map(({ service, icon: Icon }) => (
             <Link key={service.id} href="/services" className="group">
               <PublicCard className="h-full p-6">
@@ -88,23 +88,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-16">
-        <p className="text-sm font-medium text-muted">Mission</p>
-        <blockquote className="mt-3 max-w-3xl font-display text-2xl leading-snug tracking-tight text-ink md:text-3xl">
-          {brand.mission}
-        </blockquote>
-        <div className="mt-8 grid gap-4 md:grid-cols-4">
-          {[
-            ["No invented proof", "Quotes and results publish only when they are verified."],
-            ["Quoted after discovery", "Pilot prices are not the public rate card."],
-            ["Private command center", "Finance and leads stay behind sign-in."],
-            ["Color systems", "Preview palettes without saving the brand."],
-          ].map(([title, body]) => (
-            <PublicCard key={title} className="p-5">
-              <h3 className="text-sm font-semibold">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted">{body}</p>
-            </PublicCard>
-          ))}
+      <section className="public-section-sage px-4 py-16">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-sm font-medium text-muted">Mission</p>
+          <blockquote className="mt-3 max-w-3xl font-display text-2xl leading-snug tracking-tight text-ink md:text-3xl">
+            {brand.mission}
+          </blockquote>
+          <div className="mt-8 grid gap-4 md:grid-cols-4">
+            {[
+              ["No invented proof", "Quotes and results publish only when they are verified."],
+              ["Quoted after discovery", "Pilot prices are not the public rate card."],
+              ["Private command center", "Finance and leads stay behind sign-in."],
+              ["Color systems", "Preview palettes without saving the brand."],
+            ].map(([title, body]) => (
+              <PublicCard key={title} className="p-5">
+                <h3 className="text-sm font-semibold">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted">{body}</p>
+              </PublicCard>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -133,17 +135,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-16">
-        <p className="text-sm font-medium text-muted">How we work</p>
-        <h2 className="mt-2 font-display text-3xl tracking-tight">A calm path from first visit to launch</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-4">
-          {process.map((step) => (
-            <PublicCard key={step.id} className="p-5">
-              <p className="text-xs font-medium text-violet">{String(step.order).padStart(2, "0")}</p>
-              <h3 className="mt-2 font-semibold">{step.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted">{step.summary}</p>
-            </PublicCard>
-          ))}
+      <section className="public-section-sage px-4 py-16">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-sm font-medium text-muted">How we work</p>
+          <h2 className="mt-2 font-display text-3xl tracking-tight">A calm path from first visit to launch</h2>
+          <div className="mt-8 grid gap-4 md:grid-cols-4">
+            {process.map((step) => (
+              <PublicCard key={step.id} className="p-5">
+                <p className="text-xs font-medium text-violet">{String(step.order).padStart(2, "0")}</p>
+                <h3 className="mt-2 font-semibold">{step.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted">{step.summary}</p>
+              </PublicCard>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -170,7 +174,7 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 pb-20">
-        <PublicCard className="px-6 py-12 text-center md:px-12">
+        <PublicCard className="public-callout px-6 py-12 text-center md:px-12">
           <p className="text-sm font-medium text-muted">Next step</p>
           <h2 className="mx-auto mt-3 max-w-2xl font-display text-3xl tracking-tight md:text-4xl">
             If the work is already real, the website should be too.
