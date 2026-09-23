@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import Link from "next/link";
 import { homeServices } from "@/lib/content/home";
+import { ServiceConstellation } from "@/components/public/home/service-constellation";
 
 export function ServiceSystem() {
   const base = useId();
@@ -10,6 +11,7 @@ export function ServiceSystem() {
 
   return (
     <div>
+      <ServiceConstellation active={open} onPick={setOpen} />
       {homeServices.map((service, index) => {
         const expanded = open === index;
         const panelId = `${base}-${index}`;

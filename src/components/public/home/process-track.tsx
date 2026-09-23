@@ -24,17 +24,26 @@ export function ProcessTrack() {
   }, []);
 
   return (
-    <ol className="process-rail">
+    <ol className="process-rail" data-active={active}>
       {homeProcess.map((step, index) => (
         <li
           key={step.n}
           ref={(node) => {
             refs.current[index] = node;
           }}
-          style={{ fontWeight: active === index ? 600 : 400 }}
+          className={active === index ? "sts-process-active" : undefined}
         >
           <p className="font-mono text-xs text-muted">{step.n}</p>
-          <h3 className="mt-1 font-display text-2xl tracking-tight">{step.title}</h3>
+          <h3 className="mt-1">
+            <button
+              type="button"
+              className="min-h-11 w-full text-left font-display text-2xl tracking-tight"
+              aria-current={active === index ? "step" : undefined}
+              onClick={() => setActive(index)}
+            >
+              {step.title}
+            </button>
+          </h3>
           <p className="mt-2 text-sm leading-6 text-muted">{step.body}</p>
         </li>
       ))}

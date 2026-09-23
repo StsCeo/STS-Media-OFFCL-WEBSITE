@@ -3,8 +3,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui";
 import { OrganizationJsonLd } from "@/components/public/json-ld";
 import { PublicCard } from "@/components/public/page-hero";
-import { ScarToStarVisual } from "@/components/public/home/scar-to-star";
+import { HeroStage } from "@/components/public/home/hero-stage";
 import { MagneticCta } from "@/components/public/home/magnetic-cta";
+import { TrustMarks } from "@/components/public/home/trust-marks";
+import { CompareSlider } from "@/components/public/home/compare-slider";
+import { DesktopSchematic, PhoneSchematic } from "@/components/public/home/device-schematic";
 import { IndustryPanel } from "@/components/public/home/industry-panel";
 import { ProcessTrack } from "@/components/public/home/process-track";
 import { ServiceSystem } from "@/components/public/home/service-system";
@@ -94,17 +97,13 @@ export default function HomePage() {
             </p>
             <p className="mt-6 text-sm text-muted">Websites · Digital systems · Ongoing support</p>
           </div>
-          <ScarToStarVisual />
+          <HeroStage />
         </div>
       </section>
 
       <section className="border-y border-line">
         <div className="public-wrap px-4 py-6">
-          <ul className="sts-trust m-0 p-0 text-muted">
-            {trustPoints.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+          <TrustMarks items={trustPoints} />
         </div>
       </section>
 
@@ -143,20 +142,13 @@ export default function HomePage() {
                     View project
                   </Link>
                 </div>
-                <div className="grid gap-3">
-                  <PublicCard className="home-device min-h-40 p-6">
-                    <p className="text-sm text-muted">{item.desktopLabel}</p>
-                    <p className="mt-6 font-display text-xl tracking-tight">{item.projectTitle}</p>
-                  </PublicCard>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <PublicCard className="home-device p-5">
-                      <p className="text-sm text-muted">{item.beforeImageLabel}</p>
-                    </PublicCard>
-                    <PublicCard className="home-device p-5">
-                      <p className="text-sm text-muted">{item.afterImageLabel}</p>
-                    </PublicCard>
-                  </div>
-                  <p className="text-xs text-muted">{item.mobileLabel}</p>
+                <div className="sts-work-stage grid gap-3">
+                  <DesktopSchematic
+                    title={item.companyName}
+                    caption={`${item.desktopLabel} Original schematic — not a live capture.`}
+                  />
+                  <PhoneSchematic title="Mobile" caption={item.mobileLabel} placement="inline" />
+                  <CompareSlider />
                 </div>
               </article>
             ))}
@@ -373,8 +365,12 @@ export default function HomePage() {
 
       <section className="border-t border-line">
         <div className="public-page">
-          <div className="public-wrap max-w-2xl">
-            <h2 className="home-h2">Your next chapter deserves a stronger digital presence.</h2>
+          <div className="public-wrap sts-close-burst max-w-2xl">
+            <svg viewBox="0 0 320 180" aria-hidden="true">
+              <path d="M40 90 L280 90 M160 18 L160 162 M72 36 L248 144 M248 36 L72 144" stroke="currentColor" />
+              <path d="M160 52 l8 20 22 2-16 14 4 22-18-11-18 11 4-22-16-14 22-2z" fill="currentColor" />
+            </svg>
+            <h2 className="home-h2 relative">Your next chapter deserves a stronger digital presence.</h2>
             <p className="mt-4 text-muted">
               Tell us where your business is now and where you want it to go. We’ll help identify the clearest next step.
             </p>

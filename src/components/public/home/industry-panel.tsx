@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { homeIndustries } from "@/lib/content/home";
 import { trackPublic } from "@/lib/analytics/public-events";
+import { IndustryArt } from "@/components/public/home/industry-art";
 
 export function IndustryPanel() {
   const [id, setId] = useState<(typeof homeIndustries)[number]["id"]>("auto");
@@ -33,7 +34,8 @@ export function IndustryPanel() {
         })}
       </div>
       <div role="tabpanel" className="accent-edge" aria-live="polite">
-        <p className="public-kicker">{current.label}</p>
+        <IndustryArt id={current.id} />
+        <p className="public-kicker mt-4">{current.label}</p>
         <h3 className="mt-3 text-lg font-semibold tracking-tight">The usual problem</h3>
         <p className="mt-2 text-sm leading-6 text-muted">{current.problem}</p>
         <h3 className="mt-5 text-lg font-semibold tracking-tight">What we build</h3>
