@@ -103,8 +103,10 @@
 
 .sts-starfield {
   position: absolute;
-  inset: 0.75rem 0.75rem auto;
-  width: calc(100% - 1.5rem);
+  top: 0.75rem;
+  right: 0.75rem;
+  left: auto;
+  width: 68%;
   height: 7rem;
   pointer-events: none;
   transform: translate3d(calc(var(--mx) * 10px), calc(var(--my) * 8px), 0);
@@ -121,6 +123,8 @@
 
 .sts-hero-stage-kicker {
   position: relative;
+  z-index: 1;
+  max-width: 12rem;
   margin: 0 0 1rem;
   font-size: 0.75rem;
   font-weight: 600;
