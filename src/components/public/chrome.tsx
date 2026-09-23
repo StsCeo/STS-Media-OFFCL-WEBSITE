@@ -14,6 +14,7 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const menuId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -23,11 +24,36 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const root = panelRef.current;
+    if (!root) return;
+    root.querySelector<HTMLElement>("a, button")?.focus();
+    function trap(event: KeyboardEvent) {
+      if (event.key !== "Tab" || !root) return;
+      const nodes = [...root.querySelectorAll<HTMLElement>("a, button, input, select, textarea")].filter(
+        (node) => !node.hasAttribute("disabled"),
+      );
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    root.addEventListener("keydown", trap);
+    return () => root.removeEventListener("keydown", trap);
+  }, [open]);
+
   return (
     <header className={cn("sticky top-0 z-40 border-b border-line bg-card/90 backdrop-blur", pathname === "/" && "sts-home-chrome")}>
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <Logo invert={theme === "dark"} />
-        <nav className="hidden items-center gap-7 text-sm text-muted lg:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-4 text-sm text-muted xl:flex xl:gap-6" aria-label="Primary">
           {publicNav.map((item) =>
             item.href === "/for/owners" ? (
               <OwnersDropdown key={item.href} pathname={pathname} />
@@ -44,7 +70,7 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
             </Button>
           </span>
           <button
-            className="rounded-md p-2 text-ink lg:hidden"
+            className="rounded-md p-2 text-ink xl:hidden"
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-controls={menuId}
@@ -55,7 +81,7 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
         </div>
       </div>
       {open ? (
-        <div id={menuId} className="border-t border-line px-4 py-4 lg:hidden">
+        <div id={menuId} ref={panelRef} className="border-t border-line px-4 py-4 xl:hidden">
           <nav className="flex flex-col gap-3 text-ink" aria-label="Mobile">
             {publicNav.map((item) => (
               <div key={item.href}>
@@ -155,6 +181,7 @@ export function PublicFooter({ email, statement, theme }: { email: string; state
         <div className="md:col-span-2">
           <Logo invert={theme === "dark"} />
           <p className="mt-4 max-w-md text-sm leading-6">{statement}</p>
+          <p className="mt-3 text-xs">Scars to Stars Media LLC · stsmedia.co</p>
           <p className="mt-3 text-xs">Built for business owners and creators who already did the hard part.</p>
         </div>
         <nav aria-label="Visit">
@@ -195,7 +222,10 @@ export function PublicFooter({ email, statement, theme }: { email: string; state
         </nav>
       </div>
       <div className="border-t border-line px-4 py-4 text-center text-xs">
-        © {new Date().getFullYear()} Scars to Stars Media. stsmedia.co
+        <p>© {new Date().getFullYear()} Scars to Stars Media LLC. stsmedia.co</p>
+        <a href="#main" className="mt-2 inline-block min-h-11 underline-offset-4 hover:underline">
+          Back to top
+        </a>
       </div>
     </footer>
   );

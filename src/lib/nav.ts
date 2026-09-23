@@ -123,10 +123,12 @@ export const implementedBusinessOsHrefs = dashboardNavGroups
 export const publicNav = [
   { href: "/work", label: "Work" },
   { href: "/services", label: "Services" },
-  { href: "/packages", label: "Packages" },
+  { href: "/process", label: "Process" },
+  { href: "/packages", label: "Pricing" },
+  { href: "/about", label: "About" },
+  { href: "/resources", label: "Resources" },
   { href: "/for/owners", label: "Owners" },
   { href: "/for/creators", label: "Creators" },
-  { href: "/contact", label: "Contact" },
 ];
 
 export const ownersMenu = [

@@ -1,138 +1,180 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { OrganizationJsonLd } from "@/components/public/json-ld";
 import { PublicCard } from "@/components/public/page-hero";
+import { ScarToStarVisual } from "@/components/public/home/scar-to-star";
+import { MagneticCta } from "@/components/public/home/magnetic-cta";
+import { IndustryPanel } from "@/components/public/home/industry-panel";
+import { ProcessTrack } from "@/components/public/home/process-track";
+import { ServiceSystem } from "@/components/public/home/service-system";
+import { WebsiteCheck } from "@/components/public/home/website-check";
+import { StickyMobileCta } from "@/components/public/home/sticky-cta";
+import { HomeFaq } from "@/components/public/home/faq";
+import { HomeHeaderScroll } from "@/components/public/home/header-scroll";
 import { getWorkspace } from "@/lib/data/store";
-import { creatorPath, ownerPath } from "@/lib/content/public";
+import { resources } from "@/lib/content/public";
+import {
+  auditDeliverables,
+  homeCare,
+  homePricing,
+  trustPoints,
+  whySts,
+} from "@/lib/content/home";
+import { siteUrl } from "@/lib/config";
+import "@/components/public/home/home.css";
 
-function BrandHeadline({ statement }: { statement: string }) {
-  const accent = "visible growth";
-  const idx = statement.toLowerCase().lastIndexOf(accent);
-  if (idx === -1) {
-    return <>{statement}</>;
-  }
-  return (
-    <>
-      {statement.slice(0, idx)}
-      <span className="mark-accent">{statement.slice(idx).replace(/\.$/, "")}</span>
-      {statement.endsWith(".") ? "." : ""}
-    </>
-  );
-}
-
-const proofs = [
-  ["No invented proof", "Quotes and results publish only when they are verified."],
-  ["Quoted after discovery", "Pilot prices are not listed as a public rate card."],
-  ["Private command center", "Finance and leads stay behind owner sign-in."],
-  ["We stay after launch", "Maintenance and updates are part of the work, not an afterthought."],
-] as const;
+export const metadata: Metadata = {
+  title: "STS Media | Websites and Digital Systems for Small Businesses",
+  description:
+    "Scars to Stars Media creates professional websites, digital systems, and ongoing support for small businesses ready to strengthen their online presence.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "STS Media | Websites and Digital Systems for Small Businesses",
+    description:
+      "Scars to Stars Media creates professional websites, digital systems, and ongoing support for small businesses ready to strengthen their online presence.",
+    url: siteUrl(),
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "STS Media | Websites and Digital Systems for Small Businesses",
+    description:
+      "Scars to Stars Media creates professional websites, digital systems, and ongoing support for small businesses ready to strengthen their online presence.",
+  },
+};
 
 export default function HomePage() {
-  const { brand, services, portfolio, process, testimonials } = getWorkspace();
+  const { brand, portfolio, testimonials, packages } = getWorkspace();
   const featured = portfolio.filter((item) => item.featured && item.status === "published");
   const publishedQuotes = testimonials.filter((item) => item.published && item.approved);
-  const highlightServices = [
-    "website-design-and-development",
-    "digital-optimization",
-    "website-maintenance",
-  ]
-    .map((slug) => services.find((item) => item.slug === slug && item.active))
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const featuredPackage = packages.find((item) => item.featured && item.active);
+
+  const websiteLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: brand.shortName,
+    url: siteUrl(),
+  };
 
   return (
     <div className="sts-home bg-canvas text-ink">
+      <HomeHeaderScroll />
       <OrganizationJsonLd brand={brand} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
+      <StickyMobileCta />
 
-      <section className="public-page">
-        <div className="public-wrap public-hero">
+      <section className="public-page sts-home-hero">
+        <div className="public-wrap sts-home-hero-grid">
           <div>
-            <p className="public-kicker">Websites, systems, and support for real businesses</p>
-            <h1 className="mt-4 max-w-3xl font-display text-4xl leading-[1.12] tracking-tight text-ink md:text-5xl">
-              <BrandHeadline statement={brand.brandStatement} />
+            <p className="public-kicker sts-reveal">Digital transformation for growing small businesses</p>
+            <h1 className="home-display sts-reveal sts-reveal-2 mt-4 max-w-3xl text-ink">
+              Your business has grown.
+              <br />
+              Your digital presence should show it.
             </h1>
-            <p className="mt-5 max-w-xl text-base leading-7 text-muted md:text-lg">{brand.mission}</p>
-            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
-              <Button href="/contact" size="lg">
+            <p className="sts-reveal sts-reveal-3 mt-5 max-w-xl text-base leading-7 text-muted md:text-lg">
+              STS Media builds websites, digital systems, and ongoing support that help small businesses earn trust, capture
+              leads, and grow with confidence.
+            </p>
+            <div className="sts-reveal sts-reveal-4 mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <MagneticCta href="/contact" eventName="hero_start_project">
                 Start a Project
+              </MagneticCta>
+              <Button href="/contact?intent=audit" variant="secondary" size="lg">
+                Get a Free Website Audit
               </Button>
               <Link href="/work" className="text-sm font-medium text-ink underline-offset-4 hover:underline">
-                View published work
+                Explore Our Work
               </Link>
             </div>
-          </div>
-          <aside className="public-path" aria-hidden="true">
-            <p className="public-kicker">Scar to star</p>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              From an unclear public presence to a site that explains the work and invites the next conversation.
+            <p className="sts-scroll-hint text-muted">
+              Scroll
+              <span aria-hidden />
             </p>
-            <svg viewBox="0 0 280 72" fill="none" className="text-muted">
-              <path d="M8 52 C48 52 52 20 96 20 C140 20 148 54 196 40 C230 30 248 18 272 14" stroke="currentColor" strokeWidth="1.5" />
-              <circle cx="8" cy="52" r="3.5" fill="currentColor" className="text-ink" />
-              <circle cx="96" cy="20" r="3" fill="currentColor" opacity="0.55" />
-              <circle cx="196" cy="40" r="3" fill="currentColor" opacity="0.7" />
-              <path d="M264 8 l4 10 10 1.5-7.5 6.5 2 10-8.5-5-8.5 5 2-10-7.5-6.5 10-1.5z" fill="currentColor" className="text-ink" />
-            </svg>
-          </aside>
+            <p className="mt-6 text-sm text-muted">Websites · Digital systems · Ongoing support</p>
+          </div>
+          <ScarToStarVisual />
         </div>
       </section>
 
-      <section className="public-section-sage">
-        <div className="public-page py-0">
-          <div className="public-wrap audience-split py-[var(--space-section)]">
-            <article className="accent-edge">
-              <p className="public-kicker">{ownerPath.eyebrow}</p>
-              <h2 className="mt-3 font-display text-2xl tracking-tight md:text-3xl">{ownerPath.title}</h2>
-              <p className="mt-3 text-sm leading-6 text-muted">{ownerPath.lede}</p>
-              <Link href="/for/owners" className="mt-5 inline-block text-sm font-medium text-ink underline-offset-4 hover:underline">
-                How we work with owners
-              </Link>
-            </article>
-            <article className="accent-edge">
-              <p className="public-kicker">{creatorPath.eyebrow}</p>
-              <h2 className="mt-3 font-display text-2xl tracking-tight md:text-3xl">{creatorPath.title}</h2>
-              <p className="mt-3 text-sm leading-6 text-muted">{creatorPath.lede}</p>
-              <Link href="/for/creators" className="mt-5 inline-block text-sm font-medium text-ink underline-offset-4 hover:underline">
-                How we work with creators
-              </Link>
-            </article>
-          </div>
+      <section className="border-y border-line">
+        <div className="public-wrap px-4 py-6">
+          <ul className="sts-trust m-0 p-0 text-muted">
+            {trustPoints.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
         </div>
       </section>
 
       <section className="public-page">
         <div className="public-wrap">
-          <p className="public-kicker">Core services</p>
-          <h2 className="mt-2 font-display text-3xl tracking-tight">What we actually build</h2>
+          <p className="public-kicker">Selected transformations</p>
+          <h2 className="home-h2 mt-2">Work we can put our name on</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-            Three starting points. The rest of the catalog lives on the services page, quoted after we understand the business.
+            State Collision Pro is the first public case study. Results, quotes, and screenshots stay off this page until they
+            are verified.
           </p>
-          <div className="mt-8">
-            {highlightServices.map((service, index) => (
-              <article key={service.id} className="service-row">
-                <p className="font-mono text-xs text-muted">{String(index + 1).padStart(2, "0")}</p>
-                <h3 className="text-lg font-semibold tracking-tight">{service.name}</h3>
-                <p className="text-sm leading-6 text-muted">{service.summary}</p>
+          <div className="mt-10 space-y-12">
+            {featured.map((item) => (
+              <article key={item.id} className="home-project grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+                <div>
+                  <p className="text-sm text-muted">{item.industry}</p>
+                  <h3 className="mt-2 font-display text-3xl tracking-tight md:text-4xl">{item.companyName}</h3>
+                  <p className="mt-3 max-w-xl text-base leading-7">
+                    Turning a local collision shop’s digital presence into a clearer, more credible customer experience.
+                  </p>
+                  <p className="mt-4 text-sm leading-6 text-muted">{item.challenge}</p>
+                  <p className="mt-4 text-sm leading-6">{item.solution}</p>
+                  <ul className="mt-5 flex flex-wrap gap-2 p-0 text-xs">
+                    {["Website Design", "Development", "Mobile Optimization", "Estimate Experience", "Ongoing Support"].map(
+                      (tag) => (
+                        <li key={tag} className="rounded-full border border-line px-3 py-1">
+                          {tag}
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                  <Link
+                    href={`/work/${item.slug}`}
+                    className="mt-6 inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline"
+                  >
+                    View project
+                  </Link>
+                </div>
+                <div className="grid gap-3">
+                  <PublicCard className="home-device min-h-40 p-6">
+                    <p className="text-sm text-muted">{item.desktopLabel}</p>
+                    <p className="mt-6 font-display text-xl tracking-tight">{item.projectTitle}</p>
+                  </PublicCard>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <PublicCard className="home-device p-5">
+                      <p className="text-sm text-muted">{item.beforeImageLabel}</p>
+                    </PublicCard>
+                    <PublicCard className="home-device p-5">
+                      <p className="text-sm text-muted">{item.afterImageLabel}</p>
+                    </PublicCard>
+                  </div>
+                  <p className="text-xs text-muted">{item.mobileLabel}</p>
+                </div>
               </article>
             ))}
           </div>
-          <Link href="/services" className="mt-6 inline-block text-sm font-medium text-ink underline-offset-4 hover:underline">
-            All services
-          </Link>
         </div>
       </section>
 
       <section className="public-section-sage">
         <div className="public-page">
           <div className="public-wrap">
-            <p className="public-kicker">How we treat the work</p>
-            <h2 className="mt-2 max-w-2xl font-display text-3xl tracking-tight">Clear rules so the public site stays honest</h2>
-            <div className="proof-list mt-8">
-              {proofs.map(([title, body]) => (
-                <div key={title}>
-                  <h3 className="text-sm font-semibold">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted">{body}</p>
-                </div>
-              ))}
+            <p className="public-kicker">Who we help</p>
+            <h2 className="home-h2 mt-2">The shop is already real. The site should be too.</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+              Select an industry to see the problem we usually hear and the system we build. Outcomes stay qualitative until a
+              number is verified.
+            </p>
+            <div className="mt-8">
+              <IndustryPanel />
             </div>
           </div>
         </div>
@@ -140,29 +182,13 @@ export default function HomePage() {
 
       <section className="public-page">
         <div className="public-wrap">
-          <p className="public-kicker">Featured work</p>
-          <h2 className="mt-2 font-display text-3xl tracking-tight">Published when it is real</h2>
+          <p className="public-kicker">Services</p>
+          <h2 className="home-h2 mt-2">A connected growth system</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-            State Collision Pro is the first public case study. Results stay off this page until they are verified.
+            Strategy, build, local presence, measurement, and care. One path, not a pile of disconnected extras.
           </p>
-          <div className="mt-8 space-y-10">
-            {featured.map((item) => (
-              <article key={item.id} className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-                <div>
-                  <p className="text-sm text-muted">{item.industry}</p>
-                  <h3 className="mt-2 font-display text-3xl tracking-tight">{item.companyName}</h3>
-                  <p className="mt-2 text-sm text-muted">{item.projectTitle}</p>
-                  <p className="mt-4 max-w-xl text-sm leading-6">{item.challenge}</p>
-                  <Link href={`/work/${item.slug}`} className="mt-5 inline-block text-sm font-medium text-ink underline-offset-4 hover:underline">
-                    Read the case study
-                  </Link>
-                </div>
-                <PublicCard className="flex min-h-48 flex-col justify-between p-6">
-                  <p className="text-sm text-muted">{item.beforeImageLabel}</p>
-                  <p className="font-display text-xl tracking-tight">{item.solution}</p>
-                </PublicCard>
-              </article>
-            ))}
+          <div className="mt-8">
+            <ServiceSystem />
           </div>
         </div>
       </section>
@@ -172,36 +198,75 @@ export default function HomePage() {
           <div className="public-wrap grid gap-10 lg:grid-cols-[0.8fr_1.2fr]">
             <div>
               <p className="public-kicker">Process</p>
-              <h2 className="mt-2 font-display text-3xl tracking-tight">From first conversation to ongoing care</h2>
+              <h2 className="home-h2 mt-2">From overlooked to unforgettable.</h2>
               <p className="mt-3 text-sm leading-6 text-muted">
-                A sequence you can follow. Discovery comes before decoration, and launch is not the last time we talk.
+                Five movements. The full operating sequence, including content collection and review, lives on the process page.
               </p>
-              <Link href="/process" className="mt-5 inline-block text-sm font-medium text-ink underline-offset-4 hover:underline">
+              <Link href="/process" className="mt-5 inline-block text-sm font-medium underline-offset-4 hover:underline">
                 Full process notes
               </Link>
             </div>
-            <ol className="process-rail">
-              {process.map((step) => (
-                <li key={step.id}>
-                  <p className="font-mono text-xs text-muted">{String(step.order).padStart(2, "0")}</p>
-                  <h3 className="mt-1 font-semibold">{step.title}</h3>
-                  <p className="mt-1 text-sm leading-6 text-muted">{step.summary}</p>
-                </li>
-              ))}
-            </ol>
+            <ProcessTrack />
           </div>
         </div>
       </section>
 
-      <section className="public-page">
-        <div className="public-wrap">
-          <p className="public-kicker">Client voices</p>
-          {publishedQuotes.length === 0 ? (
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-              Client quotes appear here after they are collected and approved. STS Media does not publish invented testimonials.
+      <section className="public-page" id="audit">
+        <div className="public-wrap grid gap-10 lg:grid-cols-[1fr_1fr]">
+          <div>
+            <p className="public-kicker">Free review</p>
+            <h2 className="home-h2 mt-2">Free 10-point website and online presence audit</h2>
+            <p className="mt-3 text-sm leading-6 text-muted">
+              Get a practical review of your website, mobile experience, calls to action, trust signals, local visibility, and
+              lead flow.
             </p>
-          ) : (
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <ul className="mt-5 list-disc space-y-2 pl-5 text-sm leading-6">
+              {auditDeliverables.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <div className="mt-8">
+              <Button href="/contact?intent=audit" size="lg">
+                Request My Free Audit
+              </Button>
+            </div>
+          </div>
+          <div>
+            <p className="public-kicker">Quick check</p>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight">How strong is your digital presence?</h2>
+            <p className="mt-2 text-sm text-muted">Five questions. No email required to see the result.</p>
+            <div className="mt-4">
+              <WebsiteCheck />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="public-section-sage">
+        <div className="public-page">
+          <div className="public-wrap grid gap-10 lg:grid-cols-2">
+            <div>
+              <p className="public-kicker">Why STS</p>
+              <h2 className="home-h2 mt-2">Agency-quality work without being passed through an agency maze.</h2>
+            </div>
+            <ul className="m-0 grid gap-6 p-0">
+              {whySts.map(([title, body]) => (
+                <li key={title} className="accent-edge list-none">
+                  <h3 className="font-semibold">{title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted">{body}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {publishedQuotes.length > 0 ? (
+        <section className="public-page">
+          <div className="public-wrap">
+            <p className="public-kicker">Client voices</p>
+            <h2 className="home-h2 mt-2">Approved quotes only</h2>
+            <div className="mt-8 grid gap-8 md:grid-cols-2">
               {publishedQuotes.map((item) => (
                 <PublicCard key={item.id} className="p-6" as="blockquote">
                   <p className="font-display text-xl leading-7">“{item.quote}”</p>
@@ -211,25 +276,115 @@ export default function HomePage() {
                 </PublicCard>
               ))}
             </div>
-          )}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="public-page">
+        <div className="public-wrap">
+          <p className="public-kicker">Starting points</p>
+          <h2 className="home-h2 mt-2">Clear starting points. Custom scope where it matters.</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+            Final pricing depends on the agreed scope. Paid software, domains, advertising, ecommerce subscriptions, and
+            third-party costs are separate.
+            {featuredPackage ? ` ${featuredPackage.name} is the featured conversation starter on the packages page.` : ""}
+          </p>
+          <div className="mt-10 grid gap-8 lg:grid-cols-3">
+            {homePricing.map((item) => (
+              <article key={item.name} className="border-t border-line pt-6">
+                <h3 className="font-display text-2xl">{item.name}</h3>
+                <p className="mt-2 text-sm font-medium">{item.price}</p>
+                <p className="mt-2 text-sm text-muted">{item.summary}</p>
+                <ul className="mt-4 list-disc space-y-1 pl-5 text-sm leading-6">
+                  {item.items.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+          <article className="mt-10 border-t border-line pt-6">
+            <h3 className="font-display text-2xl">{homeCare.name}</h3>
+            <p className="mt-2 text-sm font-medium">{homeCare.price}</p>
+            <ul className="mt-4 grid list-disc gap-1 pl-5 text-sm leading-6 md:grid-cols-2">
+              {homeCare.items.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </article>
+          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <Button href="/packages" variant="secondary">
+              Compare Packages
+            </Button>
+            <Link href="/contact" className="text-sm font-medium underline-offset-4 hover:underline">
+              Start a Conversation
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="public-section-sage">
+        <div className="public-page">
+          <div className="public-wrap">
+            <p className="public-kicker">Media and insights</p>
+            <h2 className="home-h2 mt-2">Useful notes while you decide</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+              Short briefs that already exist. Video and before/after captures appear when a real file is approved. Nothing
+              is autoplayed.
+            </p>
+            <div className="mt-8 grid gap-8 md:grid-cols-3">
+              {resources.map((item) => (
+                <Link key={item.slug} href={`/resources/${item.slug}`} className="accent-edge block">
+                  <p className="public-kicker">{item.audience}</p>
+                  <h3 className="mt-2 font-display text-2xl tracking-tight">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-muted">{item.summary}</p>
+                </Link>
+              ))}
+            </div>
+            <PublicCard className="mt-8 p-6">
+              <p className="public-kicker">Video</p>
+              <p className="mt-2 text-sm text-muted">
+                Behind the build: State Collision. Poster and captions will publish with a real capture. Duration TBD.
+              </p>
+            </PublicCard>
+            <div className="mt-6 flex flex-wrap gap-5 text-sm font-medium">
+              <Link href="/resources" className="underline-offset-4 hover:underline">
+                View all insights
+              </Link>
+              {brand.instagram ? (
+                <a href={brand.instagram} className="underline-offset-4 hover:underline">
+                  Follow STS Media
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="public-page">
+        <div className="public-wrap">
+          <p className="public-kicker">Questions</p>
+          <h2 className="home-h2 mt-2">Straight answers before you write</h2>
+          <div className="mt-8">
+            <HomeFaq />
+          </div>
         </div>
       </section>
 
       <section className="border-t border-line">
         <div className="public-page">
           <div className="public-wrap max-w-2xl">
-            <p className="public-kicker">Next step</p>
-            <h2 className="mt-3 font-display text-3xl tracking-tight md:text-4xl">
-              If the work is already real, the website should be too.
-            </h2>
+            <h2 className="home-h2">Your next chapter deserves a stronger digital presence.</h2>
             <p className="mt-4 text-muted">
-              Tell us what the business does and what you need the public side to do. We answer with a clear next step, quoted after discovery.
+              Tell us where your business is now and where you want it to go. We’ll help identify the clearest next step.
             </p>
-            <div className="mt-8">
-              <Button href="/contact" size="lg">
-                Start a Project
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <MagneticCta href="/contact">Start a Project</MagneticCta>
+              <Button href="/contact?intent=audit" variant="secondary" size="lg">
+                Get a Free Website Audit
               </Button>
             </div>
+            <p className="mt-4 text-sm text-muted">No pressure. Clear recommendations. Scope agreed before work begins.</p>
           </div>
         </div>
       </section>
