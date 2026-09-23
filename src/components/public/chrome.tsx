@@ -8,6 +8,7 @@ import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { ownersMenu, publicFooterAudience, publicFooterTrust, publicFooterVisit, publicNav } from "@/lib/nav";
+import { cn } from "@/lib/utils";
 
 export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
   const pathname = usePathname();
@@ -23,7 +24,7 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-card/90 backdrop-blur">
+    <header className={cn("sticky top-0 z-40 border-b border-line bg-card/90 backdrop-blur", pathname === "/" && "sts-home-chrome")}>
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Logo invert={theme === "dark"} />
         <nav className="hidden items-center gap-7 text-sm text-muted lg:flex" aria-label="Primary">

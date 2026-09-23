@@ -40,7 +40,7 @@ export default function HomePage() {
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   return (
-    <div className="bg-canvas text-ink">
+    <div className="sts-home bg-canvas text-ink">
       <OrganizationJsonLd brand={brand} />
 
       <section className="public-page">

@@ -377,6 +377,27 @@ html[data-theme="light"][data-palette="sts-day"] .btn-primary:focus-visible {
   outline-offset: 3px;
 }
 
+html[data-theme="light"][data-palette="sts-day"] .sts-home .btn-primary,
+html[data-theme="light"][data-palette="sts-day"] .sts-home-chrome .btn-primary {
+  background-color: var(--ink);
+  background-image: none;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgb(17 18 20 / 0.12);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-home .btn-primary:hover,
+html[data-theme="light"][data-palette="sts-day"] .sts-home-chrome .btn-primary:hover {
+  background-color: var(--sage-dark);
+  background-image: none;
+  color: #ffffff;
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-home .btn-primary:focus-visible,
+html[data-theme="light"][data-palette="sts-day"] .sts-home-chrome .btn-primary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
 html[data-theme="light"][data-palette="sts-day"] .btn-secondary {
   background-color: var(--surface);
   color: var(--ink);
