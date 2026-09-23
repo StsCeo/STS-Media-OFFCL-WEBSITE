@@ -13,11 +13,11 @@ export default async function ContactPage({
   const audience = params.for === "creators" ? "creator" : params.for === "owners" ? "owner" : "both";
   return (
     <div className="bg-ivory text-ink">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="public-wrap grid gap-10 public-page lg:grid-cols-[0.9fr_1.1fr]">
         <div>
           <h1 className="font-display text-4xl">Start a project</h1>
           <p className="mt-4 text-muted">
-            Tell us what you need. We answer with a clear next step — not a fake waitlist or inflated promise.
+            Tell us what you need. We answer with a clear next step, not a fake waitlist or inflated promise.
           </p>
           <dl className="mt-8 space-y-3 text-sm">
             <div>

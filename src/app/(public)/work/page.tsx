@@ -11,8 +11,8 @@ export default async function WorkPage({ searchParams }: { searchParams: Promise
 
   return (
     <div className="bg-canvas text-ink">
-      <div className="mx-auto max-w-6xl px-4 py-16">
-        <p className="text-xs uppercase tracking-[0.18em] text-forest">Portfolio</p>
+      <div className="public-wrap public-page">
+        <p className="public-kicker">Portfolio</p>
         <h1 className="mt-3 font-display text-4xl">Our work</h1>
         <p className="mt-4 max-w-2xl text-muted">
           Work completed for businesses, creators, and collaborators. Results are listed only when they are verified. Creator collaborations appear here once they are real and approved to publish.
@@ -36,7 +36,7 @@ export default async function WorkPage({ searchParams }: { searchParams: Promise
         </div>
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           {filtered.map((item) => (
-            <Link key={item.id} href={`/work/${item.slug}`} className="public-card lift block p-6">
+            <Link key={item.id} href={`/work/${item.slug}`} className="block border-t border-line pt-6">
               <p className="text-xs uppercase tracking-[0.16em] text-muted">{item.industry}</p>
               <h2 className="mt-2 font-display text-2xl">{item.companyName}</h2>
               <p className="mt-2 text-sm">{item.projectTitle}</p>

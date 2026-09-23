@@ -29,7 +29,7 @@ export function CookieBanner({ visible }: { visible: boolean }) {
     >
       <div className="mx-auto flex max-w-6xl flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-6 text-muted">
-          Essential cookies only — security, sign-in, and appearance. See the{" "}
+          Essential cookies only: security, sign-in, and appearance. See the{" "}
           <Link className="underline underline-offset-2" href="/legal/cookies">
             cookie notice
           </Link>{" "}

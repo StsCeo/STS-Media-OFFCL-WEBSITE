@@ -8,17 +8,17 @@ export default function PackagesPage() {
   const packages = getWorkspace().packages.filter((item) => item.active);
   return (
     <div className="bg-ivory text-ink">
-      <div className="mx-auto max-w-6xl px-4 py-16">
+      <div className="public-wrap public-page">
         <h1 className="font-display text-4xl">Packages</h1>
         <p className="mt-4 max-w-2xl text-muted">
           Packages are starting points, quoted after discovery. Pilot-client amounts are not the public rate card.
         </p>
-        <div className="mt-10 grid gap-6 lg:grid-cols-3">
+        <div className="mt-10 grid gap-8 lg:grid-cols-3">
           {packages.map((item) => (
-            <article key={item.id} className={`lift rounded-xl border bg-white p-6 ${item.featured ? "border-gold shadow-[var(--shadow-card)]" : "border-line"}`}>
-              <div className="flex items-center justify-between">
+            <article key={item.id} className={`flex flex-col border-t border-line pt-6 ${item.featured ? "public-section-sage rounded-[20px] border-t-0 p-6" : ""}`}>
+              <div className="flex items-center justify-between gap-3">
                 <h2 className="font-display text-2xl">{item.name}</h2>
-                {item.featured ? <Badge tone="gold">Featured</Badge> : null}
+                {item.featured ? <Badge>Featured</Badge> : null}
               </div>
               <p className="mt-3 text-sm">{item.description}</p>
               <p className="mt-4 text-sm text-muted">
@@ -35,7 +35,7 @@ export default function PackagesPage() {
               </ul>
               <p className="mt-4 text-xs uppercase tracking-wide text-muted">Add-ons</p>
               <p className="text-sm">{item.addOns.join(" · ")}</p>
-              <Button href={item.ctaHref} className="mt-6 w-full">
+              <Button href={item.ctaHref} className="mt-6">
                 {item.ctaLabel}
               </Button>
             </article>
