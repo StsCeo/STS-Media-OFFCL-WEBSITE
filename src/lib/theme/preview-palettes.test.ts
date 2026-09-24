@@ -5,6 +5,7 @@ import { PALETTES } from "@/lib/theme/palettes";
 describe("preview-only palettes", () => {
   it("does not register experimental ids on the live palette list", () => {
     const live = PALETTES.map((item) => item.id);
+    expect(live).not.toContain("banner-journey");
     expect(live).not.toContain("signature-forest");
     expect(live).not.toContain("emerald-tech");
     expect(live).not.toContain("sage-gold");

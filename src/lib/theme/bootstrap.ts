@@ -14,15 +14,16 @@ export const THEME_BOOTSTRAP_SCRIPT = `(function(){try{
   d.classList.add("dark");
   d.setAttribute("data-theme","dark");
   d.setAttribute("data-atmosphere","night-luxury");
-  d.setAttribute("data-palette","midnight-navy");
+  d.setAttribute("data-palette","sts-night");
   var v={
-    "--obsidian":"#0B1020","--forest":"#121A2F","--forest-hover":"#0E1528","--emerald":"#3B82F6",
-    "--gold":"#D7B56D","--ivory":"#F7F2E8","--soft-gray":"#D5CDBF","--canvas":"#0B1020",
-    "--card":"#121A2F","--ink":"#F7F2E8","--muted":"#D6CFC0","--line":"#3A4460",
-    "--focus":"#C9B8FF","--lavender":"#C9B8FF","--violet":"#6D4AFF","--electric":"#3B82F6",
-    "--primary":"#6D4AFF","--primary-hover":"#5B3DE8","--primary-ink":"#F7F2E8",
-    "--background":"#0B1020","--foreground":"#F7F2E8","--surface":"#121A2F","--border":"#3A4460",
-    "--accent":"#3B82F6","--brand-accent":"#3B82F6","--gold-ink":"#D7B56D"
+    "--obsidian":"#050706","--forest":"#07130F","--forest-hover":"#020403","--emerald":"#1F6F5C",
+    "--gold":"#9CF0D1","--ivory":"#FAF8F2","--soft-gray":"#A8BFAE","--canvas":"#050706",
+    "--card":"#07130F","--ink":"#FAF8F2","--muted":"#A8BFAE","--line":"#1A332C",
+    "--focus":"#9CF0D1","--lavender":"#12372A","--violet":"#1F6F5C","--electric":"#9CF0D1",
+    "--primary":"#1F6F5C","--primary-hover":"#2A8A74","--primary-ink":"#FAF8F2",
+    "--background":"#050706","--foreground":"#FAF8F2","--surface":"#07130F","--border":"#1A332C",
+    "--accent":"#1F6F5C","--brand-accent":"#1F6F5C","--gold-ink":"#9CF0D1",
+    "--sage-dark":"#1F6F5C","--sage-light":"#12372A","--background-soft":"#07130F"
   };
   for(var k in v) d.style.setProperty(k,v[k]);
 }catch(e){}})();`;

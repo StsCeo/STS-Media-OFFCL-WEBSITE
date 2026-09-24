@@ -426,11 +426,117 @@ html.sts-header-compact [data-surface="public"] header > div {
   .sts-scroll-hint span,
   .sts-twinkle,
   .sts-device-desktop,
-  .home-device {
+  .home-device,
+  .sts-banner-signature,
+  .sts-banner-shoot {
     animation: none !important;
     transform: none !important;
     opacity: 1 !important;
     stroke-dashoffset: 0 !important;
     transition: none !important;
   }
+}
+
+.sts-home {
+  background-image:
+    radial-gradient(circle at 8% 20%, rgba(168, 191, 174, 0.28), transparent 32%),
+    radial-gradient(circle at 92% 75%, rgba(31, 111, 92, 0.18), transparent 36%),
+    linear-gradient(135deg, #faf8f2 0%, #f7faf7 58%, #eaf8f0 100%);
+  background-color: var(--canvas);
+}
+
+html[data-theme="dark"] .sts-home,
+html.dark .sts-home {
+  background-image:
+    radial-gradient(circle at 85% 15%, rgba(31, 111, 92, 0.32), transparent 35%),
+    radial-gradient(circle at 10% 85%, rgba(11, 59, 96, 0.18), transparent 32%),
+    linear-gradient(135deg, #050706 0%, #07130f 52%, #020403 100%);
+  background-color: var(--canvas);
+}
+
+.sts-banner-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.sts-banner-sky {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.sts-banner-trail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.sts-banner-glass {
+  position: relative;
+  z-index: 1;
+  max-width: 46rem;
+  padding: 1.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(18, 55, 42, 0.14);
+  border-radius: 24px;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 60px rgba(18, 55, 42, 0.1);
+}
+
+html[data-theme="dark"] .sts-banner-glass,
+html.dark .sts-banner-glass {
+  background: rgba(5, 12, 9, 0.58);
+  border-color: rgba(156, 240, 209, 0.16);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42), 0 0 30px rgba(31, 111, 92, 0.08);
+}
+
+.sts-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 999px;
+  background: #fff8e8;
+  opacity: 0.35;
+}
+
+.sts-star-a { top: 12%; right: 10%; }
+.sts-star-b { top: 18%; right: 22%; width: 3px; height: 3px; }
+.sts-star-c { top: 8%; right: 32%; }
+.sts-star-d { top: 28%; right: 8%; }
+.sts-star-e { bottom: 18%; left: 6%; background: #a8bfae; opacity: 0.22; }
+.sts-star-f { bottom: 10%; left: 14%; }
+.sts-star-g { top: 22%; right: 16%; width: 1px; height: 1px; }
+.sts-star-h { top: 14%; right: 4%; width: 3px; height: 3px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .sts-banner-signature {
+    stroke-dasharray: 1400;
+    animation: sts-sign-draw 4.8s ease both;
+  }
+
+  .sts-banner-shoot {
+    stroke-dasharray: 520;
+    stroke-dashoffset: 520;
+    animation: sts-shoot 1.8s ease 2.2s forwards;
+  }
+
+  .sts-star {
+    animation: sts-twinkle-star 3.6s ease-in-out infinite;
+  }
+}
+
+@keyframes sts-sign-draw {
+  from { stroke-dashoffset: 1400; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes sts-shoot {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes sts-twinkle-star {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.7; }
 }
