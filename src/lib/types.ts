@@ -54,7 +54,7 @@ export type EventKind =
   | "subscription_renewal"
   | "task";
 
-export type DatePreset = "today" | "7d" | "30d" | "quarter" | "year" | "custom";
+export type DatePreset = "today" | "7d" | "30d" | "month" | "last_month" | "quarter" | "year" | "custom";
 
 export type EntityType = "llc" | "sole_prop" | "c_corp" | "s_corp" | "nonprofit" | "other";
 export type FederalClassification = "tbd" | "disregarded_entity" | "partnership" | "c_corp" | "s_corp" | "other";
@@ -290,6 +290,26 @@ export interface ClientRecord {
   notes: string;
 }
 
+export interface IcpRecord {
+  id: string;
+  name: string;
+  industry: string;
+  companySize: string;
+  market: string;
+  estimatedBudgetMin: number;
+  estimatedBudgetMax: number;
+  commonProblems: string;
+  servicesNeeded: string;
+  decisionMaker: string;
+  acquisitionChannels: string;
+  commonObjections: string;
+  buyingTriggers: string;
+  notes: string;
+  status: "active" | "archived";
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Lead {
   id: string;
   businessName: string;
@@ -309,6 +329,12 @@ export interface Lead {
   notes: string;
   assignedTo: string;
   createdAt: string;
+  icpId?: string | null;
+  convertedClientId?: string | null;
+  estimateId?: string | null;
+  lostReason?: string | null;
+  expectedCloseOn?: string | null;
+  assignedMemberId?: string | null;
 }
 
 export type ScheduleSourceType =
@@ -740,6 +766,7 @@ export interface WorkspaceState {
   legal: LegalPage[];
   contacts: ContactSubmission[];
   clients: ClientRecord[];
+  icps: IcpRecord[];
   leads: Lead[];
   projects: Project[];
   tasks: TaskItem[];
