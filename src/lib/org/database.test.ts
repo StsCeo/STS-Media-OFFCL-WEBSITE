@@ -118,3 +118,20 @@ describe("day 2 membership owner gate", () => {
     expect(sql).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
   });
 });
+
+describe("phase 3A CRM journey migration", () => {
+  it("adds ICPs, conversion columns, and SECURITY DEFINER RPCs without weakening RLS", () => {
+    const sql = readFileSync("supabase/migrations/20260924063409_phase3a_crm_journey.sql", "utf8");
+    expect(sql).toContain("create table if not exists public.crm_icps");
+    expect(sql).toContain("force row level security");
+    expect(sql).toContain("sts_can_manage_crm");
+    expect(sql).toContain("sts_save_crm_icp");
+    expect(sql).toContain("sts_convert_crm_lead_to_client");
+    expect(sql).toContain("add column if not exists converted_client_id");
+    expect(sql).toContain("add column if not exists icp_id");
+    expect(sql).not.toMatch(/using\s*\(\s*true\s*\)/i);
+    expect(sql).not.toMatch(/grant execute[\s\S]{0,80}to anon/i);
+    expect(sql).toContain("revoke all on function public.sts_convert_crm_lead_to_client");
+    expect(sql).not.toMatch(/create or replace table public\.leads\b/i);
+  });
+});

@@ -1,4 +1,4 @@
-import { addDays, endOfQuarter, endOfYear, startOfQuarter, startOfYear, subDays } from "date-fns";
+import { addDays, endOfMonth, endOfQuarter, endOfYear, startOfMonth, startOfQuarter, startOfYear, subDays, subMonths } from "date-fns";
 import type { DatePreset, Expense, Invoice, RevenueEntry, SubscriptionRecord, WorkspaceState } from "./types";
 import { endOfDay, inRange, roundMoney, startOfDay } from "./utils";
 
@@ -27,6 +27,12 @@ export function rangeFromPreset(preset: DatePreset, customFrom?: Date, customTo?
       return { from: startOfDay(now), to: endOfDay(now) };
     case "7d":
       return { from: startOfDay(subDays(now, 6)), to: endOfDay(now) };
+    case "month":
+      return { from: startOfDay(startOfMonth(now)), to: endOfDay(endOfMonth(now)) };
+    case "last_month": {
+      const previous = subMonths(now, 1);
+      return { from: startOfDay(startOfMonth(previous)), to: endOfDay(endOfMonth(previous)) };
+    }
     case "quarter":
       return { from: startOfDay(startOfQuarter(now)), to: endOfDay(endOfQuarter(now)) };
     case "year":

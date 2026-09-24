@@ -1,15 +1,23 @@
 import Link from "next/link";
 import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui";
 import { QuickActions } from "@/components/dashboard/quick-actions";
+import { CommandCenterPeriodForm } from "@/components/dashboard/command-center-period";
+import { OperationalAgenda } from "@/components/dashboard/operational-agenda";
 import { getSession } from "@/lib/auth/session";
-import { briefing } from "@/lib/insights";
-import { getWorkspace } from "@/lib/data/store";
 import { getBusinessOsContext } from "@/lib/org/context";
 import { loadVisibleOpsRecords } from "@/lib/org/operations-context";
 import { implementedBusinessOsHrefs } from "@/lib/nav";
 import { formatCurrency } from "@/lib/utils";
 import { loadVisibleWorkspaceRecords } from "@/lib/org/workspace-context";
 import { loadVisibleEstimates } from "@/lib/org/estimates-context";
+import { loadVisibleCrmRecords } from "@/lib/org/crm-context";
+import {
+  businessHealthMetrics,
+  commandCenterSnapshot,
+  compactPipelineSummary,
+  deriveOperationalAgenda,
+  parseCommandCenterPeriod,
+} from "@/lib/org/command-center";
 
 export const metadata = { title: "Command Center" };
 
@@ -27,36 +35,152 @@ const implementedLinks = [
   { href: "/dashboard/settings/business", label: "Business Settings" },
 ].filter((item) => implementedBusinessOsHrefs.includes(item.href));
 
-export default async function OverviewPage() {
-  const workspace = getWorkspace();
-  const today = briefing(workspace);
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
+}) {
+  const params = await searchParams;
+  const period = parseCommandCenterPeriod(params.period);
+  const customFrom = params.from ? new Date(`${params.from}T00:00:00`) : undefined;
+  const customTo = params.to ? new Date(`${params.to}T23:59:59`) : undefined;
   const session = await getSession();
   const os = await getBusinessOsContext(session.user);
-  const { totals, source, estimateNote, unavailable } = await loadVisibleOpsRecords();
+  const { totals, source, estimateNote, unavailable, expenses, revenue, projects, tasks, clients } = await loadVisibleOpsRecords();
   const workspaceRecords = await loadVisibleWorkspaceRecords();
   const estimates = await loadVisibleEstimates();
+  const crm = await loadVisibleCrmRecords();
   const organization = os.organization;
   const settings = os.settings;
   const orgActivity = os.audit;
-  const workspaceActivity = workspace.auditLog.slice(0, 6);
-  const actionItems = [
-    ...today.overdue.map((task) => ({ label: `Overdue: ${task.title}`, href: "/dashboard/tasks" })),
-    ...today.followUps.map((lead) => ({ label: `Follow up: ${lead.businessName}`, href: "/dashboard/leads" })),
-    ...today.atRisk.map((project) => ({ label: `At risk: ${project.name}`, href: `/dashboard/projects/${project.id}` })),
-    ...today.missingReceipts.map((expense) => ({ label: `Missing receipt: ${expense.vendor}`, href: "/dashboard/expenses?view=missing" })),
-  ].slice(0, 8);
+  const snapshot = commandCenterSnapshot({
+    expenses,
+    revenue,
+    invoices: workspaceRecords.invoices,
+    projects,
+    tasks,
+    activeClients: clients.filter((client) => client.status === "active").length,
+    source,
+    period,
+    customFrom,
+    customTo,
+  });
+  const agenda = deriveOperationalAgenda({
+    tasks,
+    leads: crm.leads,
+    invoices: workspaceRecords.invoices,
+    projects,
+    events: workspaceRecords.events,
+  });
+  const pipeline = compactPipelineSummary(crm.leads);
+  const health = businessHealthMetrics({
+    leads: crm.leads,
+    invoices: workspaceRecords.invoices,
+    activeClients: clients.filter((client) => client.status === "active").length,
+    range: snapshot.range,
+  });
+  const ledgersUnavailable = unavailable || workspaceRecords.unavailable || crm.unavailable;
 
   return (
     <div>
       <PageHeader
         eyebrow="STS Media Business OS"
         title="Command Center"
-        description="Owner operations shell. Finance and operations totals below are operational estimates for the current organization, not formal accounting or tax reports."
+        description="How much money is coming in, who needs attention, what work is due, and where the next client is coming from. Totals are operational estimates for this organization, not formal accounting."
+        actions={<CommandCenterPeriodForm period={period} from={params.from} to={params.to} />}
       />
 
       <div className="mb-6">
         <QuickActions />
       </div>
+
+      <Card className="mb-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">Snapshot</h2>
+          <Badge tone="info">{source === "postgres" ? "Organization ledger" : "Workspace"}</Badge>
+        </div>
+        {ledgersUnavailable ? (
+          <p className="text-sm text-muted">Organization records could not be loaded. Totals were not taken from local fallback data.</p>
+        ) : (
+          <>
+            <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Revenue</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(snapshot.revenue)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Outstanding invoices</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(snapshot.outstandingInvoices)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Expenses</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(snapshot.expenses)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Profit</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(snapshot.profit)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">MRR</dt>
+                <dd className="mt-1 text-sm text-muted">Unavailable</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Active clients</dt>
+                <dd className="mt-1 font-mono text-lg">{snapshot.activeClients}</dd>
+              </div>
+            </dl>
+            <p className="mt-4 text-xs text-muted">{snapshot.mrrNote} Revenue, expenses, and profit use the selected period. Outstanding invoices and active clients are current, not period-sliced.</p>
+          </>
+        )}
+      </Card>
+
+      <div className="mb-4 grid gap-4 xl:grid-cols-2">
+        <Card>
+          <h2 className="mb-3 text-lg font-semibold">Today / Upcoming / Overdue</h2>
+          <OperationalAgenda items={agenda} />
+        </Card>
+        <Card>
+          <h2 className="mb-3 text-lg font-semibold">Sales pipeline</h2>
+          {crm.leads.length ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {pipeline.map((column) => (
+                <Link key={column.key} href={column.href} className="rounded-md border border-line p-3 hover:bg-canvas">
+                  <p className="text-xs text-muted">{column.label}</p>
+                  <p className="font-mono text-2xl">{column.count}</p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="No leads yet" body="The pipeline summary appears after the first inquiry is captured." action={<Button href="/dashboard/leads" size="sm">Open pipeline</Button>} />
+          )}
+        </Card>
+      </div>
+
+      <Card className="mb-4">
+        <h2 className="mb-3 text-lg font-semibold">Business health</h2>
+        <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Leads this period</dt>
+            <dd className="mt-1 font-mono text-lg">{health.leadsThisPeriod}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Conversion rate</dt>
+            <dd className="mt-1 font-mono text-lg">{health.conversionRate == null ? "Not enough data" : `${health.conversionRate}%`}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Average deal value</dt>
+            <dd className="mt-1 font-mono text-lg">{health.averageDealValue == null ? "Not enough data" : formatCurrency(health.averageDealValue)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Outstanding invoices</dt>
+            <dd className="mt-1 font-mono text-lg">{formatCurrency(health.outstandingInvoices)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Active clients</dt>
+            <dd className="mt-1 font-mono text-lg">{health.activeClients}</dd>
+          </div>
+        </dl>
+      </Card>
 
       <Card className="mb-4">
         <div className="mb-3 flex items-center justify-between gap-2">
@@ -69,98 +193,28 @@ export default async function OverviewPage() {
           <>
             <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Total revenue</dt>
+                <dt className="text-xs uppercase tracking-wide text-muted">All-time revenue</dt>
                 <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.totalRevenue)}</dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Total expenses</dt>
+                <dt className="text-xs uppercase tracking-wide text-muted">All-time expenses</dt>
                 <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.totalExpenses)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Net income</dt>
-                <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.netIncome)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Outstanding revenue</dt>
-                <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.outstandingRevenue)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Unreimbursed expenses</dt>
-                <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.unreimbursedExpenses)}</dd>
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-muted">Active projects</dt>
                 <dd className="mt-1 font-mono text-lg">{totals.activeProjects}</dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Open tasks</dt>
-                <dd className="mt-1 font-mono text-lg">{totals.openTasks}</dd>
-              </div>
-              <div>
                 <dt className="text-xs uppercase tracking-wide text-muted">Overdue tasks</dt>
                 <dd className="mt-1 font-mono text-lg">{totals.overdueTasks}</dd>
               </div>
             </dl>
-            <p className="mt-4 text-xs text-muted">{estimateNote}</p>
-          </>
-        )}
-      </Card>
-
-      <Card className="mb-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">Workspace records</h2>
-          <Badge tone="info">{workspaceRecords.source === "postgres" ? "Organization records" : "Workspace"}</Badge>
-        </div>
-        {workspaceRecords.unavailable ? (
-          <p className="text-sm text-muted">Notes, documents, calendar, and invoices could not be loaded. Totals were not taken from local fallback data.</p>
-        ) : (
-          <>
-            <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Upcoming events</dt>
-                <dd className="mt-1 font-mono text-lg">{workspaceRecords.summaries.upcomingEvents.length}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Recent notes</dt>
-                <dd className="mt-1 font-mono text-lg">{workspaceRecords.summaries.recentNotes.length}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Documents</dt>
-                <dd className="mt-1 font-mono text-lg">{workspaceRecords.summaries.documentCount}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Draft invoices</dt>
-                <dd className="mt-1 font-mono text-lg">{workspaceRecords.summaries.draftInvoices}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Outstanding invoices</dt>
-                <dd className="mt-1 font-mono text-lg">{formatCurrency(workspaceRecords.summaries.outstandingInvoiceTotal)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Overdue invoices</dt>
-                <dd className="mt-1 font-mono text-lg">{formatCurrency(workspaceRecords.summaries.overdueInvoiceTotal)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Paid recorded</dt>
-                <dd className="mt-1 font-mono text-lg">{formatCurrency(workspaceRecords.summaries.paidInvoiceTotal)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Draft estimates</dt>
-                <dd className="mt-1 font-mono text-lg">{estimates.unavailable ? "—" : estimates.summaries.draftEstimates}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Ready estimates</dt>
-                <dd className="mt-1 font-mono text-lg">{estimates.unavailable ? "—" : estimates.summaries.readyEstimates}</dd>
-              </div>
-            </dl>
-            <p className="mt-4 text-xs text-muted">{workspaceRecords.recordNote} Invoice figures are operational records, not formal accounting or tax reports.</p>
-            {workspaceRecords.summaries.upcomingEvents.length ? (
-              <ul className="mt-4 space-y-1 text-sm">
-                {workspaceRecords.summaries.upcomingEvents.map((event) => (
-                  <li key={event.id}>{event.title}</li>
-                ))}
-              </ul>
-            ) : null}
+            <p className="mt-4 text-xs text-muted">{estimateNote} Ready estimates: {estimates.unavailable ? "—" : estimates.summaries.readyEstimates}.</p>
+            <p className="mt-3 text-sm">
+              <Link href="/dashboard/expenses?view=missing" className="underline-offset-2 hover:underline">
+                Review missing receipts
+              </Link>
+            </p>
           </>
         )}
       </Card>
@@ -168,40 +222,9 @@ export default async function OverviewPage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">Action Needed</h2>
-            <Badge tone="info">Operational</Badge>
+            <h2 className="text-lg font-semibold">Business identity</h2>
+            <Badge>Organization</Badge>
           </div>
-          {actionItems.length ? (
-            <ul className="space-y-2 text-sm">
-              {actionItems.map((item) => (
-                <li key={`${item.href}-${item.label}`}>
-                  <Link href={item.href} className="underline-offset-2 hover:underline">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState
-              title="No operational follow-ups"
-              body="Open tasks, at-risk projects, and lead follow-ups will appear here. This is not a tax, payroll, or profit dashboard."
-            />
-          )}
-          <p className="mt-4 text-sm">
-            <Link href="/dashboard/expenses?view=missing" className="underline-offset-2 hover:underline">
-              Review missing receipts
-            </Link>
-          </p>
-        </Card>
-
-        <Card>
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">Business Summary</h2>
-            <Badge>Placeholder</Badge>
-          </div>
-          <p className="text-sm text-muted">
-            Organization identity and invoice defaults. Ledger totals are operational estimates in the card above, not tax, payroll, or audited financial statements.
-          </p>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs uppercase tracking-wide text-muted">Organization</dt>
@@ -232,37 +255,28 @@ export default async function OverviewPage() {
             Open Business Settings
           </Button>
         </Card>
+        <Card>
+          <h2 className="text-lg font-semibold">Recent Activity</h2>
+          {orgActivity.length ? (
+            <ul className="mt-4 space-y-3 text-sm">
+              {orgActivity.slice(0, 6).map((event) => (
+                <li key={event.id} className="rounded-md border border-line p-3">
+                  <p className="font-medium">{event.action.replaceAll(".", " ")}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {event.entityType}
+                    {event.entityId ? ` · ${event.entityId}` : ""} · {new Date(event.createdAt).toLocaleString()}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState
+              title="No activity recorded yet"
+              body="Saving records writes a safe activity trail here. Secrets and government identifiers are never stored in audit metadata."
+            />
+          )}
+        </Card>
       </div>
-
-      <Card className="mt-4">
-        <h2 className="text-lg font-semibold">Recent Activity</h2>
-        {orgActivity.length || workspaceActivity.length ? (
-          <ul className="mt-4 space-y-3 text-sm">
-            {orgActivity.slice(0, 5).map((event) => (
-              <li key={event.id} className="rounded-md border border-line p-3">
-                <p className="font-medium">{event.action.replaceAll(".", " ")}</p>
-                <p className="mt-1 text-xs text-muted">
-                  {event.entityType}
-                  {event.entityId ? ` · ${event.entityId}` : ""} · {new Date(event.createdAt).toLocaleString()}
-                </p>
-              </li>
-            ))}
-            {workspaceActivity.map((event) => (
-              <li key={event.id} className="rounded-md border border-line p-3">
-                <p className="font-medium">{event.action.replaceAll("_", " ")}</p>
-                <p className="mt-1 text-xs text-muted">
-                  {event.target} · {event.detail}
-                </p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState
-            title="No activity recorded yet"
-            body="Saving Business Settings or using workspace tools will list a safe activity trail here. Secrets and government identifiers are never stored in audit metadata."
-          />
-        )}
-      </Card>
 
       <Card className="mt-4">
         <h2 className="text-lg font-semibold">Implemented sections</h2>
