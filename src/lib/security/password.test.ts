@@ -17,7 +17,7 @@ describe("password policy", () => {
 describe("palettes", () => {
   it("falls back to forest-gold", () => {
     expect(getPalette("nope").id).toBe("forest-gold");
-    expect(PALETTES).toHaveLength(12);
+    expect(PALETTES).toHaveLength(13);
     expect(getPalette("charcoal-blue-light").name).toBe("Charcoal Blue Light");
     expect(getPalette("midnight-navy").atmosphere).toBe("night-luxury");
     expect(getPalette("midnight-navy").tokens.obsidian).toBe("#0B1020");
@@ -35,7 +35,7 @@ describe("palettes", () => {
     expect(celsius["--emerald"]).toBe("#009FEE");
     expect(celsius["--soft-gray"]).toBe("#A2A2A2");
     expect(createSeedWorkspace().brand.paletteId).toBe("sts-day");
-    expect(createSeedWorkspace().brand.accentColor).toBe("#7047EB");
+    expect(createSeedWorkspace().brand.accentColor).toBe("#12372A");
     expect(getPalette("charcoal-sage").name).toBe("Charcoal Sage");
     const sage = paletteCssVars(getPalette("charcoal-sage"));
     expect(sage["--obsidian"]).toBe("#0B0D0C");

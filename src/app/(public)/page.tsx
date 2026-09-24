@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui";
 import { OrganizationJsonLd } from "@/components/public/json-ld";
 import { PublicCard } from "@/components/public/page-hero";
-import { HeroStage } from "@/components/public/home/hero-stage";
+import { BannerAtmosphere } from "@/components/public/home/banner-atmosphere";
 import { MagneticCta } from "@/components/public/home/magnetic-cta";
 import { TrustMarks } from "@/components/public/home/trust-marks";
 import { CompareSlider } from "@/components/public/home/compare-slider";
@@ -65,10 +65,11 @@ export default function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
       <StickyMobileCta />
 
-      <section className="public-page sts-home-hero">
-        <div className="public-wrap sts-home-hero-grid">
-          <div>
-            <p className="public-kicker sts-reveal">Digital transformation for growing small businesses</p>
+      <section className="public-page sts-home-hero sts-banner-hero">
+        <BannerAtmosphere />
+        <div className="public-wrap">
+          <div className="sts-banner-glass sts-reveal">
+            <p className="public-kicker">Digital transformation for growing small businesses</p>
             <h1 className="home-display sts-reveal sts-reveal-2 mt-4 max-w-3xl text-ink">
               Your business has grown.
               <br />
@@ -89,13 +90,8 @@ export default function HomePage() {
                 Explore Our Work
               </Link>
             </div>
-            <p className="sts-scroll-hint text-muted">
-              Scroll
-              <span aria-hidden />
-            </p>
             <p className="mt-6 text-sm text-muted">Websites · Digital systems · Ongoing support</p>
           </div>
-          <HeroStage />
         </div>
       </section>
 

@@ -97,7 +97,7 @@ export function createSeedWorkspace(): WorkspaceState {
       facebook: "",
       tiktok: "",
       calendlyUrl: "",
-      accentColor: "#7047EB",
+      accentColor: "#12372A",
       paletteId: "sts-day",
       logoText: "STS",
     },

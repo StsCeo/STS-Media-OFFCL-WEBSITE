@@ -10,7 +10,8 @@ export type PaletteId =
   | "celsius-creative"
   | "charcoal-sage"
   | "warm-earth"
-  | "sts-day";
+  | "sts-day"
+  | "sts-night";
 
 export type PaletteAtmosphere = "daylight" | "night-luxury";
 
@@ -325,44 +326,83 @@ export const PALETTES: Palette[] = [
   {
     id: "sts-day",
     name: "STS Day",
-    tagline: "Warm ivory paper, sage highlights, purple-to-blue only on controls.",
-    suitedFor: "The locked daylight look: editorial Command Center and public pages without glare.",
+    tagline: "Cream daylight, forest type, Scars to Stars banner journey.",
+    suitedFor: "The live daylight look from the Banner journey: cream field, forest ink, frost glass.",
     atmosphere: "daylight",
-    lavender: "#DDE7D3",
-    violet: "#7048E8",
-    electric: "#3478F6",
-    primary: "#7048E8",
-    primaryHover: "#5B38D6",
-    primaryInk: "#FFFFFF",
-    goldInk: "#7048E8",
+    lavender: "#EAF8F0",
+    violet: "#12372A",
+    electric: "#1F6F5C",
+    primary: "#12372A",
+    primaryHover: "#1F6F5C",
+    primaryInk: "#FAF8F2",
+    goldInk: "#12372A",
+    cream: "#FAF8F2",
     charts: {
-      revenue: "#3478F6",
-      profit: "#7048E8",
-      traffic: "#111214",
-      leads: "#5B38D6",
-      expenses: "#5F675F",
-      pending: "#C5CDC0",
+      revenue: "#1F6F5C",
+      profit: "#12372A",
+      traffic: "#0B3B60",
+      leads: "#2A8A74",
+      expenses: "#527063",
+      pending: "#A8BFAE",
     },
     tokens: {
-      obsidian: "#E9EEE5",
-      forest: "#111214",
-      forestHover: "#0A0B0C",
-      emerald: "#7048E8",
-      gold: "#7048E8",
-      ivory: "#F3F5EF",
-      softGray: "#7B837B",
-      canvas: "#F3F5EF",
+      obsidian: "#FAF8F2",
+      forest: "#12372A",
+      forestHover: "#0E2C22",
+      emerald: "#1F6F5C",
+      gold: "#A8BFAE",
+      ivory: "#FAF8F2",
+      softGray: "#527063",
+      canvas: "#FAF8F2",
       card: "#FFFFFF",
-      ink: "#111214",
-      muted: "#5F675F",
-      line: "#D9DED5",
-      focus: "#7048E8",
+      ink: "#12372A",
+      muted: "#527063",
+      line: "#D5E0D8",
+      focus: "#1F6F5C",
+    },
+  },
+  {
+    id: "sts-night",
+    name: "STS Night",
+    tagline: "Forest night, cream type, teal light — the Banner journey after dark.",
+    suitedFor: "The live night look from the Banner journey: near-black forest, frost type, teal actions.",
+    atmosphere: "night-luxury",
+    lavender: "#12372A",
+    violet: "#1F6F5C",
+    electric: "#9CF0D1",
+    primary: "#1F6F5C",
+    primaryHover: "#2A8A74",
+    primaryInk: "#FAF8F2",
+    goldInk: "#9CF0D1",
+    cream: "#FAF8F2",
+    charts: {
+      revenue: "#9CF0D1",
+      profit: "#1F6F5C",
+      traffic: "#EAF8F0",
+      leads: "#2A8A74",
+      expenses: "#A8BFAE",
+      pending: "#527063",
+    },
+    tokens: {
+      obsidian: "#050706",
+      forest: "#07130F",
+      forestHover: "#020403",
+      emerald: "#1F6F5C",
+      gold: "#9CF0D1",
+      ivory: "#FAF8F2",
+      softGray: "#A8BFAE",
+      canvas: "#050706",
+      card: "#07130F",
+      ink: "#FAF8F2",
+      muted: "#A8BFAE",
+      line: "#1A332C",
+      focus: "#9CF0D1",
     },
   },
 ];
 
 export const STS_DAY_PALETTE_ID: PaletteId = "sts-day";
-export const STS_NIGHT_PALETTE_ID: PaletteId = "midnight-navy";
+export const STS_NIGHT_PALETTE_ID: PaletteId = "sts-night";
 
 export function getPalette(id: string | null | undefined): Palette {
   return PALETTES.find((item) => item.id === id) ?? PALETTES[0];
@@ -372,7 +412,7 @@ export function parseTheme(value: string | null | undefined): "light" | "dark" {
   return value === "dark" ? "dark" : "light";
 }
 
-/** Live chrome: Day comfort or Night navy. Lookbook preview cookie still wins. */
+/** Live chrome: Banner journey Day cream or Night forest. Lookbook preview cookie still wins. */
 export function resolveLivePalette(theme: "light" | "dark", previewId?: string | null) {
   if (previewId) return getPalette(previewId);
   return getPalette(theme === "dark" ? STS_NIGHT_PALETTE_ID : STS_DAY_PALETTE_ID);
@@ -410,9 +450,9 @@ export function paletteCssVars(palette: Palette, accentOverride?: string) {
     "--terracotta": palette.terracotta ?? t.gold,
     "--beige": palette.beige ?? t.line,
     "--tan": palette.tan ?? t.gold,
-    "--sage": palette.id === "sts-day" ? "#536250" : t.emerald,
+    "--sage": t.emerald,
     "--primary": palette.primary ?? (night ? violet : t.forest),
-    "--primary-hover": palette.primaryHover ?? (night ? "#5B3DE8" : t.forestHover),
+    "--primary-hover": palette.primaryHover ?? t.forestHover,
     "--primary-ink": palette.primaryInk ?? "#FFFFFF",
     "--accent": accent,
     "--brand-accent": accent,
@@ -422,17 +462,26 @@ export function paletteCssVars(palette: Palette, accentOverride?: string) {
     "--border": t.line,
     ...(palette.id === "sts-day"
       ? {
-          "--background-soft": "#E9EEE5",
-          "--surface-muted": "#F8F9F5",
-          "--sage-light": "#DDE7D3",
-          "--sage-medium": "#B8C6AD",
-          "--sage-strong": "#7E9274",
-          "--sage-dark": "#536250",
-          "--border-light": "#D9DED5",
-          "--border-strong": "#C5CDC0",
-          "--sts-purple": "#7048E8",
-          "--sts-blue": "#3478F6",
-          "--sts-gradient": "linear-gradient(135deg, #7048E8 0%, #3478F6 100%)",
+          "--background-soft": "#EAF8F0",
+          "--surface-muted": "#F7FAF7",
+          "--sage-light": "#EAF8F0",
+          "--sage-medium": "#A8BFAE",
+          "--sage-strong": "#1F6F5C",
+          "--sage-dark": "#12372A",
+          "--border-light": "#D5E0D8",
+          "--border-strong": "#A8BFAE",
+        }
+      : {}),
+    ...(palette.id === "sts-night"
+      ? {
+          "--background-soft": "#07130F",
+          "--surface-muted": "#07130F",
+          "--sage-light": "#12372A",
+          "--sage-medium": "#A8BFAE",
+          "--sage-strong": "#1F6F5C",
+          "--sage-dark": "#1F6F5C",
+          "--border-light": "#1A332C",
+          "--border-strong": "#A8BFAE",
         }
       : {}),
     ...(night ? { "--gold-ink": t.gold } : palette.goldInk ? { "--gold-ink": palette.goldInk } : {}),
