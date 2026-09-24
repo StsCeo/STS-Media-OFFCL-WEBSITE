@@ -13,19 +13,117 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const menuId = useId();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    }
+    function onPointer(event: MouseEvent) {
+      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
     }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onPointer);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onPointer);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const root = panelRef.current;
+    if (!root) return;
+    root.querySelector<HTMLElement>("a, button")?.focus();
+    function trap(event: KeyboardEvent) {
+      if (event.key !== "Tab" || !wrapRef.current) return;
+      const nodes = [...wrapRef.current.querySelectorAll<HTMLElement>("a, button, input, select, textarea")].filter(
+        (node) => !node.hasAttribute("disabled"),
+      );
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    wrap.addEventListener("keydown", trap);
+    return () => wrap.removeEventListener("keydown", trap);
+  }, [open]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-card/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Logo invert={theme === "dark"} />
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="relative" ref={wrapRef}>
+            <button
+              ref={buttonRef}
+              type="button"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md p-2 text-ink"
+              onClick={() => setOpen((value) => !value)}
+              aria-expanded={open}
+              aria-controls={menuId}
+              aria-haspopup="menu"
+              aria-label={open ? "Close menu" : "Open menu"}
+            >
+              {open ? <X aria-hidden /> : <Menu aria-hidden />}
+            </button>
+            {open ? (
+              <div
+                id={menuId}
+                ref={panelRef}
+                role="menu"
+                className="absolute left-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-card p-2 shadow-[var(--shadow-card)]"
+              >
+                <nav className="flex flex-col gap-0.5 text-sm text-ink" aria-label="Site">
+                  {publicNav.map((item) =>
+                    item.href === "/for/owners" ? (
+                      <div key={item.href} className="flex flex-col">
+                        {ownersMenu.map((entry) => (
+                          <Link
+                            key={entry.href}
+                            href={entry.href}
+                            role="menuitem"
+                            className="rounded-md px-3 py-2 hover:bg-lavender"
+                            onClick={() => setOpen(false)}
+                          >
+                            {entry.label}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        role="menuitem"
+                        className="rounded-md px-3 py-2 hover:bg-lavender"
+                        aria-current={pathname === item.href || pathname.startsWith(`${item.href}/`) ? "page" : undefined}
+                        onClick={() => setOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    ),
+                  )}
+                  <div className="mt-1 border-t border-line px-1 pt-2 lg:hidden">
+                    <Button href="/contact">Start a Project</Button>
+                  </div>
+                </nav>
+              </div>
+            ) : null}
+          </div>
+          <Logo invert={theme === "dark"} />
+        </div>
         <nav className="hidden items-center gap-7 text-sm text-muted lg:flex" aria-label="Primary">
           {publicNav.map((item) =>
             item.href === "/for/owners" ? (
@@ -42,36 +140,8 @@ export function PublicHeader({ theme }: { theme: "light" | "dark" }) {
               Start a Project
             </Button>
           </span>
-          <button
-            className="rounded-md p-2 text-ink lg:hidden"
-            onClick={() => setOpen((value) => !value)}
-            aria-expanded={open}
-            aria-controls={menuId}
-            aria-label={open ? "Close menu" : "Open menu"}
-          >
-            {open ? <X aria-hidden /> : <Menu aria-hidden />}
-          </button>
         </div>
       </div>
-      {open ? (
-        <div id={menuId} className="border-t border-line px-4 py-4 lg:hidden">
-          <nav className="flex flex-col gap-3 text-ink" aria-label="Mobile">
-            {publicNav.map((item) => (
-              <div key={item.href}>
-                <Link href={item.href} onClick={() => setOpen(false)}>
-                  {item.label}
-                </Link>
-                {item.href === "/for/owners" ? (
-                  <Link className="mt-2 block pl-3 text-sm text-soft-gray" href="/login" onClick={() => setOpen(false)}>
-                    Owner login
-                  </Link>
-                ) : null}
-              </div>
-            ))}
-            <Button href="/contact">Start a Project</Button>
-          </nav>
-        </div>
-      ) : null}
     </header>
   );
 }
