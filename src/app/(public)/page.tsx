@@ -65,8 +65,11 @@ export default function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
       <StickyMobileCta />
 
-      <section className="public-page sts-home-hero sts-banner-hero">
+      <section className="sts-top-banner" aria-label="Scars to Stars Media">
         <BannerAtmosphere />
+      </section>
+
+      <section className="public-page sts-home-hero">
         <div className="public-wrap">
           <div className="sts-banner-glass sts-reveal">
             <p className="public-kicker">Digital transformation for growing small businesses</p>
