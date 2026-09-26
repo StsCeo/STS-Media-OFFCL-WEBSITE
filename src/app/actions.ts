@@ -16,6 +16,7 @@ import { getPalette } from "@/lib/theme/palettes";
 import type {
   BusinessProfile,
   ClientRecord,
+  IcpRecord,
   Expense,
   Lead,
   CalendarEvent,
@@ -36,11 +37,16 @@ import { clearCurrentAuth, createSupabaseServer, getSession, organizationRoleFor
 import { recordOrganizationAudit, updateOrganizationBusinessSettings } from "@/lib/org/store";
 import { saveOrganizationSettingsInDatabase } from "@/lib/org/database";
 import {
+  convertCrmLeadInDatabase,
+  convertLeadInMemory,
+  GENERIC_CONVERT_ERROR as GENERIC_LEAD_CONVERT_ERROR,
   GENERIC_CRM_ERROR,
   loadCrmLeadFromDatabase,
   normalizeClientInput,
+  normalizeIcpInput,
   normalizeLeadInput,
   saveCrmClientInDatabase,
+  saveCrmIcpInDatabase,
   saveCrmLeadInDatabase,
   shouldUseCrmDatabase,
 } from "@/lib/org/crm";
@@ -623,11 +629,117 @@ export async function upsertLead(input: Partial<Lead> & { id?: string }) {
         notes: input.notes || "",
         assignedTo: input.assignedTo || "Owner",
         createdAt: new Date().toISOString().slice(0, 10),
+        icpId: input.icpId ?? null,
+        convertedClientId: input.convertedClientId ?? null,
+        estimateId: input.estimateId ?? null,
+        lostReason: input.lostReason ?? null,
+        expectedCloseOn: input.expectedCloseOn ?? null,
+        assignedMemberId: input.assignedMemberId ?? null,
       });
     }
   });
   stampAudit("lead_upsert", input.id || "new", "Lead updated.");
   revalidatePath("/dashboard/leads");
+  revalidatePath("/dashboard/crm");
+  revalidatePath("/dashboard");
+}
+
+export async function upsertIcp(input: Partial<IcpRecord> & { id?: string }) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const session = await getSession();
+  const payload = normalizeIcpInput(input);
+  if (shouldUseCrmDatabase(session.user)) {
+    const write = await requireCrmWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_CRM_ERROR);
+    const supabase = await factory();
+    const saved = await saveCrmIcpInDatabase(supabase, write.organizationId, payload);
+    if ("error" in saved) throw new Error(GENERIC_CRM_ERROR);
+    stampAudit("icp_upsert", saved.id, "ICP saved.");
+    revalidatePath("/dashboard/crm/icps");
+    revalidatePath("/dashboard/crm");
+    revalidatePath("/dashboard/leads");
+    return;
+  }
+  mutateWorkspace((state) => {
+    if (payload.id) {
+      const current = state.icps.find((item) => item.id === payload.id);
+      if (current) Object.assign(current, payload);
+      return;
+    }
+    state.icps.unshift({
+      ...payload,
+      id: `icp-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  });
+  stampAudit("icp_upsert", payload.id || "new", "ICP saved.");
+  revalidatePath("/dashboard/crm/icps");
+  revalidatePath("/dashboard/crm");
+  revalidatePath("/dashboard/leads");
+}
+
+export async function saveIcpForm(formData: FormData) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const id = String(formData.get("id") || "");
+  const min = Number(formData.get("estimatedBudgetMin") || 0);
+  const max = Number(formData.get("estimatedBudgetMax") || 0);
+  await upsertIcp({
+    id: id || undefined,
+    name: sanitizeText(String(formData.get("name") || "")),
+    industry: sanitizeText(String(formData.get("industry") || "")),
+    companySize: sanitizeText(String(formData.get("companySize") || "")),
+    market: sanitizeText(String(formData.get("market") || "")),
+    estimatedBudgetMin: min,
+    estimatedBudgetMax: max,
+    commonProblems: sanitizeText(String(formData.get("commonProblems") || "")),
+    servicesNeeded: sanitizeText(String(formData.get("servicesNeeded") || "")),
+    decisionMaker: sanitizeText(String(formData.get("decisionMaker") || "")),
+    acquisitionChannels: sanitizeText(String(formData.get("acquisitionChannels") || "")),
+    commonObjections: sanitizeText(String(formData.get("commonObjections") || "")),
+    buyingTriggers: sanitizeText(String(formData.get("buyingTriggers") || "")),
+    notes: sanitizeText(String(formData.get("notes") || "")),
+    status: String(formData.get("status") || "active") === "archived" ? "archived" : "active",
+  });
+}
+
+export async function convertLeadToClient(leadId: string) {
+  await assertSameOrigin();
+  await requireOwnerWrite();
+  const session = await getSession();
+  if (shouldUseCrmDatabase(session.user)) {
+    const write = await requireCrmWrite();
+    const factory = createSupabaseServer();
+    if (!factory) throw new Error(GENERIC_LEAD_CONVERT_ERROR);
+    const supabase = await factory();
+    const saved = await convertCrmLeadInDatabase(supabase, write.organizationId, leadId);
+    if ("error" in saved) throw new Error(GENERIC_LEAD_CONVERT_ERROR);
+    stampAudit("lead_convert", leadId, "Lead converted to client. The original lead was preserved.");
+    revalidatePath("/dashboard/leads");
+    revalidatePath("/dashboard/clients");
+    revalidatePath(`/dashboard/clients/${saved.id}`);
+    revalidatePath("/dashboard/crm");
+    revalidatePath("/dashboard");
+    return saved.id;
+  }
+  let clientId = "";
+  mutateWorkspace((state) => {
+    const converted = convertLeadInMemory(state.leads, state.clients, leadId);
+    if ("error" in converted) throw new Error(GENERIC_LEAD_CONVERT_ERROR);
+    state.leads = converted.leads;
+    state.clients = converted.clients;
+    clientId = converted.clientId;
+  });
+  stampAudit("lead_convert", leadId, "Lead converted to client. The original lead was preserved.");
+  revalidatePath("/dashboard/leads");
+  revalidatePath("/dashboard/clients");
+  revalidatePath(`/dashboard/clients/${clientId}`);
+  revalidatePath("/dashboard/crm");
+  revalidatePath("/dashboard");
+  return clientId;
 }
 
 export async function upsertProject(input: Partial<Project> & { id?: string }) {
@@ -990,6 +1102,8 @@ export async function upsertClient(input: Partial<ClientRecord> & { id?: string 
     if ("error" in saved) throw new Error(GENERIC_CRM_ERROR);
     stampAudit("client_upsert", saved.id, "Client record saved. Clients do not receive a login.");
     revalidatePath("/dashboard/clients");
+    revalidatePath(`/dashboard/clients/${saved.id}`);
+    revalidatePath("/dashboard/crm");
     revalidatePath("/dashboard");
     return;
   }

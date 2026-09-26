@@ -19,6 +19,8 @@ import {
   submitContact,
   upsertExpense,
   upsertLead,
+  upsertIcp,
+  convertLeadToClient,
   upsertProject,
   upsertRevenue,
 } from "@/app/actions";
@@ -188,6 +190,9 @@ describe("protected owner writes", () => {
 
     await expect(upsertLead({ businessName: "Forged lead" })).rejects.toThrow("Unauthorized");
     expect(getWorkspace().leads.length).toBe(leads);
+    await expect(upsertIcp({ name: "Forged ICP" })).rejects.toThrow("Unauthorized");
+    expect(getWorkspace().icps.length).toBe(0);
+    await expect(convertLeadToClient("lead-scp")).rejects.toThrow("Unauthorized");
 
     await expect(upsertProject({ name: "Forged project" })).rejects.toThrow("Unauthorized");
     expect(getWorkspace().projects.length).toBe(projects);

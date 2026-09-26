@@ -211,6 +211,7 @@ export function createSeedWorkspace(): WorkspaceState {
       legal("client-portal", "How clients work with STS Media", "Clients do not receive a login. Work is handled by the owner through email, calls, and the contact form.", legalBodies["client-portal"]),
     ],
     contacts: [],
+    icps: [],
     clients: [
       {
         id: "client-scp",
