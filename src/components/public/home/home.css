@@ -428,12 +428,22 @@ html.sts-header-compact [data-surface="public"] header > div {
   .sts-device-desktop,
   .home-device,
   .sts-banner-signature,
-  .sts-banner-shoot {
+  .sts-banner-shoot,
+  .sts-night-arc,
+  .sts-meteor {
     animation: none !important;
     transform: none !important;
     opacity: 1 !important;
     stroke-dashoffset: 0 !important;
     transition: none !important;
+  }
+
+  .sts-banner-journey {
+    transition: none !important;
+  }
+
+  .sts-meteor {
+    opacity: 0 !important;
   }
 }
 
@@ -466,6 +476,71 @@ html.dark .sts-home {
   overflow: hidden;
 }
 
+.sts-banner-journey {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: 270%;
+  height: 100%;
+  transform: translateX(0);
+  transition: transform 1.45s cubic-bezier(0.45, 0.05, 0.2, 1);
+}
+
+html[data-theme="dark"] .sts-banner-journey,
+html.dark .sts-banner-journey {
+  transform: translateX(-62.963%);
+}
+
+.sts-banner-day,
+.sts-banner-blend,
+.sts-banner-night {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sts-banner-day,
+.sts-banner-night {
+  flex: 100 0 0%;
+}
+
+.sts-banner-blend {
+  flex: 70 0 0%;
+}
+
+.sts-banner-day {
+  background:
+    radial-gradient(ellipse 42% 70% at 12% 42%, rgba(250, 248, 242, 0.95), transparent 70%),
+    radial-gradient(ellipse 50% 80% at 34% 62%, rgba(168, 191, 174, 0.42), transparent 68%),
+    radial-gradient(ellipse 30% 55% at 72% 40%, rgba(31, 111, 92, 0.1), transparent 70%),
+    linear-gradient(90deg, #faf8f2 0%, #f4f8f4 72%, #e7f3ec 100%);
+}
+
+.sts-day-mist {
+  position: absolute;
+  inset: -8% -6% -10% -12%;
+  background:
+    radial-gradient(ellipse 34% 48% at 18% 46%, rgba(250, 248, 242, 0.85), transparent 70%),
+    radial-gradient(ellipse 28% 42% at 40% 58%, rgba(168, 191, 174, 0.5), transparent 72%);
+  filter: blur(18px);
+}
+
+.sts-banner-blend {
+  background:
+    radial-gradient(ellipse 36% 70% at 16% 48%, rgba(250, 248, 242, 0.72), transparent 70%),
+    radial-gradient(ellipse 28% 58% at 34% 58%, rgba(168, 191, 174, 0.38), transparent 72%),
+    radial-gradient(ellipse 30% 50% at 78% 24%, rgba(31, 111, 92, 0.32), transparent 70%),
+    linear-gradient(90deg, #e7f3ec 0%, #9eb5aa 24%, #12372a 46%, #07130f 68%, #050706 100%);
+}
+
+.sts-banner-night {
+  background:
+    radial-gradient(ellipse 36% 48% at 72% 28%, rgba(31, 111, 92, 0.28), transparent 70%),
+    radial-gradient(circle at 86% 18%, rgba(255, 248, 232, 0.08), transparent 16%),
+    linear-gradient(90deg, #07130f 0%, #050706 18%, #050706 100%);
+}
+
 .sts-banner-trail {
   position: absolute;
   inset: 0;
@@ -483,6 +558,7 @@ html.dark .sts-home {
   border-radius: 24px;
   backdrop-filter: blur(18px);
   box-shadow: 0 20px 60px rgba(18, 55, 42, 0.1);
+  transition: background 1.45s ease, border-color 1.45s ease, box-shadow 1.45s ease;
 }
 
 html[data-theme="dark"] .sts-banner-glass,
@@ -492,39 +568,77 @@ html.dark .sts-banner-glass {
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42), 0 0 30px rgba(31, 111, 92, 0.08);
 }
 
-.sts-star {
+.sts-night-star {
   position: absolute;
   width: 2px;
   height: 2px;
   border-radius: 999px;
   background: #fff8e8;
-  opacity: 0.35;
+  opacity: 0.4;
 }
 
-.sts-star-a { top: 12%; right: 10%; }
-.sts-star-b { top: 18%; right: 22%; width: 3px; height: 3px; }
-.sts-star-c { top: 8%; right: 32%; }
-.sts-star-d { top: 28%; right: 8%; }
-.sts-star-e { bottom: 18%; left: 6%; background: #a8bfae; opacity: 0.22; }
-.sts-star-f { bottom: 10%; left: 14%; }
-.sts-star-g { top: 22%; right: 16%; width: 1px; height: 1px; }
-.sts-star-h { top: 14%; right: 4%; width: 3px; height: 3px; }
+.sts-night-star-a { top: 16%; right: 12%; }
+.sts-night-star-b { top: 24%; right: 28%; width: 3px; height: 3px; }
+.sts-night-star-c { top: 10%; right: 40%; }
+.sts-night-star-d { top: 36%; right: 8%; }
+.sts-night-star-e { top: 48%; left: 22%; width: 1px; height: 1px; opacity: 0.3; }
+.sts-night-star-f { bottom: 22%; left: 34%; }
+.sts-night-star-g { top: 30%; right: 18%; width: 1px; height: 1px; }
+.sts-night-star-h { top: 14%; right: 6%; width: 3px; height: 3px; }
+
+.sts-meteor {
+  position: absolute;
+  width: 6.5rem;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(156, 240, 209, 0.2) 46%, #fff8e8 100%);
+  opacity: 0;
+  filter: drop-shadow(0 0 6px rgba(156, 240, 209, 0.35));
+}
+
+.sts-meteor::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: #fff8e8;
+  transform: translateY(-50%);
+  box-shadow: 0 0 8px 1px rgba(255, 248, 232, 0.65);
+}
+
+.sts-meteor-a { top: 22%; left: 6%; }
+.sts-meteor-b { top: 48%; left: 28%; width: 5rem; }
+.sts-meteor-c { top: 12%; left: 46%; width: 4.25rem; }
+.sts-meteor-blend { top: 30%; left: 58%; width: 7rem; }
 
 @media (prefers-reduced-motion: no-preference) {
   .sts-banner-signature {
-    stroke-dasharray: 1400;
+    stroke-dasharray: 900;
     animation: sts-sign-draw 4.8s ease both;
   }
 
+  .sts-night-arc {
+    stroke-dasharray: 760;
+    animation: sts-sign-draw 5.4s ease both;
+  }
+
   .sts-banner-shoot {
-    stroke-dasharray: 520;
-    stroke-dashoffset: 520;
+    stroke-dasharray: 320;
+    stroke-dashoffset: 320;
     animation: sts-shoot 1.8s ease 2.2s forwards;
   }
 
-  .sts-star {
-    animation: sts-twinkle-star 3.6s ease-in-out infinite;
+  .sts-night-star {
+    animation: sts-twinkle-star 3.8s ease-in-out infinite;
   }
+
+  .sts-meteor-a { animation: sts-meteor 9s linear infinite; }
+  .sts-meteor-b { animation: sts-meteor 11s linear 3.2s infinite; }
+  .sts-meteor-c { animation: sts-meteor 10s linear 6.4s infinite; }
+  .sts-meteor-blend { animation: sts-meteor 12s linear 1.6s infinite; }
 }
 
 @keyframes sts-sign-draw {
@@ -539,4 +653,20 @@ html.dark .sts-banner-glass {
 @keyframes sts-twinkle-star {
   0%, 100% { opacity: 0.2; }
   50% { opacity: 0.7; }
+}
+
+@keyframes sts-meteor {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(22deg);
+    opacity: 0;
+  }
+  8% { opacity: 0.8; }
+  24% {
+    transform: translate3d(11rem, 5.2rem, 0) rotate(22deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translate3d(11rem, 5.2rem, 0) rotate(22deg);
+    opacity: 0;
+  }
 }
