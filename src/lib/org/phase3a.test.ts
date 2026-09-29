@@ -164,6 +164,7 @@ describe("journey derivation", () => {
         taxCents: 0,
         totalCents: 10000,
         lines: [],
+        sections: [],
         readyAt: "2026-08-01",
         acceptedAt: "2026-08-02",
         declinedAt: null,

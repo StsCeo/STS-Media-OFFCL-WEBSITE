@@ -13,7 +13,9 @@ import {
   derivedEstimateStatus,
   draftInvoiceFromAcceptedEstimate,
   matchesEstimateSearch,
+  parseEstimateSectionsFromForm,
   validateEstimateLines,
+  validateEstimateSections,
 } from "@/lib/org/estimates-model";
 import { ESTIMATE_CONVERT_RPC } from "@/lib/org/workspace";
 
@@ -83,6 +85,9 @@ describe("estimate calculation helpers", () => {
           lineTotalCents: 295000,
         },
       ],
+      sections: [
+        { position: 1, heading: "Discovery", body: "Review the current site." },
+      ],
       readyAt: null,
       acceptedAt: "2026-09-20T00:00:00.000Z",
       declinedAt: null,
@@ -111,7 +116,29 @@ describe("estimate calculation helpers", () => {
     });
     expect(invoice?.lines[0]).toMatchObject({ quantity: 2, unitCents: 150000, lineTotalCents: 300000 });
     expect(invoice?.dueDate).toBe("2026-10-05");
+    expect(invoice?.totalCents).toBe(estimate.totalCents);
+    expect(JSON.stringify(invoice)).not.toContain("Discovery");
     expect(draftInvoiceFromAcceptedEstimate({ ...estimate, status: "draft" }, "x")).toBeNull();
+  });
+
+  it("keeps statement of work sections out of the money calculation", () => {
+    const lines = [{ description: "Build", quantity: 1, unitCents: 2500, discountCents: 0 }];
+    const totals = computeEstimateTotals(lines, 100);
+    expect(validateEstimateSections([{ heading: "Scope", body: "Design and build." }])).toBeNull();
+    expect(validateEstimateSections([{ heading: "A", body: "" }])).toMatch(/heading/i);
+    expect(validateEstimateSections(Array.from({ length: 41 }, () => ({ heading: "Scope", body: "" })))).toMatch(/40/);
+    const form = new FormData();
+    form.append("sectionHeading", "  Second  ");
+    form.append("sectionBody", "Later");
+    form.append("sectionHeading", "First");
+    form.append("sectionBody", "Earlier");
+    form.append("sectionHeading", " ");
+    form.append("sectionBody", " ");
+    expect(parseEstimateSectionsFromForm(form)).toEqual([
+      { heading: "Second", body: "Later" },
+      { heading: "First", body: "Earlier" },
+    ]);
+    expect(totals).toEqual({ subtotalCents: 2500, discountCents: 0, taxCents: 100, totalCents: 2600 });
   });
 
   it("matches search across number, title, and customer snapshot without requiring email send", () => {
@@ -195,5 +222,58 @@ describe("day 6 conversion and print migrations", () => {
     expect(readFileSync("src/app/dashboard/estimates/page.tsx", "utf8")).not.toMatch(/does not send email, generate PDFs, collect signatures, convert to invoices/);
     expect(readFileSync("vercel.json", "utf8")).toContain('"main": true');
     expect(readFileSync("vercel.json", "utf8")).toContain('"*": false');
+  });
+});
+
+describe("phase 3b statement of work sections", () => {
+  it("adds forced RLS, draft-only writes, and a session-scoped portal read", () => {
+    const files = readdirSync("supabase/migrations").filter((name) => name.endsWith(".sql")).sort();
+    const migration = "20260929180000_phase3b_estimate_sections.sql";
+    expect(files.at(-1)).toBe(migration);
+    expect(files.indexOf(migration)).toBeGreaterThan(files.indexOf("20260924063409_phase3a_crm_journey.sql"));
+    const sql = readFileSync(`supabase/migrations/${migration}`, "utf8");
+    const estimateRoles = readFileSync("supabase/migrations/20260920160000_day5_estimates.sql", "utf8");
+    expect(sql).toContain("create table if not exists public.ws_estimate_sections");
+    expect(sql).toContain("force row level security");
+    expect(sql).toContain("sts_freeze_organization_id");
+    expect(sql).toContain("sts_can_read_estimates(organization_id)");
+    expect(sql).toContain("sts_can_write_estimates(organization_id)");
+    expect(estimateRoles).toContain("array['owner', 'administrator', 'employee']");
+    expect(sql).not.toContain("'accountant'");
+    expect(sql).toContain("invalid organization");
+    expect(sql).toContain("parent.status <> 'draft'");
+    expect(sql).toContain("parent.archived_at is not null");
+    expect(sql).toContain("revoke delete on public.ws_estimate_sections from authenticated");
+    expect(sql).toContain("public.sts_save_ws_estimate(");
+    expect(sql).toContain("sts_est_replace_sections");
+    expect(sql).not.toContain("subtotal_cents =");
+    expect(sql).not.toContain("total_cents =");
+    expect(sql).toContain("sts_list_client_portal_estimate_sections()");
+    expect(sql).toContain("sts_client_portal_session()");
+    expect(sql).not.toMatch(/function public\.sts_list_client_portal_estimate_sections\([\s\S]*p_organization_id/);
+    expect(sql).not.toMatch(/grant execute[\s\S]{0,160}to anon/i);
+    expect(sql).toContain("revoke all on function public.sts_est_replace_sections(uuid, uuid, jsonb) from public, anon, authenticated");
+    const portalFn = sql.split("create or replace function public.sts_list_client_portal_estimate_sections()")[1].split("$$;")[0];
+    expect(portalFn).toContain("source_type = 'estimate'");
+    expect(portalFn).toContain("unpublished_at is null");
+    expect(portalFn).not.toMatch(/internal_notes|client_email/);
+    expect(readFileSync("supabase/migrations/20260920170000_day6_estimate_to_invoice.sql", "utf8")).not.toContain("ws_estimate_sections");
+    expect(readFileSync("supabase/migrations/20260920191000_day8_accountant_base_table_lockdown.sql", "utf8")).toContain("sts_list_accountant_revenue");
+    expect(sql).not.toContain("sts_list_accountant_");
+    expect(readFileSync("src/app/dashboard/estimates/[id]/print/page.tsx", "utf8")).toContain("sections={estimate.sections}");
+    expect(readFileSync("src/components/dashboard/print-toolbar.tsx", "utf8")).toContain("window.print()");
+    expect(readFileSync("src/app/client/estimates/[id]/page.tsx", "utf8")).toContain("sections={estimate.sections}");
+    expect(readFileSync("src/app/client/estimates/[id]/page.tsx", "utf8")).not.toContain("sectionHeading");
+    expect(readFileSync("src/lib/org/client-portal.ts", "utf8")).toContain("sts_list_client_portal_estimate_sections");
+    expect(readFileSync("src/lib/org/client-portal.ts", "utf8")).not.toMatch(/p_organization_id/);
+    expect(readFileSync("src/components/dashboard/estimate-form.tsx", "utf8")).toContain("Add section");
+    expect(readFileSync("src/components/dashboard/estimate-form.tsx", "utf8")).toContain("disabled={locked}");
+    const isolation = readFileSync("supabase/tests/phase3b_sow_isolation_runtime.sql", "utf8");
+    expect(isolation).toContain("PHASE3B_SOW_ISOLATION_RUNTIME_PASSED");
+    expect(isolation).toContain("organization B cannot read organization A sections");
+    expect(isolation).toContain("AAL1 cannot read estimate sections");
+    expect(isolation).toContain("accountant cannot modify sections");
+    expect(isolation).toContain("estimate-to-invoice conversion stays idempotent");
+    expect(isolation).toContain("portal client cannot read unpublished estimate sections");
   });
 });

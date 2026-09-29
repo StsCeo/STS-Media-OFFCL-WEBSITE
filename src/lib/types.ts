@@ -472,6 +472,13 @@ export interface WorkspaceEstimateLine {
   lineTotalCents: number;
 }
 
+export interface WorkspaceEstimateSection {
+  id?: string;
+  position: number;
+  heading: string;
+  body: string;
+}
+
 export interface WorkspaceEstimate {
   id: string;
   estimateNumber: string;
@@ -495,6 +502,7 @@ export interface WorkspaceEstimate {
   taxCents: number;
   totalCents: number;
   lines: WorkspaceEstimateLine[];
+  sections: WorkspaceEstimateSection[];
   readyAt: string | null;
   acceptedAt: string | null;
   declinedAt: string | null;

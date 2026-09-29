@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui";
 import { formatCents } from "@/lib/money";
+import type { WorkspaceEstimateSection } from "@/lib/types";
 
 export type CommercialLine = {
   id?: string;
@@ -31,6 +32,7 @@ export function CommercialDocument({
   amountPaidCents,
   customerNotes,
   terms,
+  sections = [],
   sourceEstimateNumber,
   showDiscountColumn = false,
 }: {
@@ -54,6 +56,7 @@ export function CommercialDocument({
   amountPaidCents?: number;
   customerNotes?: string;
   terms?: string;
+  sections?: WorkspaceEstimateSection[];
   sourceEstimateNumber?: string;
   showDiscountColumn?: boolean;
 }) {
@@ -84,6 +87,20 @@ export function CommercialDocument({
           {sourceEstimateNumber ? <p>Source estimate {sourceEstimateNumber}</p> : null}
         </div>
       </div>
+      {sections.length ? (
+        <section className="mt-6 space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted">Statement of work</h2>
+          {sections
+            .slice()
+            .sort((a, b) => a.position - b.position)
+            .map((section) => (
+              <div key={section.id || section.position}>
+                <h3 className="font-medium">{section.heading}</h3>
+                {section.body ? <p className="mt-1 whitespace-pre-wrap text-sm">{section.body}</p> : null}
+              </div>
+            ))}
+        </section>
+      ) : null}
       <table className="mt-6 w-full text-sm">
         <thead>
           <tr className="border-b border-line text-left">

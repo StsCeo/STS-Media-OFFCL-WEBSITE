@@ -39,6 +39,7 @@ function demoKickoffEstimate(): WorkspaceEstimate {
         lineTotalCents: 295000,
       },
     ],
+    sections: [],
     readyAt: "2026-09-20T12:00:00.000Z",
     acceptedAt: "2026-09-20T12:05:00.000Z",
     declinedAt: null,

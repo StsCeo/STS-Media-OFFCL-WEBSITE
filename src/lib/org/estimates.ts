@@ -1,9 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sanitizeText } from "@/lib/validation";
 import type { SessionUser } from "@/lib/auth/session";
-import type { WorkspaceEstimate, WorkspaceEstimateLine, WorkspaceEstimateStatus } from "@/lib/types";
+import type { WorkspaceEstimate, WorkspaceEstimateLine, WorkspaceEstimateSection, WorkspaceEstimateStatus } from "@/lib/types";
 import { isSupabaseConfigured } from "@/lib/config";
-import { estimateLinesPayload } from "@/lib/org/estimates-model";
+import { estimateLinesPayload, estimateSectionsPayload } from "@/lib/org/estimates-model";
 
 export {
   ESTIMATE_RECORD_NOTE,
@@ -19,14 +19,18 @@ export {
   derivedEstimateStatus,
   draftInvoiceFromAcceptedEstimate,
   estimateLinesPayload,
+  estimateSectionsPayload,
   estimateSummaries,
   estimateTotalsLabel,
   matchesEstimateSearch,
   parseEstimateLinesFromForm,
+  parseEstimateSectionsFromForm,
   validateEstimateLines,
+  validateEstimateSections,
 } from "@/lib/org/estimates-model";
 
 export const ESTIMATE_SAVE_RPC = "sts_save_ws_estimate";
+export const ESTIMATE_SAVE_WITH_SECTIONS_RPC = "sts_save_ws_estimate_with_sections";
 export const ESTIMATE_STATUS_RPC = "sts_set_ws_estimate_status";
 export const ESTIMATE_ARCHIVE_RPC = "sts_archive_ws_estimate";
 export const ESTIMATE_RESTORE_RPC = "sts_restore_ws_estimate";
@@ -60,7 +64,20 @@ export function mapEstimateLineRow(row: Record<string, unknown>): WorkspaceEstim
   };
 }
 
-export function mapEstimateRow(row: Record<string, unknown>, lines: WorkspaceEstimateLine[] = []): WorkspaceEstimate {
+export function mapEstimateSectionRow(row: Record<string, unknown>): WorkspaceEstimateSection {
+  return {
+    id: String(row.id),
+    position: Number(row.position || 1),
+    heading: String(row.heading || ""),
+    body: String(row.body || ""),
+  };
+}
+
+export function mapEstimateRow(
+  row: Record<string, unknown>,
+  lines: WorkspaceEstimateLine[] = [],
+  sections: WorkspaceEstimateSection[] = [],
+): WorkspaceEstimate {
   const status = (["draft", "ready", "accepted", "declined", "expired"] as const).includes(
     row.status as WorkspaceEstimateStatus,
   )
@@ -89,6 +106,7 @@ export function mapEstimateRow(row: Record<string, unknown>, lines: WorkspaceEst
     taxCents: Number(row.tax_cents || 0),
     totalCents: Number(row.total_cents || 0),
     lines,
+    sections,
     readyAt: row.ready_at ? String(row.ready_at) : null,
     acceptedAt: row.accepted_at ? String(row.accepted_at) : null,
     declinedAt: row.declined_at ? String(row.declined_at) : null,
@@ -118,6 +136,16 @@ export async function listWorkspaceEstimates(supabase: SupabaseClient, organizat
     )
     .order("position", { ascending: true });
   if (lineError) return { error: true as const };
+  const { data: sections, error: sectionError } = await supabase
+    .from("ws_estimate_sections")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .in(
+      "estimate_id",
+      estimates.map((item) => item.id),
+    )
+    .order("position", { ascending: true });
+  if (sectionError) return { error: true as const };
   const grouped = new Map<string, WorkspaceEstimateLine[]>();
   for (const row of lines ?? []) {
     const mapped = mapEstimateLineRow(row as Record<string, unknown>);
@@ -125,7 +153,18 @@ export async function listWorkspaceEstimates(supabase: SupabaseClient, organizat
     list.push(mapped);
     grouped.set(String((row as { estimate_id: string }).estimate_id), list);
   }
-  return estimates.map((estimate) => ({ ...estimate, lines: grouped.get(estimate.id) ?? [] }));
+  const groupedSections = new Map<string, WorkspaceEstimateSection[]>();
+  for (const row of sections ?? []) {
+    const mapped = mapEstimateSectionRow(row as Record<string, unknown>);
+    const list = groupedSections.get(String((row as { estimate_id: string }).estimate_id)) ?? [];
+    list.push(mapped);
+    groupedSections.set(String((row as { estimate_id: string }).estimate_id), list);
+  }
+  return estimates.map((estimate) => ({
+    ...estimate,
+    lines: grouped.get(estimate.id) ?? [],
+    sections: groupedSections.get(estimate.id) ?? [],
+  }));
 }
 
 async function rpcId(supabase: SupabaseClient, name: string, args: Record<string, unknown>) {
@@ -153,9 +192,10 @@ export async function saveWorkspaceEstimate(
     clientEmail: string;
     taxCents: number;
     lines: Array<{ description: string; quantity: number; unitCents: number; discountCents: number }>;
+    sections: Array<{ heading: string; body: string }>;
   },
 ) {
-  return rpcId(supabase, ESTIMATE_SAVE_RPC, {
+  return rpcId(supabase, ESTIMATE_SAVE_WITH_SECTIONS_RPC, {
     p_organization_id: organizationId,
     p_id: optionalUuid(input.id),
     p_client_id: optionalUuid(input.clientId),
@@ -172,6 +212,7 @@ export async function saveWorkspaceEstimate(
     p_client_email: sanitizeText(input.clientEmail).slice(0, 254),
     p_tax_cents: Math.max(0, Math.trunc(input.taxCents)),
     p_lines: estimateLinesPayload(input.lines),
+    p_sections: estimateSectionsPayload(input.sections),
   });
 }
 
@@ -212,8 +253,16 @@ export async function loadWorkspaceEstimate(supabase: SupabaseClient, organizati
     .eq("estimate_id", id)
     .order("position", { ascending: true });
   if (lineError) return { error: true as const };
+  const { data: sections, error: sectionError } = await supabase
+    .from("ws_estimate_sections")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("estimate_id", id)
+    .order("position", { ascending: true });
+  if (sectionError) return { error: true as const };
   return mapEstimateRow(
     data as Record<string, unknown>,
     (lines ?? []).map((row) => mapEstimateLineRow(row as Record<string, unknown>)),
+    (sections ?? []).map((row) => mapEstimateSectionRow(row as Record<string, unknown>)),
   );
 }

@@ -40,6 +40,7 @@ const estimate = {
   taxCents: 0,
   totalCents: 10000,
   lines: [],
+  sections: [],
   readyAt: null,
   acceptedAt: "2026-09-02",
   declinedAt: null,

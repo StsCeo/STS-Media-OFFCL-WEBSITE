@@ -7,7 +7,8 @@ describe("day 10 release hardening", () => {
     const files = readdirSync("supabase/migrations").filter((name) => name.endsWith(".sql")).sort();
     expect(files).toContain("20260921120000_day10_legacy_table_lockdown.sql");
     expect(files).toContain("20260922120000_day11_legacy_bucket_tenant_isolation.sql");
-    expect(files.at(-1)).toBe("20260924063409_phase3a_crm_journey.sql");
+    expect(files).toContain("20260924063409_phase3a_crm_journey.sql");
+    expect(files.at(-1)).toBe("20260929180000_phase3b_estimate_sections.sql");
     expect(files).toEqual([...files].sort());
     const sql = readFileSync("supabase/migrations/20260921120000_day10_legacy_table_lockdown.sql", "utf8");
     expect(sql).toContain("force row level security");

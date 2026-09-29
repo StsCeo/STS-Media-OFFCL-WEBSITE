@@ -15,6 +15,11 @@ import type { ClientRecord, WorkspaceEstimate } from "@/lib/types";
 
 type State = { error?: string; ok?: boolean };
 type LineDraft = { description: string; quantity: string; unit: string; discount: string };
+type SectionDraft = { key: string; heading: string; body: string };
+
+function sectionKey() {
+  return globalThis.crypto?.randomUUID?.() ?? `section-${Date.now()}-${Math.random()}`;
+}
 
 async function saveAction(_prev: State, formData: FormData): Promise<State> {
   return (await saveEstimateForm(formData)) ?? { ok: true };
@@ -30,6 +35,13 @@ const restoreAction = wrap(restoreEstimateForm);
 
 async function convertAction(_prev: State & { invoiceId?: string }, formData: FormData): Promise<State & { invoiceId?: string }> {
   return (await convertEstimateToInvoiceForm(formData)) ?? { ok: true };
+}
+
+function sectionsFromEstimate(estimate?: WorkspaceEstimate): SectionDraft[] {
+  return (estimate?.sections ?? [])
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map((section) => ({ key: section.id || sectionKey(), heading: section.heading, body: section.body }));
 }
 
 function linesFromEstimate(estimate?: WorkspaceEstimate): LineDraft[] {
@@ -57,6 +69,7 @@ export function EstimateForm({
   const [restoreState, restoreFormAction, restorePending] = useActionState(restoreAction, {});
   const [convertState, convertFormAction, convertPending] = useActionState(convertAction, {});
   const [lines, setLines] = useState<LineDraft[]>(() => linesFromEstimate(estimate));
+  const [sections, setSections] = useState<SectionDraft[]>(() => sectionsFromEstimate(estimate));
   const [tax, setTax] = useState(estimate ? centsToDollars(estimate.taxCents).toFixed(2) : "0");
   const preview = useMemo(
     () =>
@@ -120,6 +133,92 @@ export function EstimateForm({
         <Field label="Terms" name="terms">
           <textarea id="terms" name="terms" maxLength={4000} className={`${textareaClass} md:col-span-2`} defaultValue={estimate?.terms} disabled={locked} />
         </Field>
+        <fieldset className="md:col-span-2 grid gap-3">
+          <legend className="font-medium">Statement of work</legend>
+          <p className="text-xs text-muted">Ordered scope sections. They do not change the estimate total.</p>
+          {sections.length ? sections.map((section, index) => (
+            <div key={section.key} className="grid gap-2 rounded-md border border-line p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium">Section {index + 1}</p>
+                {locked ? null : (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      disabled={index === 0}
+                      onClick={() => {
+                        const next = [...sections];
+                        const previous = next[index - 1];
+                        next[index - 1] = next[index];
+                        next[index] = previous;
+                        setSections(next);
+                      }}
+                    >
+                      Move up
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      disabled={index === sections.length - 1}
+                      onClick={() => {
+                        const next = [...sections];
+                        const following = next[index + 1];
+                        next[index + 1] = next[index];
+                        next[index] = following;
+                        setSections(next);
+                      }}
+                    >
+                      Move down
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setSections(sections.filter((item) => item.key !== section.key))}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <input
+                name="sectionHeading"
+                className={inputClass}
+                placeholder="Heading"
+                aria-label={`Section ${index + 1} heading`}
+                maxLength={160}
+                value={section.heading}
+                disabled={locked}
+                onChange={(event) => {
+                  const next = [...sections];
+                  next[index] = { ...next[index], heading: event.target.value };
+                  setSections(next);
+                }}
+              />
+              <textarea
+                name="sectionBody"
+                className={textareaClass}
+                placeholder="Scope for this section"
+                aria-label={`Section ${index + 1} content`}
+                maxLength={4000}
+                value={section.body}
+                disabled={locked}
+                onChange={(event) => {
+                  const next = [...sections];
+                  next[index] = { ...next[index], body: event.target.value };
+                  setSections(next);
+                }}
+              />
+            </div>
+          )) : <p className="text-sm text-muted">No statement of work sections yet.</p>}
+          {locked ? null : (
+            <Button type="button" size="sm" variant="secondary" onClick={() => setSections([...sections, { key: sectionKey(), heading: "", body: "" }])}>
+              Add section
+            </Button>
+          )}
+        </fieldset>
         <fieldset className="md:col-span-2 grid gap-3">
           <legend className="font-medium">Line items</legend>
           {lines.map((line, index) => (

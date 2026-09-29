@@ -36,6 +36,7 @@ export default async function EstimatePrintPage({ params }: { params: Promise<{ 
         totalCents={estimate.totalCents}
         customerNotes={estimate.customerNotes}
         terms={estimate.terms}
+        sections={estimate.sections}
         showDiscountColumn
       />
       {estimate.internalNotes ? (

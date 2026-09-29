@@ -16,6 +16,7 @@ import {
   mapClientPortalDocument,
   mapClientPortalEstimate,
   mapClientPortalEstimateLine,
+  mapClientPortalEstimateSection,
   mapClientPortalIdentity,
   mapClientPortalInvoice,
   mapClientPortalInvoiceLine,
@@ -39,6 +40,7 @@ export const CLIENT_PORTAL_PROFILE_RPC = "sts_client_portal_profile";
 export const CLIENT_PORTAL_ESTIMATES_RPC = "sts_list_client_portal_estimates";
 export const CLIENT_PORTAL_ESTIMATE_GET_RPC = "sts_get_client_portal_estimate";
 export const CLIENT_PORTAL_ESTIMATE_LINES_RPC = "sts_list_client_portal_estimate_lines";
+export const CLIENT_PORTAL_ESTIMATE_SECTIONS_RPC = "sts_list_client_portal_estimate_sections";
 export const CLIENT_PORTAL_INVOICES_RPC = "sts_list_client_portal_invoices";
 export const CLIENT_PORTAL_INVOICE_GET_RPC = "sts_get_client_portal_invoice";
 export const CLIENT_PORTAL_INVOICE_LINES_RPC = "sts_list_client_portal_invoice_lines";
@@ -92,10 +94,11 @@ export async function loadClientPortalHome(): Promise<{
   const factory = createSupabaseServer();
   if (!factory) return empty;
   const supabase = await factory();
-  const [profileRows, estimates, estimateLines, invoices, invoiceLines, projects, documents] = await Promise.all([
+  const [profileRows, estimates, estimateLines, estimateSections, invoices, invoiceLines, projects, documents] = await Promise.all([
     rpcRows(supabase, CLIENT_PORTAL_PROFILE_RPC),
     rpcRows(supabase, CLIENT_PORTAL_ESTIMATES_RPC),
     rpcRows(supabase, CLIENT_PORTAL_ESTIMATE_LINES_RPC),
+    rpcRows(supabase, CLIENT_PORTAL_ESTIMATE_SECTIONS_RPC),
     rpcRows(supabase, CLIENT_PORTAL_INVOICES_RPC),
     rpcRows(supabase, CLIENT_PORTAL_INVOICE_LINES_RPC),
     rpcRows(supabase, CLIENT_PORTAL_PROJECTS_RPC),
@@ -119,14 +122,21 @@ export async function loadClientPortalHome(): Promise<{
     return { ...empty, profile, mapped: true, unavailable: true };
   }
   const estimateLineRows = estimateLines.map(mapClientPortalEstimateLine);
+  const estimateSectionRows = "error" in estimateSections ? [] : estimateSections.map(mapClientPortalEstimateSection);
   const invoiceLineRows = invoiceLines.map(mapClientPortalInvoiceLine);
+  const publishedEstimates = attachLines(
+    estimates.map((row) => mapClientPortalEstimate(row)),
+    estimateLineRows,
+    (record, lines) => ({ ...record, lines }),
+  ).map((estimate) => ({
+    ...estimate,
+    sections: estimateSectionRows
+      .filter((section) => section.parentId === estimate.id)
+      .sort((a, b) => a.position - b.position),
+  }));
   return {
     profile,
-    estimates: attachLines(
-      estimates.map((row) => mapClientPortalEstimate(row)),
-      estimateLineRows,
-      (record, lines) => ({ ...record, lines }),
-    ),
+    estimates: publishedEstimates,
     invoices: attachLines(
       invoices.map((row) => mapClientPortalInvoice(row)),
       invoiceLineRows,

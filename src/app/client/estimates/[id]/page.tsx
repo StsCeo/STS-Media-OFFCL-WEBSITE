@@ -35,6 +35,7 @@ export default async function ClientEstimatePage({ params }: { params: Promise<{
         terms={estimate.terms}
         title={estimate.title}
         description={estimate.description}
+        sections={estimate.sections}
       />
     </div>
   );

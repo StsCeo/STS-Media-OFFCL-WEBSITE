@@ -136,6 +136,39 @@ export function computeEstimateTotals(
   };
 }
 
+export function estimateSectionsPayload(
+  sections: Array<{ heading: string; body: string }>,
+) {
+  return sections.map((section) => ({
+    heading: sanitizeText(section.heading).slice(0, 160),
+    body: sanitizeText(section.body).slice(0, 4000),
+  }));
+}
+
+export function parseEstimateSectionsFromForm(formData: FormData) {
+  const headings = formData.getAll("sectionHeading").map((value) => sanitizeText(String(value)));
+  const bodies = formData.getAll("sectionBody").map((value) => sanitizeText(String(value)));
+  const count = Math.max(headings.length, bodies.length);
+  const sections: Array<{ heading: string; body: string }> = [];
+  for (let index = 0; index < count; index += 1) {
+    const heading = (headings[index] || "").slice(0, 160);
+    const body = (bodies[index] || "").slice(0, 4000);
+    if (!heading && !body) continue;
+    sections.push({ heading, body });
+  }
+  return sections;
+}
+
+export function validateEstimateSections(sections: Array<{ heading: string; body: string }>) {
+  if (sections.length > 40) return "A statement of work can include at most 40 sections.";
+  for (const section of sections) {
+    if (section.heading.trim().length < 2) return "Each statement of work section needs a heading.";
+    if (section.heading.length > 160) return "Section headings must be 160 characters or fewer.";
+    if (section.body.length > 4000) return "Section content must be 4,000 characters or fewer.";
+  }
+  return null;
+}
+
 export function estimateLinesPayload(
   lines: Array<{ description: string; quantity: number; unitCents: number; discountCents?: number }>,
 ) {

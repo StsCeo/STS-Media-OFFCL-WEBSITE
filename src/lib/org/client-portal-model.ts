@@ -40,6 +40,7 @@ export type ClientPortalEstimate = {
   totalCents: number;
   publishedAt: string | null;
   lines: ClientPortalLine[];
+  sections: ClientPortalSection[];
 };
 
 export type ClientPortalInvoice = {
@@ -59,6 +60,13 @@ export type ClientPortalInvoice = {
   totalCents: number;
   publishedAt: string | null;
   lines: ClientPortalLine[];
+};
+
+export type ClientPortalSection = {
+  parentId: string;
+  position: number;
+  heading: string;
+  body: string;
 };
 
 export type ClientPortalLine = {
@@ -157,6 +165,7 @@ export function mapClientPortalProfile(row: Record<string, unknown>): ClientPort
 export function mapClientPortalEstimate(
   row: Record<string, unknown>,
   lines: ClientPortalLine[] = [],
+  sections: ClientPortalSection[] = [],
 ): ClientPortalEstimate {
   return {
     id: text(row.id),
@@ -179,6 +188,7 @@ export function mapClientPortalEstimate(
     totalCents: cents(row.total_cents),
     publishedAt: row.published_at ? String(row.published_at) : null,
     lines,
+    sections,
   };
 }
 
@@ -203,6 +213,15 @@ export function mapClientPortalInvoice(
     totalCents: cents(row.total_cents),
     publishedAt: row.published_at ? String(row.published_at) : null,
     lines,
+  };
+}
+
+export function mapClientPortalEstimateSection(row: Record<string, unknown>): ClientPortalSection {
+  return {
+    parentId: text(row.estimate_id),
+    position: Number(row.section_position || row.position || 1),
+    heading: text(row.heading),
+    body: text(row.body),
   };
 }
 

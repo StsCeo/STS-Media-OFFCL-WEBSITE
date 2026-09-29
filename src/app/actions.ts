@@ -113,11 +113,13 @@ import {
   computeEstimateTotals,
   draftInvoiceFromAcceptedEstimate,
   parseEstimateLinesFromForm,
+  parseEstimateSectionsFromForm,
   restoreWorkspaceEstimate,
   saveWorkspaceEstimate,
   setWorkspaceEstimateStatus,
   shouldUseEstimateDatabase,
   validateEstimateLines,
+  validateEstimateSections,
 } from "@/lib/org/estimates";
 import {
   disableClientPortalIdentity,
@@ -2084,6 +2086,9 @@ function estimateFormPayload(formData: FormData) {
   const lines = parseEstimateLinesFromForm(formData);
   const lineError = validateEstimateLines(lines);
   if (lineError) return { error: lineError };
+  const sections = parseEstimateSectionsFromForm(formData);
+  const sectionError = validateEstimateSections(sections);
+  if (sectionError) return { error: sectionError };
   const taxCents = parseDollarsToCents(String(formData.get("tax") || "0"));
   const totals = computeEstimateTotals(lines, taxCents);
   if (totals.discountCents > totals.subtotalCents) return { error: "Discount cannot exceed the subtotal." };
@@ -2108,6 +2113,7 @@ function estimateFormPayload(formData: FormData) {
     clientEmail: sanitizeText(String(formData.get("clientEmail") || "")).slice(0, 254),
     taxCents: totals.taxCents,
     lines,
+    sections,
     totals,
   };
 }
@@ -2140,6 +2146,7 @@ export async function saveEstimateForm(formData: FormData) {
       clientEmail: payload.clientEmail,
       taxCents: payload.taxCents,
       lines: payload.lines,
+      sections: payload.sections,
     });
     if ("error" in saved) return { error: GENERIC_ESTIMATE_ERROR };
     stampAudit("estimate_upsert", saved.id, "Estimate draft saved. Totals were calculated on the server.");
@@ -2180,6 +2187,11 @@ export async function saveEstimateForm(formData: FormData) {
         unitCents: line.unitCents,
         discountCents: line.discountCents,
         lineTotalCents: line.quantity * line.unitCents - line.discountCents,
+      })),
+      sections: payload.sections.map((section, index) => ({
+        position: index + 1,
+        heading: section.heading,
+        body: section.body,
       })),
       readyAt: null,
       acceptedAt: null,

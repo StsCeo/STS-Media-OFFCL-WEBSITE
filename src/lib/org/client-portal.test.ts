@@ -35,6 +35,7 @@ describe("client portal model", () => {
     });
     expect(estimate.estimateNumber).toBe("EST-0001");
     expect(estimate.customerNotes).toBe("Visible note");
+    expect(estimate.sections).toEqual([]);
     expect(JSON.stringify(estimate)).not.toMatch(/internal/i);
     const invoice = mapClientPortalInvoice({
       id: "inv-1",

@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui";
 import { formatCents } from "@/lib/money";
-import type { ClientPortalLine } from "@/lib/org/client-portal-model";
+import type { ClientPortalLine, ClientPortalSection } from "@/lib/org/client-portal-model";
 
 function statusTone(status: string): "neutral" | "info" | "success" | "warning" | "danger" {
   if (status === "paid" || status === "accepted") return "success";
@@ -31,6 +31,7 @@ export function ClientInvoiceDocument({
   terms,
   title,
   description,
+  sections = [],
 }: {
   kind: "Estimate" | "Invoice";
   number: string;
@@ -52,6 +53,7 @@ export function ClientInvoiceDocument({
   terms?: string;
   title?: string;
   description?: string;
+  sections?: ClientPortalSection[];
 }) {
   const company = orgDisplayName || orgLegalName || "STS Media";
   return (
@@ -105,6 +107,20 @@ export function ClientInvoiceDocument({
           </section>
         ) : null}
       </div>
+      {sections.length ? (
+        <section className="space-y-4 px-6 pb-2 md:px-8">
+          <h2 className="text-xs uppercase tracking-[0.16em] text-muted">Statement of work</h2>
+          {sections
+            .slice()
+            .sort((a, b) => a.position - b.position)
+            .map((section) => (
+              <div key={`${section.parentId}-${section.position}`}>
+                <h3 className="font-medium">{section.heading}</h3>
+                {section.body ? <p className="mt-1 whitespace-pre-wrap text-sm">{section.body}</p> : null}
+              </div>
+            ))}
+        </section>
+      ) : null}
       <div className="overflow-x-auto px-6 md:px-8">
         <table className="mb-6 w-full min-w-[32rem] text-left text-sm">
           <thead>
