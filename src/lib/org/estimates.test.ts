@@ -229,8 +229,10 @@ describe("phase 3b statement of work sections", () => {
   it("adds forced RLS, draft-only writes, and a session-scoped portal read", () => {
     const files = readdirSync("supabase/migrations").filter((name) => name.endsWith(".sql")).sort();
     const migration = "20260929180000_phase3b_estimate_sections.sql";
-    expect(files.at(-1)).toBe(migration);
+    const truncateRevoke = "20261002232544_phase3b_revoke_estimate_truncate.sql";
+    expect(files.at(-1)).toBe(truncateRevoke);
     expect(files.indexOf(migration)).toBeGreaterThan(files.indexOf("20260924063409_phase3a_crm_journey.sql"));
+    expect(files.indexOf(truncateRevoke)).toBeGreaterThan(files.indexOf(migration));
     const sql = readFileSync(`supabase/migrations/${migration}`, "utf8");
     const estimateRoles = readFileSync("supabase/migrations/20260920160000_day5_estimates.sql", "utf8");
     expect(sql).toContain("create table if not exists public.ws_estimate_sections");
