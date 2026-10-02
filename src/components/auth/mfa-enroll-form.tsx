@@ -39,7 +39,7 @@ export function MfaEnrollForm() {
 
   if (!factorId || !qrCode) {
     return (
-      <form className="space-y-4" action={startFormAction} method="post">
+      <form className="space-y-4" action={startFormAction}>
         <p className="text-sm text-soft-gray">
           Scan the next screen with an authenticator app. Enrollment details stay in this session only.
         </p>
@@ -63,7 +63,7 @@ export function MfaEnrollForm() {
       {/* The QR is a session-only data URL. Do not screenshot or copy it into reports. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={qrCode} alt="Authenticator enrollment" width={180} height={180} className="mx-auto rounded-md border border-line bg-white p-2" />
-      <form className="space-y-4" action={confirmFormAction} method="post">
+      <form className="space-y-4" action={confirmFormAction}>
         <input type="hidden" name="factorId" value={factorId} />
         <Field label="Authenticator code" name="code">
           <input id="code" name="code" required inputMode="numeric" autoComplete="one-time-code" className={inputClass} />
@@ -77,7 +77,7 @@ export function MfaEnrollForm() {
           {confirming ? "Verifying…" : "Finish enrollment"}
         </Button>
       </form>
-      <form action={cancelFormAction} method="post">
+      <form action={cancelFormAction}>
         <input type="hidden" name="factorId" value={factorId} />
         <Button type="submit" variant="secondary" disabled={pending} className="w-full">
           {cancelling ? "Cancelling…" : "Cancel enrollment"}
