@@ -3,9 +3,10 @@ import type { CSSProperties } from "react";
 import { cookies } from "next/headers";
 import { Fraunces, Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
 import { ToastProvider } from "@/components/toast";
-import { getWorkspace } from "@/lib/data/store";
-import { PALETTE_COOKIE } from "@/lib/config";
-import { getPalette, paletteAtmosphere, paletteCssVars } from "@/lib/theme/palettes";
+import { PALETTE_COOKIE, THEME_COOKIE } from "@/lib/config";
+import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme/bootstrap";
+import { appearanceClassNames } from "@/lib/theme/apply-appearance";
+import { paletteAtmosphere, paletteCssVars, parseTheme, resolveLivePalette } from "@/lib/theme/palettes";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -35,23 +36,27 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const brand = getWorkspace().brand;
   const jar = await cookies();
-  const theme = jar.get("sts_theme")?.value === "dark" ? "dark" : "light";
+  const theme = parseTheme(jar.get(THEME_COOKIE)?.value);
   const previewId = jar.get(PALETTE_COOKIE)?.value;
-  const palette = getPalette(previewId || brand.paletteId);
-  const vars = paletteCssVars(palette, previewId ? palette.tokens.emerald : brand.accentColor);
+  const palette = resolveLivePalette(theme, previewId);
+  const vars = paletteCssVars(palette);
   const atmosphere = paletteAtmosphere(palette);
+  const fontVars = `${plusJakarta.variable} ${fraunces.variable} ${plexMono.variable}`;
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       data-theme={theme}
       data-palette={palette.id}
       data-atmosphere={atmosphere}
       data-scroll-behavior="smooth"
-      className={`${plusJakarta.variable} ${fraunces.variable} ${plexMono.variable} ${theme === "dark" || atmosphere === "night-luxury" ? "dark" : ""} h-full antialiased`}
+      className={appearanceClassNames(theme, palette, fontVars)}
       style={vars as CSSProperties}
     >
+      <head>
+        <script id="sts-theme-bootstrap" dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <ToastProvider>{children}</ToastProvider>
       </body>

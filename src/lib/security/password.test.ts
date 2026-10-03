@@ -17,7 +17,7 @@ describe("password policy", () => {
 describe("palettes", () => {
   it("falls back to forest-gold", () => {
     expect(getPalette("nope").id).toBe("forest-gold");
-    expect(PALETTES).toHaveLength(11);
+    expect(PALETTES).toHaveLength(13);
     expect(getPalette("charcoal-blue-light").name).toBe("Charcoal Blue Light");
     expect(getPalette("midnight-navy").atmosphere).toBe("night-luxury");
     expect(getPalette("midnight-navy").tokens.obsidian).toBe("#0B1020");
@@ -34,14 +34,14 @@ describe("palettes", () => {
     expect(celsius["--obsidian"]).toBe("#003A52");
     expect(celsius["--emerald"]).toBe("#009FEE");
     expect(celsius["--soft-gray"]).toBe("#A2A2A2");
-    expect(createSeedWorkspace().brand.paletteId).toBe("charcoal-sage");
-    expect(createSeedWorkspace().brand.accentColor).toBe("#8FBEA5");
-    expect(getPalette("charcoal-sage").name).toBe("Charcoal Sage");
+    expect(createSeedWorkspace().brand.paletteId).toBe("sts-day");
+    expect(createSeedWorkspace().brand.accentColor).toBe("#3157B7");
+    expect(getPalette("charcoal-sage").name).toBe("Charcoal Slate");
     const sage = paletteCssVars(getPalette("charcoal-sage"));
     expect(sage["--obsidian"]).toBe("#0B0D0C");
-    expect(sage["--primary"]).toBe("#A8C9B6");
+    expect(sage["--primary"]).toBe("#A8B2C9");
     expect(sage["--ivory"]).toBe("#FFFFFF");
-    expect(sage["--gold-ink"]).toBe("#2E7D5B");
+    expect(sage["--gold-ink"]).toBe("#2E467D");
     expect(sage["--electric"]).toBe("#009FEE");
     expect(sage["--chart-revenue"]).toBe("#009FEE");
     expect(sage["--chart-traffic"]).toBe("#003A52");
@@ -49,10 +49,10 @@ describe("palettes", () => {
     const earth = paletteCssVars(getPalette("warm-earth"));
     expect(earth["--ivory"]).toBe("#F5F0E7");
     expect(earth["--cream"]).toBe("#FBF8F2");
-    expect(earth["--sage"]).toBe("#5C8F6B");
-    expect(earth["--forest"]).toBe("#315D46");
+    expect(earth["--sage"]).toBe("#5C6B8F");
+    expect(earth["--forest"]).toBe("#313E5D");
     expect(earth["--terracotta"]).toBe("#C87352");
     expect(earth["--ink"]).toBe("#202020");
-    expect(earth["--primary"]).toBe("#4A7A58");
+    expect(earth["--primary"]).toBe("#4A587A");
   });
 });

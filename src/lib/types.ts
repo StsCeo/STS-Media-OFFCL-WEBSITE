@@ -54,14 +54,14 @@ export type EventKind =
   | "subscription_renewal"
   | "task";
 
-export type DatePreset = "today" | "7d" | "30d" | "quarter" | "year" | "custom";
+export type DatePreset = "today" | "7d" | "30d" | "month" | "last_month" | "quarter" | "year" | "custom";
 
 export type EntityType = "llc" | "sole_prop" | "c_corp" | "s_corp" | "nonprofit" | "other";
 export type FederalClassification = "tbd" | "disregarded_entity" | "partnership" | "c_corp" | "s_corp" | "other";
 export type AccountingMethod = "cash" | "accrual";
 export type FiscalYearType = "calendar" | "fiscal";
 export type SCorpStatus = "not_elected" | "elected" | "undecided";
-export type NoteRelatedType = "client" | "project" | "lead" | "none";
+export type NoteRelatedType = "client" | "project" | "lead" | "task" | "none";
 export type OsDocumentCategory = "contract" | "formation" | "tax" | "insurance" | "other";
 export type OsTransactionKind =
   | "income"
@@ -105,6 +105,8 @@ export interface OwnerNote {
   relatedType: NoteRelatedType;
   relatedId: string | null;
   pinned: boolean;
+  author?: string | null;
+  archived?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -117,6 +119,9 @@ export interface OsDocument {
   relatedId: string | null;
   notes: string;
   storagePath: string | null;
+  contentType?: string;
+  byteSize?: number;
+  archived?: boolean;
   createdAt: string;
 }
 
@@ -285,6 +290,26 @@ export interface ClientRecord {
   notes: string;
 }
 
+export interface IcpRecord {
+  id: string;
+  name: string;
+  industry: string;
+  companySize: string;
+  market: string;
+  estimatedBudgetMin: number;
+  estimatedBudgetMax: number;
+  commonProblems: string;
+  servicesNeeded: string;
+  decisionMaker: string;
+  acquisitionChannels: string;
+  commonObjections: string;
+  buyingTriggers: string;
+  notes: string;
+  status: "active" | "archived";
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Lead {
   id: string;
   businessName: string;
@@ -304,7 +329,23 @@ export interface Lead {
   notes: string;
   assignedTo: string;
   createdAt: string;
+  icpId?: string | null;
+  convertedClientId?: string | null;
+  estimateId?: string | null;
+  lostReason?: string | null;
+  expectedCloseOn?: string | null;
+  assignedMemberId?: string | null;
 }
+
+export type ScheduleSourceType =
+  | "manual"
+  | "project_start"
+  | "project_deadline"
+  | "task_due"
+  | "estimate_expires"
+  | "invoice_due";
+
+export type ScheduleViewFilter = "all" | "today" | "upcoming" | "overdue";
 
 export interface Project {
   id: string;
@@ -326,6 +367,8 @@ export interface Project {
   credentialsReference: string;
   notes: string;
   atRisk: boolean;
+  sourceInvoiceId?: string | null;
+  sourceEstimateId?: string | null;
 }
 
 export interface TaskItem {
@@ -357,6 +400,116 @@ export interface CalendarEvent {
   notes: string;
   relatedId: string | null;
   location: string;
+  allDay?: boolean;
+  timezone?: string;
+  clientId?: string | null;
+  projectId?: string | null;
+  generated?: boolean;
+  sourceType?: ScheduleSourceType;
+  sourceId?: string | null;
+}
+
+export interface InternalScheduleItem {
+  id: string;
+  sourceType: ScheduleSourceType;
+  sourceId: string;
+  title: string;
+  occursOn: string;
+  sourceStatus: string;
+  generated: boolean;
+}
+
+export type WorkspaceInvoiceStatus = "draft" | "issued" | "paid" | "void";
+export type WorkspaceEstimateStatus = "draft" | "ready" | "accepted" | "declined" | "expired";
+
+export interface WorkspaceInvoiceLine {
+  id?: string;
+  position: number;
+  description: string;
+  quantity: number;
+  unitCents: number;
+  lineTotalCents: number;
+}
+
+export interface WorkspaceInvoice {
+  id: string;
+  invoiceNumber: string;
+  status: WorkspaceInvoiceStatus;
+  clientId: string | null;
+  issueDate: string | null;
+  dueDate: string | null;
+  currency: string;
+  notes: string;
+  paymentInstructions: string;
+  orgLegalName: string;
+  orgDisplayName: string;
+  clientBusinessName: string;
+  clientContactName: string;
+  clientEmail: string;
+  subtotalCents: number;
+  discountCents: number;
+  taxCents: number;
+  totalCents: number;
+  amountPaidCents: number;
+  lines: WorkspaceInvoiceLine[];
+  sourceEstimateId: string | null;
+  sourceEstimateNumber: string;
+  issuedAt: string | null;
+  paidAt: string | null;
+  voidedAt: string | null;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkspaceEstimateLine {
+  id?: string;
+  position: number;
+  description: string;
+  quantity: number;
+  unitCents: number;
+  discountCents: number;
+  lineTotalCents: number;
+}
+
+export interface WorkspaceEstimateSection {
+  id?: string;
+  position: number;
+  heading: string;
+  body: string;
+}
+
+export interface WorkspaceEstimate {
+  id: string;
+  estimateNumber: string;
+  status: WorkspaceEstimateStatus;
+  title: string;
+  description: string;
+  clientId: string | null;
+  issueDate: string | null;
+  expiresOn: string | null;
+  currency: string;
+  internalNotes: string;
+  customerNotes: string;
+  terms: string;
+  orgLegalName: string;
+  orgDisplayName: string;
+  clientBusinessName: string;
+  clientContactName: string;
+  clientEmail: string;
+  subtotalCents: number;
+  discountCents: number;
+  taxCents: number;
+  totalCents: number;
+  lines: WorkspaceEstimateLine[];
+  sections: WorkspaceEstimateSection[];
+  readyAt: string | null;
+  acceptedAt: string | null;
+  declinedAt: string | null;
+  expiredAt: string | null;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Expense {
@@ -621,6 +774,7 @@ export interface WorkspaceState {
   legal: LegalPage[];
   contacts: ContactSubmission[];
   clients: ClientRecord[];
+  icps: IcpRecord[];
   leads: Lead[];
   projects: Project[];
   tasks: TaskItem[];
@@ -630,6 +784,8 @@ export interface WorkspaceState {
   recurringExpenses: RecurringExpenseTemplate[];
   revenue: RevenueEntry[];
   invoices: Invoice[];
+  workspaceInvoices: WorkspaceInvoice[];
+  workspaceEstimates: WorkspaceEstimate[];
   subscriptions: SubscriptionRecord[];
   content: ContentItem[];
   emailTemplates: EmailTemplate[];
@@ -695,6 +851,27 @@ export const EXPENSE_CATEGORIES = [
   "Miscellaneous",
   "Needs review",
 ] as const;
+
+export const STS_MEDIA_EXPENSE_CATEGORIES = [
+  "Business Formation",
+  "Registered Agent",
+  "Domain & Website",
+  "Software & Subscriptions",
+  "Advertising & Marketing",
+  "Office Supplies",
+  "Equipment",
+  "Phone & Internet",
+  "Professional Services",
+  "Banking & Processing Fees",
+  "Travel & Mileage",
+  "Meals",
+  "Education & Training",
+  "Other",
+] as const;
+
+export const OPS_EXPENSE_CATEGORIES = Array.from(
+  new Set<string>([...STS_MEDIA_EXPENSE_CATEGORIES, ...EXPENSE_CATEGORIES]),
+);
 
 export const LEAD_STAGES: LeadStage[] = [
   "new_inquiry",

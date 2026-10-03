@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { DEMO_COOKIE, isDemoModeEnabled } from "@/lib/config";
+import { DEMO_COOKIE, isDemoModeEnabled, isSupabaseConfigured } from "@/lib/config";
 import { verifyDemoSession } from "@/lib/auth/demo-session";
 import { updateSupabaseSession } from "@/lib/supabase/proxy";
 
-const PROTECTED = ["/dashboard"];
+const PROTECTED = ["/dashboard", "/accountant", "/client"];
 const MFA_PATH = "/mfa/verify";
 
 export async function proxy(request: NextRequest) {
@@ -25,7 +25,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const hasSupabaseAuth = request.cookies.getAll().some((cookie) => cookie.name.includes("-auth-token"));
+  const hasSupabaseAuth =
+    isSupabaseConfigured() &&
+    request.cookies.getAll().some((cookie) => cookie.name.includes("-auth-token"));
   if (hasSupabaseAuth) return response;
 
   const login = request.nextUrl.clone();
@@ -35,5 +37,12 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/dashboard"],
+  matcher: [
+    "/dashboard/:path*",
+    "/dashboard",
+    "/accountant/:path*",
+    "/accountant",
+    "/client/:path*",
+    "/client",
+  ],
 };

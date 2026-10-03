@@ -12,6 +12,7 @@ export const contactSchema = z.object({
   message: z.string().trim().min(10).max(5000),
   consent: z.boolean().refine((value) => value === true, "Consent is required."),
   companyWebsite: z.string().max(0).optional().default(""),
+  submissionKey: z.uuid(),
 });
 
 export const loginSchema = z.object({

@@ -1,6 +1,6 @@
 import type { NoteRelatedType, OwnerNote } from "./types";
 
-const RELATED_TYPES: NoteRelatedType[] = ["client", "project", "lead", "none"];
+const RELATED_TYPES: NoteRelatedType[] = ["client", "project", "lead", "task", "none"];
 
 export function parseRelatedType(value: unknown, fallback: NoteRelatedType = "none"): NoteRelatedType {
   return RELATED_TYPES.includes(value as NoteRelatedType) ? (value as NoteRelatedType) : fallback;

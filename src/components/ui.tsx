@@ -13,7 +13,7 @@ type ButtonProps = {
 };
 
 const variants = {
-  primary: "btn-primary text-white",
+  primary: "btn-primary text-primary-ink",
   secondary: "btn-secondary",
   ghost: "text-foreground hover:bg-canvas",
   danger: "bg-danger text-white hover:opacity-90",
@@ -22,7 +22,7 @@ const variants = {
 
 export function Button({ href, children, variant = "primary", size = "md", className, type = "button", disabled, onClick }: ButtonProps) {
   const classes = cn(
-    "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-[background-color,transform,box-shadow,border-color] duration-200 disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-[background-color,box-shadow,border-color] duration-200 disabled:opacity-55",
     size === "sm" && "h-8 px-3 text-sm",
     size === "md" && "h-10 px-4 text-sm",
     size === "lg" && "h-12 px-6 text-base",
@@ -31,7 +31,7 @@ export function Button({ href, children, variant = "primary", size = "md", class
   );
   if (href) {
     return (
-      <Link href={href} className={classes}>
+      <Link href={href} className={classes} onClick={onClick}>
         {children}
       </Link>
     );
@@ -60,7 +60,8 @@ export function Badge({
     demo: "bg-lead/10 text-lead border-lead/20",
   };
   return (
-    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide", tones[tone])}>
+    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide", tones[tone])}>
+      {tone === "success" ? <span aria-hidden="true">✓</span> : null}
       {children}
     </span>
   );
@@ -89,17 +90,21 @@ export function PageHeader({
   title,
   description,
   actions,
+  className,
+  titleClassName,
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   actions?: React.ReactNode;
+  className?: string;
+  titleClassName?: string;
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div className={cn("mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between", className)}>
       <div>
         {eyebrow ? <p className="mb-1 text-xs uppercase tracking-[0.18em] text-muted">{eyebrow}</p> : null}
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
+        <h1 className={cn("text-2xl font-semibold tracking-tight text-ink", titleClassName)}>{title}</h1>
         {description ? <p className="mt-1 max-w-2xl text-sm text-muted">{description}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}

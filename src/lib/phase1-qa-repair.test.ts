@@ -62,6 +62,12 @@ vi.mock("@supabase/ssr", () => ({
       getUser: async () => ({ data: { user: null }, error: null }),
       updateUser: async () => ({ error: { message: "no session" } }),
       verifyOtp: async () => ({ error: { message: "invalid" } }),
+      mfa: {
+        getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: "aal1" }, error: null }),
+        listFactors: async () => ({ data: { totp: [], phone: [] }, error: null }),
+        challenge: async () => ({ data: null, error: { message: "denied" } }),
+        verify: async () => ({ error: { message: "denied" } }),
+      },
     },
     storage: {
       from: () => ({

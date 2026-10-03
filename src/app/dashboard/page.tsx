@@ -1,188 +1,297 @@
 import Link from "next/link";
-import { Badge, Card, PageHeader } from "@/components/ui";
-import { DualLineChart, SimpleBarChart } from "@/components/dashboard/charts";
-import { OverviewCustomize } from "@/components/dashboard/overview-customize";
+import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui";
 import { QuickActions } from "@/components/dashboard/quick-actions";
-import { FINANCE_DEFINITIONS, computeFinance, expensesByCategory, rangeFromPreset, revenueByService, trendSeries } from "@/lib/finance";
-import { briefing } from "@/lib/insights";
-import { getWorkspace } from "@/lib/data/store";
+import { CommandCenterPeriodForm } from "@/components/dashboard/command-center-period";
+import { OperationalAgenda } from "@/components/dashboard/operational-agenda";
+import { getSession } from "@/lib/auth/session";
+import { getBusinessOsContext } from "@/lib/org/context";
+import { loadVisibleOpsRecords } from "@/lib/org/operations-context";
+import { implementedBusinessOsHrefs } from "@/lib/nav";
 import { formatCurrency } from "@/lib/utils";
-import { buildOverviewKpis, formatKpiValue } from "@/lib/kpi";
-import { LEAD_STAGES } from "@/lib/types";
+import { loadVisibleWorkspaceRecords } from "@/lib/org/workspace-context";
+import { loadVisibleEstimates } from "@/lib/org/estimates-context";
+import { loadVisibleCrmRecords } from "@/lib/org/crm-context";
+import {
+  businessHealthMetrics,
+  commandCenterSnapshot,
+  compactPipelineSummary,
+  deriveOperationalAgenda,
+  parseCommandCenterPeriod,
+} from "@/lib/org/command-center";
+import { phase1Sans } from "@/lib/type/phase1-fonts";
 
 export const metadata = { title: "Command Center" };
 
-export default async function OverviewPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
-  const params = await searchParams;
-  const preset = (params.range as "today" | "7d" | "30d" | "quarter" | "year") || "30d";
-  const workspace = getWorkspace();
-  const range = rangeFromPreset(preset);
-  const metrics = computeFinance(workspace, range);
-  const trends = trendSeries(workspace);
-  const today = briefing(workspace);
-  const funnel = LEAD_STAGES.map((stage) => ({
-    label: stage.replaceAll("_", " "),
-    value: workspace.leads.filter((lead) => lead.stage === stage).length,
-  }));
-  const traffic = workspace.websiteTraffic.map((row) => ({ label: row.date.slice(5), value: row.visits }));
-  const conversions = workspace.contacts.filter((item) => item.status === "new").length;
-  const hidden = workspace.dashboardPreferences.hiddenCards;
-  const show = (id: string) => !hidden.includes(id);
+const implementedLinks = [
+  { href: "/dashboard/crm", label: "CRM & Sales" },
+  { href: "/dashboard/projects", label: "Projects" },
+  { href: "/dashboard/calendar", label: "Calendar" },
+  { href: "/dashboard/estimates", label: "Estimates" },
+  { href: "/dashboard/invoices", label: "Invoices" },
+  { href: "/dashboard/taxes", label: "Taxes" },
+  { href: "/dashboard/documents", label: "Documents" },
+  { href: "/dashboard/reports", label: "Reports" },
+  { href: "/dashboard/integrations", label: "Integrations" },
+  { href: "/dashboard/security", label: "Security" },
+  { href: "/dashboard/settings/business", label: "Business Settings" },
+].filter((item) => implementedBusinessOsHrefs.includes(item.href));
 
-  const kpis = buildOverviewKpis(workspace, metrics, conversions);
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
+}) {
+  const params = await searchParams;
+  const period = parseCommandCenterPeriod(params.period);
+  const customFrom = params.from ? new Date(`${params.from}T00:00:00`) : undefined;
+  const customTo = params.to ? new Date(`${params.to}T23:59:59`) : undefined;
+  const session = await getSession();
+  const os = await getBusinessOsContext(session.user);
+  const { totals, source, estimateNote, unavailable, expenses, revenue, projects, tasks, clients } = await loadVisibleOpsRecords();
+  const workspaceRecords = await loadVisibleWorkspaceRecords();
+  const estimates = await loadVisibleEstimates();
+  const crm = await loadVisibleCrmRecords();
+  const organization = os.organization;
+  const settings = os.settings;
+  const orgActivity = os.audit;
+  const snapshot = commandCenterSnapshot({
+    expenses,
+    revenue,
+    invoices: workspaceRecords.invoices,
+    projects,
+    tasks,
+    activeClients: clients.filter((client) => client.status === "active").length,
+    source,
+    period,
+    customFrom,
+    customTo,
+  });
+  const agenda = deriveOperationalAgenda({
+    tasks,
+    leads: crm.leads,
+    invoices: workspaceRecords.invoices,
+    projects,
+    events: workspaceRecords.events,
+  });
+  const pipeline = compactPipelineSummary(crm.leads);
+  const health = businessHealthMetrics({
+    leads: crm.leads,
+    invoices: workspaceRecords.invoices,
+    activeClients: clients.filter((client) => client.status === "active").length,
+    range: snapshot.range,
+  });
+  const ledgersUnavailable = unavailable || workspaceRecords.unavailable || crm.unavailable;
 
   return (
-    <div>
+    <div className="sts-phase1">
       <PageHeader
+        className={phase1Sans.variable}
+        titleClassName="font-[family-name:var(--font-phase1-sans)] font-semibold"
         eyebrow="STS Media Business OS"
         title="Command Center"
-        description="Daily operations for the owner. Pending payments are not cash. One-time fees are not ARR."
-        actions={
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            {(["today", "7d", "30d", "quarter", "year"] as const).map((item) => (
-              <Link key={item} href={`/dashboard?range=${item}`} className={`rounded-md border px-3 py-1 ${preset === item ? "border-forest bg-forest text-white" : "border-line"}`}>
-                {item === "7d" ? "Last 7 days" : item === "30d" ? "Last 30 days" : item[0].toUpperCase() + item.slice(1)}
-              </Link>
-            ))}
-            <OverviewCustomize hiddenCards={hidden} />
-          </div>
-        }
+        description="Due work and follow-ups, in one place."
+        actions={<CommandCenterPeriodForm period={period} from={params.from} to={params.to} />}
       />
 
-      {show("attention") ? (
-      <Card className="mb-6">
-        <h2 className="text-lg font-semibold">Today at STS Media</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <Brief title="Today’s meetings" items={today.meetingsToday.map((e) => e.title)} empty="No meetings on today’s calendar." />
-          <Brief title="Top three priorities" items={today.priorities.map((t) => t.title)} empty="No open tasks." />
-          <Brief title="Overdue tasks" items={today.overdue.map((t) => t.title)} empty="No overdue tasks." />
-          <Brief title="Leads needing follow-up" items={today.followUps.map((l) => l.businessName)} href="/dashboard/leads" />
-          <Brief title="Proposals awaiting response" items={today.proposals.map((l) => l.businessName)} href="/dashboard/leads" />
-          <Brief title="Outstanding invoices" items={today.outstanding.map((i) => i.number)} href="/dashboard/revenue" />
-          <Brief title="Recent payments" items={today.recentPayments.map((p) => p.description)} empty="No paid revenue yet." />
-          <Brief title="Projects at risk" items={today.atRisk.map((p) => p.name)} href="/dashboard/projects" />
-          <Brief title="Missing receipts" items={today.missingReceipts.map((e) => e.vendor)} href="/dashboard/expenses?view=missing" />
-          <Brief title="Upcoming recurring charges" items={today.upcomingCharges.map((e) => `${e.description} · ${e.nextDue}`)} />
-          <Brief title="Expiring domains" items={today.expiringDomains.map((d) => `${d.domain} · ${d.expiresOn}`)} />
-          <Brief title="Failed deployments" items={today.failedDeployments.map((d) => d.projectName)} empty="No failed deployments on file." />
-          <Brief title="Content awaiting review" items={today.contentReview.map((c) => c.title)} href="/dashboard/content" />
-        </div>
-      </Card>
-      ) : null}
-
-      {show("quick-actions") ? <div className="mb-6"><QuickActions /></div> : null}
-
-      {show("kpis") ? (
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((kpi) => (
-          <Card key={kpi.label} className="p-4">
-            <p className="text-xs uppercase tracking-wide text-muted">{kpi.label}</p>
-            <p className="mt-2 font-mono text-2xl">{formatKpiValue(kpi.value, kpi.format)}</p>
-            <p className="mt-2 text-xs text-muted">{kpi.hint}</p>
-          </Card>
-        ))}
+      <div className="mb-6">
+        <QuickActions />
       </div>
-      ) : null}
 
-      {show("charts") ? (
-      <div className="grid gap-4 xl:grid-cols-2">
+      <Card className="mb-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">Snapshot</h2>
+          <Badge tone="info">{source === "postgres" ? "Organization ledger" : "Workspace"}</Badge>
+        </div>
+        {ledgersUnavailable ? (
+          <p className="text-sm text-muted">Organization records could not be loaded. Totals were not taken from local fallback data.</p>
+        ) : (
+          <>
+            <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Revenue</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(snapshot.revenue)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Outstanding invoices</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(snapshot.outstandingInvoices)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Expenses</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(snapshot.expenses)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Profit</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(snapshot.profit)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">MRR</dt>
+                <dd className="mt-1 text-sm text-muted">Unavailable</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Active clients</dt>
+                <dd className="mt-1 font-mono text-lg">{snapshot.activeClients}</dd>
+              </div>
+            </dl>
+            <p className="mt-4 text-xs text-muted">{snapshot.mrrNote} Revenue, expenses, and profit use the selected period. Outstanding invoices and active clients are current, not period-sliced.</p>
+          </>
+        )}
+      </Card>
+
+      <div className="mb-4 grid gap-4 xl:grid-cols-2">
         <Card>
-          <h2 className="mb-4 font-semibold">Revenue versus expenses</h2>
-          <DualLineChart data={trends} aKey="revenue" bKey="expenses" aName="Revenue" bName="Expenses" />
+          <h2 className="mb-3 text-lg font-semibold">Today / Upcoming / Overdue</h2>
+          <OperationalAgenda items={agenda} />
         </Card>
         <Card>
-          <h2 className="mb-4 font-semibold">Profit trend</h2>
-          <DualLineChart data={trends} aKey="profit" bKey="mrr" aName="Profit" bName="MRR (active subscriptions only)" />
-        </Card>
-        <Card>
-          <h2 className="mb-4 font-semibold">Revenue by service</h2>
-          <SimpleBarChart
-            data={revenueByService(workspace.revenue).map((row) => ({ label: row.service, value: row.total }))}
-            dataKey="value"
-            name="Revenue"
-            color="var(--chart-revenue)"
-          />
-        </Card>
-        <Card>
-          <h2 className="mb-4 font-semibold">Expenses by category</h2>
-          <SimpleBarChart
-            data={expensesByCategory(workspace.expenses).map((row) => ({ label: row.category, value: row.total }))}
-            dataKey="value"
-            name="Expenses"
-            color="var(--chart-expenses)"
-          />
-        </Card>
-        <Card>
-          <h2 className="mb-4 font-semibold">Sales funnel</h2>
-          <SimpleBarChart data={funnel.map((row) => ({ label: row.label, value: row.value }))} dataKey="value" name="Leads" color="var(--chart-leads)" />
-        </Card>
-        <Card>
-          <h2 className="mb-4 font-semibold">Traffic and conversion</h2>
-          {traffic.length ? (
-            <SimpleBarChart data={traffic} dataKey="value" name="Visits" color="var(--chart-traffic)" />
+          <h2 className="mb-3 text-lg font-semibold">Sales pipeline</h2>
+          {crm.leads.length ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {pipeline.map((column) => (
+                <Link key={column.key} href={column.href} className="rounded-md border border-line p-3 hover:bg-canvas">
+                  <p className="text-xs text-muted">{column.label}</p>
+                  <p className="font-mono text-2xl">{column.count}</p>
+                </Link>
+              ))}
+            </div>
           ) : (
-            <p className="text-sm text-muted">Website analytics is not connected. Traffic is shown as empty rather than invented.</p>
+            <EmptyState title="No leads yet" body="The pipeline summary appears after the first inquiry is captured." action={<Button href="/dashboard/leads" size="sm">Open pipeline</Button>} />
           )}
         </Card>
+      </div>
+
+      <Card className="mb-4">
+        <h2 className="mb-3 text-lg font-semibold">Business health</h2>
+        <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Leads this period</dt>
+            <dd className="mt-1 font-mono text-lg">{health.leadsThisPeriod}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Conversion rate</dt>
+            <dd className="mt-1 font-mono text-lg">{health.conversionRate == null ? "Not enough data" : `${health.conversionRate}%`}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Average deal value</dt>
+            <dd className="mt-1 font-mono text-lg">{health.averageDealValue == null ? "Not enough data" : formatCurrency(health.averageDealValue)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Outstanding invoices</dt>
+            <dd className="mt-1 font-mono text-lg">{formatCurrency(health.outstandingInvoices)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Active clients</dt>
+            <dd className="mt-1 font-mono text-lg">{health.activeClients}</dd>
+          </div>
+        </dl>
+      </Card>
+
+      <Card className="mb-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">Operational estimates</h2>
+          <Badge tone="info">{source === "postgres" ? "Organization ledger" : "Workspace"}</Badge>
+        </div>
+        {unavailable ? (
+          <p className="text-sm text-muted">Organization ledgers could not be loaded. Totals were not taken from local fallback data.</p>
+        ) : (
+          <>
+            <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">All-time revenue</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.totalRevenue)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">All-time expenses</dt>
+                <dd className="mt-1 font-mono text-lg">{formatCurrency(totals.totalExpenses)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Active projects</dt>
+                <dd className="mt-1 font-mono text-lg">{totals.activeProjects}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">Overdue tasks</dt>
+                <dd className="mt-1 font-mono text-lg">{totals.overdueTasks}</dd>
+              </div>
+            </dl>
+            <p className="mt-4 text-xs text-muted">{estimateNote} Ready estimates: {estimates.unavailable ? "—" : estimates.summaries.readyEstimates}.</p>
+            <p className="mt-3 text-sm">
+              <Link href="/dashboard/expenses?view=missing" className="underline-offset-2 hover:underline">
+                Review missing receipts
+              </Link>
+            </p>
+          </>
+        )}
+      </Card>
+
+      <div className="grid gap-4 xl:grid-cols-2">
         <Card>
-          <h2 className="mb-4 font-semibold">MRR and ARR trend</h2>
-          <DualLineChart data={trends} aKey="mrr" bKey="arr" aName="MRR" bName="ARR" />
-          <p className="mt-2 text-xs text-muted">Draft subscriptions are excluded from MRR. State Collision Pro maintenance is draft until launch and first paid invoice.</p>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">Business identity</h2>
+            <Badge>Organization</Badge>
+          </div>
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Organization</dt>
+              <dd className="mt-1 font-medium">{organization?.displayName ?? (os.unavailable ? "Temporarily unavailable" : "Not provisioned")}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Legal name</dt>
+              <dd className="mt-1 font-medium">{organization?.legalName ?? "Not provisioned"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Time zone</dt>
+              <dd className="mt-1 font-medium">{organization?.timezone ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Base currency</dt>
+              <dd className="mt-1 font-medium">{organization?.baseCurrency ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Invoice prefix</dt>
+              <dd className="mt-1 font-mono">{settings?.invoicePrefix ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Payment terms</dt>
+              <dd className="mt-1">{settings?.defaultPaymentTerms ?? "—"}</dd>
+            </div>
+          </dl>
+          <Button href="/dashboard/settings/business" size="sm" variant="secondary" className="mt-4">
+            Open Business Settings
+          </Button>
         </Card>
         <Card>
-          <h2 className="mb-4 font-semibold">Project status</h2>
-          <ul className="space-y-2 text-sm">
-            {workspace.projects.map((project) => (
-              <li key={project.id} className="flex items-center justify-between gap-3">
-                <Link href={`/dashboard/projects/${project.id}`} className="underline-offset-2 hover:underline">{project.name}</Link>
-                <Badge tone={project.atRisk ? "warning" : "success"}>{project.stage.replaceAll("_", " ")}</Badge>
-              </li>
-            ))}
-          </ul>
+          <h2 className="text-lg font-semibold">Recent Activity</h2>
+          {orgActivity.length ? (
+            <ul className="mt-4 space-y-3 text-sm">
+              {orgActivity.slice(0, 6).map((event) => (
+                <li key={event.id} className="rounded-md border border-line p-3">
+                  <p className="font-medium">{event.action.replaceAll(".", " ")}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {event.entityType}
+                    {event.entityId ? ` · ${event.entityId}` : ""} · {new Date(event.createdAt).toLocaleString()}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState
+              title="No activity recorded yet"
+              body="Saving records writes a safe activity trail here. Secrets and government identifiers are never stored in audit metadata."
+            />
+          )}
         </Card>
       </div>
-      ) : null}
 
-      {show("insights") ? (
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Card>
-          <h2 className="font-semibold">Evidence-based recommendations</h2>
-          <ul className="mt-4 space-y-3">
-            {today.insights.map((insight) => (
-              <li key={insight.id} className="rounded-md border border-line p-3">
-                <p className="font-medium">{insight.title}</p>
-                <p className="mt-1 text-sm text-muted">{insight.body}</p>
-                <p className="mt-2 text-xs">Evidence: {insight.evidence}</p>
-                <Link href={insight.href} className="mt-2 inline-block text-sm text-forest">Open</Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card>
-          <h2 className="font-semibold">Cash flow vs accounting profit</h2>
-          <p className="mt-2 font-mono text-lg">Cash flow {formatCurrency(metrics.cashFlow)}</p>
-          <p className="font-mono text-lg">Accounting profit {formatCurrency(metrics.accountingProfit)}</p>
-          <p className="mt-3 text-sm text-muted">{FINANCE_DEFINITIONS.cashVsAccrual}</p>
-        </Card>
-      </div>
-      ) : null}
-    </div>
-  );
-}
-
-function Brief({ title, items, empty = "None", href }: { title: string; items: string[]; empty?: string; href?: string }) {
-  return (
-    <div>
-      <p className="text-xs uppercase tracking-wide text-muted">{title}</p>
-      {items.length ? (
-        <ul className="mt-1 list-disc pl-4 text-sm">
-          {items.slice(0, 4).map((item) => (
-            <li key={item}>{href ? <Link href={href}>{item}</Link> : item}</li>
+      <Card className="mt-4">
+        <h2 className="text-lg font-semibold">Implemented sections</h2>
+        <p className="mt-1 text-sm text-muted">Command Center only links to sections that already have a working foundation.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {implementedLinks.map((item) => (
+            <Button key={item.href} href={item.href} size="sm" variant="secondary">
+              {item.label}
+            </Button>
           ))}
-        </ul>
-      ) : (
-        <p className="mt-1 text-sm text-muted">{empty}</p>
-      )}
+        </div>
+      </Card>
     </div>
   );
 }

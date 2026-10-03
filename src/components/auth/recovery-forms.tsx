@@ -4,7 +4,6 @@ import { useActionState } from "react";
 import { acceptInvitation, completePasswordReset, verifyEmailCode, verifyMfaCode } from "@/app/actions";
 import { PasswordField } from "@/components/auth/password-field";
 import { Button, Field, inputClass } from "@/components/ui";
-import { NOT_CONFIGURED_MESSAGE } from "@/lib/auth/phase1-flows";
 
 type AuthActionState = { error?: string; ok?: boolean };
 
@@ -40,7 +39,7 @@ export function ResetPasswordForm() {
     );
   }
   return (
-    <form className="space-y-4" action={formAction} method="post">
+    <form className="space-y-4" action={formAction}>
       <PasswordField />
       <Field label="Confirm password" name="confirm">
         <input id="confirm" name="confirm" type="password" required minLength={12} autoComplete="new-password" className={inputClass} />
@@ -72,7 +71,7 @@ export function InviteAcceptForm() {
     );
   }
   return (
-    <form className="space-y-4" action={formAction} method="post">
+    <form className="space-y-4" action={formAction}>
       <PasswordField />
       {state.error ? (
         <p className="text-sm text-danger" role="alert">
@@ -86,10 +85,11 @@ export function InviteAcceptForm() {
   );
 }
 
-export function MfaVerifyForm() {
+export function MfaVerifyForm({ next = "/dashboard" }: { next?: string }) {
   const [state, formAction, pending] = useActionState(mfaAction, {});
   return (
-    <form className="space-y-4" action={formAction} method="post">
+    <form className="space-y-4" action={formAction}>
+      <input type="hidden" name="next" value={next} />
       <Field label="Authenticator code" name="code">
         <input id="code" name="code" required inputMode="numeric" autoComplete="one-time-code" className={inputClass} />
       </Field>
@@ -97,9 +97,7 @@ export function MfaVerifyForm() {
         <p className="text-sm text-danger" role="alert">
           {state.error}
         </p>
-      ) : (
-        <p className="text-xs text-soft-gray">{NOT_CONFIGURED_MESSAGE}</p>
-      )}
+      ) : null}
       <Button type="submit" disabled={pending} className="w-full">
         Verify
       </Button>
@@ -110,7 +108,7 @@ export function MfaVerifyForm() {
 export function EmailCodeForm() {
   const [state, formAction, pending] = useActionState(emailCodeAction, {});
   return (
-    <form className="space-y-4" action={formAction} method="post">
+    <form className="space-y-4" action={formAction}>
       <Field label="Email" name="email">
         <input id="email" name="email" type="email" required autoComplete="username" className={inputClass} />
       </Field>
