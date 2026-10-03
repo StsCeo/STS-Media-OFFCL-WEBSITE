@@ -36,7 +36,7 @@ describe("palettes", () => {
     expect(celsius["--soft-gray"]).toBe("#A2A2A2");
     expect(createSeedWorkspace().brand.paletteId).toBe("sts-day");
     expect(createSeedWorkspace().brand.accentColor).toBe("#3157B7");
-    expect(getPalette("charcoal-sage").name).toBe("Charcoal Sage");
+    expect(getPalette("charcoal-sage").name).toBe("Charcoal Slate");
     const sage = paletteCssVars(getPalette("charcoal-sage"));
     expect(sage["--obsidian"]).toBe("#0B0D0C");
     expect(sage["--primary"]).toBe("#A8B2C9");

@@ -116,7 +116,7 @@ export function ThemePreviewPlayground({
                   <PublicCard key={title} className="sts-preview-glass p-5">
                     <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
                     <p className="mt-2 text-sm leading-6 text-muted">
-                      Soft green sections are limited. Cards stay light in Day and slightly elevated in Night.
+                      Soft blue sections are limited. Cards stay light in Day and slightly elevated in Night.
                     </p>
                   </PublicCard>
                 ))}

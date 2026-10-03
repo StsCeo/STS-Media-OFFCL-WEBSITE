@@ -60,7 +60,7 @@ export interface Palette {
 export const PALETTES: Palette[] = [
   {
     id: "forest-gold",
-    name: "Forest & Gold",
+    name: "Navy & Gold",
     tagline: "The STS Media default — cinematic, grounded, spare gold.",
     suitedFor: "The production brand. Business owners and creators who want quiet confidence.",
     tokens: {
@@ -259,9 +259,9 @@ export const PALETTES: Palette[] = [
   },
   {
     id: "charcoal-sage",
-    name: "Charcoal Sage",
-    tagline: "Charcoal field, sage and white paper, Celsius blue only on charts.",
-    suitedFor: "The combined pick: charcoal chrome, light forest-sage actions on white, and #009FEE reserved for graphs.",
+    name: "Charcoal Slate",
+    tagline: "Charcoal field, slate and white paper, Celsius blue only on charts.",
+    suitedFor: "The combined pick: charcoal chrome, light slate-blue actions on white, and #009FEE reserved for graphs.",
     atmosphere: "daylight",
     electric: "#009FEE",
     primary: "#A8B2C9",
@@ -295,8 +295,8 @@ export const PALETTES: Palette[] = [
   {
     id: "warm-earth",
     name: "Warm Earth",
-    tagline: "Ivory paper, sage, forest, and a little terracotta — calm boutique, not costume.",
-    suitedFor: "A wellness and lifestyle register: warm cream fields, charcoal type, sage actions, terracotta only at the edges.",
+    tagline: "Ivory paper, slate, navy, and a little terracotta — calm boutique, not costume.",
+    suitedFor: "A wellness and lifestyle register: warm cream fields, charcoal type, slate actions, terracotta only at the edges.",
     atmosphere: "daylight",
     electric: "#313E5D",
     primary: "#4A587A",
@@ -412,7 +412,7 @@ export function parseTheme(value: string | null | undefined): "light" | "dark" {
   return value === "dark" ? "dark" : "light";
 }
 
-/** Live chrome: Banner journey Day cream or Night forest. Lookbook preview cookie still wins. */
+/** Live chrome: Banner journey Day cream or Night blue-charcoal. Lookbook preview cookie still wins. */
 export function resolveLivePalette(theme: "light" | "dark", previewId?: string | null) {
   if (previewId) return getPalette(previewId);
   return getPalette(theme === "dark" ? STS_NIGHT_PALETTE_ID : STS_DAY_PALETTE_ID);

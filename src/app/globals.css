@@ -1254,7 +1254,7 @@ html[data-palette="sts-night"] [data-surface="dashboard"].bg-canvas {
   }
 }
 
-/* Phase 1 only: blue actions on contact and Command Center. Green stays semantic. */
+/* Phase 1 only: blue actions on contact and Command Center. Green is not used visually. */
 .sts-phase1 {
   --phase1-action: #3157b7;
   --phase1-action-hover: #274896;

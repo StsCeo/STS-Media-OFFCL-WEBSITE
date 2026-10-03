@@ -7,11 +7,11 @@ export const PREVIEW_PALETTE_OPTIONS: { id: PreviewPaletteId; label: string; not
   {
     id: "banner-journey",
     label: "Banner journey",
-    note: "Same cream daylight and forest night now applied to the live site.",
+    note: "Same cream daylight and blue-charcoal night now applied to the live site.",
   },
-  { id: "signature-forest", label: "Signature Forest", note: "Porcelain field, forest ink, teal-midnight side light." },
-  { id: "emerald-tech", label: "Emerald Tech", note: "Crisp white field, emerald actions, indigo-night option." },
-  { id: "sage-gold", label: "Sage + Gold", note: "Warm cream field, sage actions, muted gold accent." },
+  { id: "signature-forest", label: "Signature Navy", note: "Porcelain field, navy ink, blue side light." },
+  { id: "emerald-tech", label: "Blue Tech", note: "Crisp white field, blue actions, indigo-night option." },
+  { id: "sage-gold", label: "Slate + Gold", note: "Warm cream field, slate actions, muted gold accent." },
 ];
 
 export function isPreviewPaletteId(value: string | null | undefined): value is PreviewPaletteId {
