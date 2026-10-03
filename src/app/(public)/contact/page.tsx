@@ -1,5 +1,6 @@
 import { ContactForm } from "@/components/public/contact-form";
 import { getWorkspace } from "@/lib/data/store";
+import { phase1Display, phase1Sans } from "@/lib/type/phase1-fonts";
 
 export const metadata = { title: "Contact" };
 
@@ -21,14 +22,14 @@ export default async function ContactPage({
   const audience = params.for === "creators" ? "creator" : params.for === "owners" ? "owner" : "both";
   const audit = params.intent === "audit";
   return (
-    <div className="bg-ivory text-ink">
+    <div className={`sts-phase1 bg-ivory text-ink ${phase1Display.variable} ${phase1Sans.variable}`}>
       <div className="public-wrap grid gap-10 public-page lg:grid-cols-[0.9fr_1.1fr]">
         <div>
-          <p className="text-sm font-medium tracking-wide text-muted">Your next step.</p>
-          <h1 className="mt-3 max-w-[14ch] font-display text-4xl text-ink">
+          <p className="font-[family-name:var(--font-phase1-sans)] text-sm font-medium tracking-wide text-muted">Your next step.</p>
+          <h1 className="mt-3 max-w-[14ch] font-[family-name:var(--font-phase1-display)] text-[2.25rem] font-normal leading-[1.08] text-ink md:text-[3.5rem]">
             {audit ? "Request a review" : "Start a project"}
           </h1>
-          <p className="mt-4 max-w-[65ch] text-base leading-relaxed text-muted">
+          <p className="mt-4 max-w-[65ch] font-[family-name:var(--font-phase1-sans)] text-base leading-relaxed text-muted">
             {audit
               ? "Tell us what to review. We’ll reply with practical notes. This form does not book a call."
               : "Tell us what you need. We’ll reply with a clear next step."}

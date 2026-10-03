@@ -28,15 +28,15 @@ export function ContactForm({
   if (state.ok) {
     return (
       <div className="rounded-xl border border-success/30 bg-white p-8 text-ink" role="status">
-        <h2 className="font-display text-2xl">Message received</h2>
-        <p className="mt-3 max-w-[65ch] text-base leading-relaxed text-muted">
+        <h2 className="font-[family-name:var(--font-phase1-display)] text-[2rem] font-normal leading-[1.15] md:text-[2.25rem]">Message received</h2>
+        <p className="mt-3 max-w-[65ch] font-[family-name:var(--font-phase1-sans)] text-base leading-relaxed text-muted">
           Your next step. We’ll review this and reply by the method you chose. You are not booked, and nothing is signed or paid.
         </p>
       </div>
     );
   }
   return (
-    <form action={formAction} className="space-y-4 rounded-xl border border-line bg-white p-6 text-ink">
+    <form action={formAction} className="space-y-4 rounded-xl border border-line bg-white p-6 font-[family-name:var(--font-phase1-sans)] text-base text-ink">
       <input type="hidden" name="submissionKey" value={submissionKey} />
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Name" name="name">

@@ -60,7 +60,8 @@ export function Badge({
     demo: "bg-lead/10 text-lead border-lead/20",
   };
   return (
-    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide", tones[tone])}>
+    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide", tones[tone])}>
+      {tone === "success" ? <span aria-hidden="true">✓</span> : null}
       {children}
     </span>
   );
@@ -89,17 +90,21 @@ export function PageHeader({
   title,
   description,
   actions,
+  className,
+  titleClassName,
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   actions?: React.ReactNode;
+  className?: string;
+  titleClassName?: string;
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div className={cn("mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between", className)}>
       <div>
         {eyebrow ? <p className="mb-1 text-xs uppercase tracking-[0.18em] text-muted">{eyebrow}</p> : null}
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
+        <h1 className={cn("text-2xl font-semibold tracking-tight text-ink", titleClassName)}>{title}</h1>
         {description ? <p className="mt-1 max-w-2xl text-sm text-muted">{description}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}

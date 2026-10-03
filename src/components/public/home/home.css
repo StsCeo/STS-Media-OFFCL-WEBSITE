@@ -445,18 +445,18 @@ html.sts-header-compact [data-surface="public"] header > div {
 
 .sts-home {
   background-image:
-    radial-gradient(circle at 8% 20%, rgba(168, 191, 174, 0.28), transparent 32%),
-    radial-gradient(circle at 92% 75%, rgba(31, 111, 92, 0.18), transparent 36%),
-    linear-gradient(135deg, #faf8f2 0%, #f7faf7 58%, #eaf8f0 100%);
+    radial-gradient(circle at 8% 20%, rgba(168, 175, 191, 0.28), transparent 32%),
+    radial-gradient(circle at 92% 75%, rgba(31, 55, 111, 0.18), transparent 36%),
+    linear-gradient(135deg, #f7f5ef 0%, #eeece5 58%, #ffffff 100%);
   background-color: var(--canvas);
 }
 
 html[data-theme="dark"] .sts-home,
 html.dark .sts-home {
   background-image:
-    radial-gradient(circle at 85% 15%, rgba(31, 111, 92, 0.32), transparent 35%),
+    radial-gradient(circle at 85% 15%, rgba(31, 55, 111, 0.32), transparent 35%),
     radial-gradient(circle at 10% 85%, rgba(11, 59, 96, 0.18), transparent 32%),
-    linear-gradient(135deg, #050706 0%, #07130f 52%, #020403 100%);
+    linear-gradient(135deg, #101722 0%, #182231 52%, #213047 100%);
   background-color: var(--canvas);
 }
 
@@ -495,8 +495,8 @@ html.dark .sts-home {
     90deg,
     transparent 0%,
     transparent 32%,
-    rgba(214, 224, 204, 0.28) 48%,
-    rgba(196, 214, 186, 0.78) 100%
+    rgba(204, 210, 224, 0.28) 48%,
+    rgba(186, 194, 214, 0.78) 100%
   );
   opacity: 1;
   transition: opacity 1.45s ease;
@@ -514,9 +514,9 @@ html.dark .sts-banner-day-wash {
     90deg,
     transparent 0%,
     transparent 34%,
-    rgba(86, 122, 98, 0.22) 46%,
-    rgba(18, 52, 38, 0.62) 58%,
-    rgba(4, 16, 12, 0.88) 76%,
+    rgba(86, 97, 122, 0.22) 46%,
+    rgba(18, 28, 52, 0.62) 58%,
+    rgba(4, 8, 16, 0.88) 76%,
     rgba(1, 5, 4, 0.94) 100%
   );
   mix-blend-mode: multiply;
@@ -544,8 +544,8 @@ html.dark .sts-banner-night-wash {
   position: absolute;
   height: 1px;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(156, 240, 209, 0.35) 40%, #fff8e8 100%);
-  filter: drop-shadow(0 0 6px rgba(156, 240, 209, 0.45));
+  background: linear-gradient(90deg, transparent, rgba(157, 182, 239, 0.35) 40%, #fff8e8 100%);
+  filter: drop-shadow(0 0 6px rgba(157, 182, 239, 0.45));
 }
 
 .sts-banner-stars::before {
@@ -589,9 +589,9 @@ html.dark .sts-banner-stars {
   width: 7rem;
   height: 1px;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(156, 240, 209, 0.25) 42%, #fff8e8 100%);
+  background: linear-gradient(90deg, transparent, rgba(157, 182, 239, 0.25) 42%, #fff8e8 100%);
   opacity: 0;
-  filter: drop-shadow(0 0 6px rgba(156, 240, 209, 0.4));
+  filter: drop-shadow(0 0 6px rgba(157, 182, 239, 0.4));
 }
 
 .sts-meteor::after {
@@ -645,16 +645,16 @@ html.dark .sts-banner-stars {
   max-width: 46rem;
   padding: 1.75rem 1.5rem;
   background: rgba(255, 255, 255, 0.58);
-  border: 1px solid rgba(18, 55, 42, 0.14);
+  border: 1px solid rgba(18, 29, 55, 0.14);
   border-radius: 24px;
   backdrop-filter: blur(18px);
-  box-shadow: 0 20px 60px rgba(18, 55, 42, 0.1);
+  box-shadow: 0 20px 60px rgba(18, 29, 55, 0.1);
   transition: background 1.45s ease, border-color 1.45s ease, box-shadow 1.45s ease;
 }
 
 html[data-theme="dark"] .sts-banner-glass,
 html.dark .sts-banner-glass {
   background: rgba(5, 12, 9, 0.58);
-  border-color: rgba(156, 240, 209, 0.16);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42), 0 0 30px rgba(31, 111, 92, 0.08);
+  border-color: rgba(157, 182, 239, 0.16);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42), 0 0 30px rgba(31, 55, 111, 0.08);
 }

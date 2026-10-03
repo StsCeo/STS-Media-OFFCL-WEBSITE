@@ -18,6 +18,7 @@ import {
   deriveOperationalAgenda,
   parseCommandCenterPeriod,
 } from "@/lib/org/command-center";
+import { phase1Sans } from "@/lib/type/phase1-fonts";
 
 export const metadata = { title: "Command Center" };
 
@@ -82,11 +83,13 @@ export default async function OverviewPage({
   const ledgersUnavailable = unavailable || workspaceRecords.unavailable || crm.unavailable;
 
   return (
-    <div>
+    <div className="sts-phase1">
       <PageHeader
+        className={phase1Sans.variable}
+        titleClassName="font-[family-name:var(--font-phase1-sans)] font-semibold"
         eyebrow="STS Media Business OS"
         title="Command Center"
-        description="How much money is coming in, who needs attention, what work is due, and where the next client is coming from. Totals are operational estimates for this organization, not formal accounting."
+        description="Due work and follow-ups, in one place."
         actions={<CommandCenterPeriodForm period={period} from={params.from} to={params.to} />}
       />
 
