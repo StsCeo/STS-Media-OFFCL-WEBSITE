@@ -214,9 +214,16 @@ describe("protected owner writes", () => {
     formData.set("message", "Need a new marketing site for the shop.");
     formData.set("consent", "on");
     formData.set("companyWebsite", "");
+    formData.set("submissionKey", "11111111-1111-4111-8111-111111111111");
+    const tasks = getWorkspace().tasks.length;
     const result = await submitContact(formData);
     expect(result).toEqual({ ok: true });
     expect(getWorkspace().leads.length).toBe(leads + 1);
+    expect(getWorkspace().tasks.length).toBe(tasks + 1);
+    const replay = await submitContact(formData);
+    expect(replay).toEqual({ ok: true });
+    expect(getWorkspace().leads.length).toBe(leads + 1);
+    expect(getWorkspace().tasks.length).toBe(tasks + 1);
   });
 
   it("allows an authenticated demo owner to save brand settings", async () => {

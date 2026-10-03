@@ -9,18 +9,29 @@ export default async function ContactPage({
   searchParams: Promise<{ for?: string; service?: string; intent?: string }>;
 }) {
   const params = await searchParams;
-  const { brand, services } = getWorkspace();
+  const workspace = getWorkspace();
+  const { brand } = workspace;
+  const interests = [
+    { slug: "website", name: "Website", active: true },
+    { slug: "content", name: "Content", active: true },
+    { slug: "custom-work", name: "Custom work", active: true },
+  ];
+  const interestNames = new Set(interests.map((item) => item.name));
+  const services = [...interests, ...workspace.services.filter((service) => !interestNames.has(service.name))];
   const audience = params.for === "creators" ? "creator" : params.for === "owners" ? "owner" : "both";
   const audit = params.intent === "audit";
   return (
     <div className="bg-ivory text-ink">
       <div className="public-wrap grid gap-10 public-page lg:grid-cols-[0.9fr_1.1fr]">
         <div>
-          <h1 className="font-display text-4xl">{audit ? "Request a free audit" : "Start a project"}</h1>
-          <p className="mt-4 text-muted">
+          <p className="text-sm font-medium tracking-wide text-muted">Your next step.</p>
+          <h1 className="mt-3 max-w-[14ch] font-display text-4xl text-ink">
+            {audit ? "Request a review" : "Start a project"}
+          </h1>
+          <p className="mt-4 max-w-[65ch] text-base leading-relaxed text-muted">
             {audit
-              ? "Tell us the site or profile to review. We will reply with practical notes: homepage clarity, mobile, contact path, trust, local visibility, and three priorities. This uses the same contact form. Nothing is auto-sent until the owner reviews it."
-              : "Tell us what you need. We answer with a clear next step, not a fake waitlist or inflated promise."}
+              ? "Tell us what to review. We’ll reply with practical notes. This form does not book a call."
+              : "Tell us what you need. We’ll reply with a clear next step."}
           </p>
           <dl className="mt-8 space-y-3 text-sm">
             <div>
@@ -48,6 +59,7 @@ export default async function ContactPage({
         </div>
         <ContactForm
           calendlyUrl={brand.calendlyUrl}
+          submissionKey={crypto.randomUUID()}
           defaultAudience={audience}
           defaultService={params.service || (audit ? "digital-optimization" : undefined)}
           services={services.filter((item) => item.active).map((item) => ({ slug: item.slug, name: item.name }))}
