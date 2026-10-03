@@ -15,6 +15,7 @@ Status is recorded only for behavior that exists in this branch. The Phase 1 mig
 | Manual gaps | The server environment needs the service-role key, kept server-only. The organization slug must remain `sts-media`. No mail, Stripe, booking, or e-sign provider is configured. Optional files are checked and not stored. |
 | Limitations | The intake function is executable only by `service_role`. `submitContact` calls it from the server-only client. A missing service-role key fails closed and writes nothing. Anonymous callers cannot invoke the function through the Data API. Staff still edit leads in the existing CRM. Questionnaires stay absent. Client portal writes stay off. |
 | Next action | Keep the synthetic staging inquiry. Do not send mail, charge, book, or sign from this workflow. |
+| Agenda | The Command Center shows one follow-up task. A generated task-due calendar row stays on the schedule and is not a second agenda card. Agenda dates use the America/New_York business day. |
 
 ## Later phases
 

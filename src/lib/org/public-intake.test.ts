@@ -11,7 +11,7 @@ import {
   publicIntakeRpcArgs,
   type PublicIntakeInput,
 } from "@/lib/org/public-intake";
-import type { Lead, TaskItem } from "@/lib/types";
+import type { CalendarEvent, Lead, TaskItem } from "@/lib/types";
 
 const KEY = "11111111-1111-4111-8111-111111111111";
 const intakeSql = readFileSync("supabase/migrations/20261003010000_phase1_public_intake.sql", "utf8");
@@ -142,6 +142,112 @@ describe("public intake records", () => {
     });
     expect(items.filter((item) => item.label.startsWith("Follow up:"))).toHaveLength(1);
     expect(items.some((item) => item.label.startsWith("Lead follow-up"))).toBe(false);
+  });
+
+  it("shows one follow-up and hides the task calendar mirror and lead card", () => {
+    const store = memory();
+    const staging = { ...intake, contactName: "Phase One Test", businessName: "STS Intake Test" };
+    applyLocalPublicIntake(store, staging, new Date("2026-10-02T16:00:00Z"));
+    const task = store.tasks[0]!;
+    const mirror: CalendarEvent = {
+      id: "generated-task-due",
+      title: `Task due: ${task.title}`,
+      kind: "task",
+      start: "2026-10-02T00:00:00.000Z",
+      end: "2026-10-02T23:59:59.000Z",
+      notes: "",
+      relatedId: task.id,
+      location: "",
+      allDay: true,
+      timezone: "UTC",
+      generated: true,
+      sourceType: "task_due",
+      sourceId: task.id,
+    };
+    const items = deriveOperationalAgenda({
+      tasks: store.tasks,
+      leads: store.leads,
+      invoices: [],
+      projects: [],
+      events: [mirror],
+      now: new Date("2026-10-02T16:00:00Z"),
+    });
+    expect(items.map((item) => item.label)).toEqual(["Follow up: STS Intake Test"]);
+    expect(items[0]?.bucket).toBe("today");
+  });
+
+  it("keeps a calendar event that is not a task mirror", () => {
+    const meeting: CalendarEvent = {
+      id: "meeting-1",
+      title: "Owner planning",
+      kind: "team_meeting",
+      start: "2026-10-02T15:00:00.000Z",
+      end: "2026-10-02T15:30:00.000Z",
+      notes: "",
+      relatedId: null,
+      location: "",
+      sourceType: "manual",
+      sourceId: null,
+    };
+    const items = deriveOperationalAgenda({
+      tasks: [],
+      leads: [],
+      invoices: [],
+      projects: [],
+      events: [meeting],
+      now: new Date("2026-10-02T16:00:00Z"),
+    });
+    expect(items.map((item) => item.label)).toEqual(["Owner planning"]);
+  });
+
+  it("classifies a New York evening due date as today", () => {
+    const items = deriveOperationalAgenda({
+      tasks: [{ id: "t1", title: "Follow up: STS Intake Test", projectId: null, clientId: null, dueDate: "2026-10-02", status: "todo", priority: "high", assignee: "Owner", notes: "" }],
+      leads: [],
+      invoices: [],
+      projects: [],
+      events: [],
+      now: new Date("2026-10-03T01:59:00Z"),
+    });
+    expect(items.map((item) => item.bucket)).toEqual(["today"]);
+  });
+
+  it("classifies the next New York day as upcoming during the previous evening", () => {
+    const items = deriveOperationalAgenda({
+      tasks: [{ id: "t1", title: "Follow up: STS Intake Test", projectId: null, clientId: null, dueDate: "2026-10-02", status: "todo", priority: "high", assignee: "Owner", notes: "" }],
+      leads: [],
+      invoices: [],
+      projects: [],
+      events: [],
+      now: new Date("2026-10-02T03:59:00Z"),
+    });
+    expect(items.map((item) => item.bucket)).toEqual(["upcoming"]);
+  });
+
+  it("keeps midday today, upcoming, and overdue classification", () => {
+    const noon = new Date("2026-09-24T16:00:00Z");
+    const task = (id: string, dueDate: string): TaskItem => ({
+      id,
+      title: id,
+      projectId: null,
+      clientId: null,
+      dueDate,
+      status: "todo",
+      priority: "medium",
+      assignee: "Owner",
+      notes: "",
+    });
+    const items = deriveOperationalAgenda({
+      tasks: [task("today", "2026-09-24"), task("upcoming", "2026-09-25"), task("overdue", "2026-09-23")],
+      leads: [],
+      invoices: [],
+      projects: [],
+      events: [],
+      now: noon,
+    });
+    expect(items.find((item) => item.label === "today")?.bucket).toBe("today");
+    expect(items.find((item) => item.label === "upcoming")?.bucket).toBe("upcoming");
+    expect(items.find((item) => item.label === "overdue")?.bucket).toBe("overdue");
   });
 });
 

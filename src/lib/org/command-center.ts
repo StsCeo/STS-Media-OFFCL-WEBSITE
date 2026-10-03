@@ -29,8 +29,10 @@ export type AgendaItem = {
   date: string;
 };
 
+const AGENDA_TIME_ZONE = "America/New_York";
+
 function dayStamp(value: Date) {
-  return value.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: AGENDA_TIME_ZONE }).format(value);
 }
 
 function classifyDate(date: string, today: string): AgendaBucket | null {
@@ -105,6 +107,7 @@ export function deriveOperationalAgenda(input: {
   }
 
   for (const event of input.events) {
+    if (event.sourceType === "task_due") continue;
     const start = event.start.slice(0, 10);
     const bucket = classifyDate(start, today);
     if (!bucket) continue;
