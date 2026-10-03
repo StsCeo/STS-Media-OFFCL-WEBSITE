@@ -33,6 +33,8 @@ import type {
 } from "@/lib/types";
 import { isSafeRedirect } from "@/lib/utils";
 import { contactSchema, sanitizeText, vulnerabilitySchema } from "@/lib/validation";
+import { applyLocalPublicIntake, captureConfiguredIntake, PUBLIC_INTAKE_FAILURE, type PublicIntakeInput } from "@/lib/org/public-intake";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import { clearCurrentAuth, createSupabaseServer, getSession, organizationRoleFor, requireBusinessSettingsWrite, requireCrmWrite, requireEstimateWrite, requireFinanceWrite, requireInvoiceWrite, requireOperationsWrite, requireOwnerWrite, requireRevenueWrite, sessionOrganizationId } from "@/lib/auth/session";
 import { recordOrganizationAudit, updateOrganizationBusinessSettings } from "@/lib/org/store";
 import { saveOrganizationSettingsInDatabase } from "@/lib/org/database";
@@ -204,6 +206,7 @@ export async function submitContact(formData: FormData) {
     message: formData.get("message"),
     consent: formData.get("consent") === "on",
     companyWebsite: formData.get("companyWebsite"),
+    submissionKey: formData.get("submissionKey"),
   });
 
   if (!parsed.success) {
@@ -216,46 +219,54 @@ export async function submitContact(formData: FormData) {
     return { error: "Upload a PDF or image up to 8MB." };
   }
 
-  mutateWorkspace((state) => {
-    state.contacts.unshift({
-      id: `contact-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      name: sanitizeText(parsed.data.name),
-      businessName: sanitizeText(parsed.data.businessName),
-      email: parsed.data.email,
-      phone: sanitizeText(parsed.data.phone),
-      service: parsed.data.service,
-      budget: parsed.data.budget,
-      preferredContact: parsed.data.preferredContact,
-      message: sanitizeText(parsed.data.message),
-      consent: true,
-      fileName,
-      status: "new",
+  const intake: PublicIntakeInput = {
+    submissionKey: parsed.data.submissionKey,
+    contactName: sanitizeText(parsed.data.name),
+    businessName: sanitizeText(parsed.data.businessName),
+    email: parsed.data.email,
+    phone: sanitizeText(parsed.data.phone),
+    service: sanitizeText(parsed.data.service),
+    audience: parsed.data.audience,
+    budget: sanitizeText(parsed.data.budget),
+    preferredContact: parsed.data.preferredContact,
+    message: sanitizeText(parsed.data.message),
+  };
+
+  if (isSupabaseConfigured()) {
+    const supabase = createServiceRoleClient();
+    if (!supabase) return { error: PUBLIC_INTAKE_FAILURE };
+    const captured = await captureConfiguredIntake(async (name, args) => {
+      const result = await supabase.rpc(name, args);
+      return { data: result.data, error: result.error ? { message: "unavailable" } : null };
+    }, intake);
+    if (!captured.ok) return captured;
+  } else {
+    mutateWorkspace((state) => {
+      const saved = applyLocalPublicIntake(state, intake);
+      if (!saved.created) return;
+      state.contacts.unshift({
+        id: `contact-${intake.submissionKey}`,
+        createdAt: new Date().toISOString(),
+        name: intake.contactName,
+        businessName: intake.businessName,
+        email: intake.email,
+        phone: intake.phone,
+        service: intake.service,
+        budget: intake.budget,
+        preferredContact: intake.preferredContact,
+        message: intake.message,
+        consent: true,
+        fileName,
+        status: "new",
+      });
     });
-    state.leads.unshift({
-      id: `lead-${Date.now()}`,
-      businessName: parsed.data.businessName || parsed.data.name,
-      contactName: parsed.data.name,
-      email: parsed.data.email,
-      phone: parsed.data.phone,
-      source: "Contact form",
-      requestedService: parsed.data.service,
-      estimatedValue: 0,
-      probability: 10,
-      stage: "new_inquiry",
-      lastContact: null,
-      nextFollowUp: new Date().toISOString().slice(0, 10),
-      callsMade: 0,
-      emailsSent: 0,
-      meetings: 0,
-      notes: `[Audience: ${parsed.data.audience}]\n${parsed.data.message}`,
-      assignedTo: "Owner",
-      createdAt: new Date().toISOString().slice(0, 10),
-    });
-  });
+  }
+
   stampAudit("contact_submitted", "leads", "Public contact form created a new inquiry.");
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/inbox");
   revalidatePath("/dashboard/leads");
+  revalidatePath("/dashboard/tasks");
   return { ok: true };
 }
 

@@ -11,6 +11,7 @@ describe("validation", () => {
       preferredContact: "email",
       message: "We need a clearer website for the shop.",
       consent: false,
+      submissionKey: "11111111-1111-4111-8111-111111111111",
     });
     expect(result.success).toBe(false);
   });
@@ -24,6 +25,7 @@ describe("validation", () => {
       message: "We need a clearer website for the shop.",
       consent: true,
       companyWebsite: "",
+      submissionKey: "11111111-1111-4111-8111-111111111111",
     });
     expect(result.success).toBe(true);
   });

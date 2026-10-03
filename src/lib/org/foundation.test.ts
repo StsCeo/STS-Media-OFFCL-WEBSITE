@@ -81,6 +81,7 @@ describe("business OS foundation migration", () => {
       "20260924063409_phase3a_crm_journey.sql",
       "20260929180000_phase3b_estimate_sections.sql",
       "20261002232544_phase3b_revoke_estimate_truncate.sql",
+      "20261003010000_phase1_public_intake.sql",
     ]);
     const noDelete = readFileSync("supabase/migrations/20260920130000_day3_ops_no_hard_delete.sql", "utf8");
     expect(noDelete).toContain("revoke delete on public.ops_expenses");

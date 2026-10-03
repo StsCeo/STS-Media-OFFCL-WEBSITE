@@ -29,8 +29,10 @@ export type AgendaItem = {
   date: string;
 };
 
+const AGENDA_TIME_ZONE = "America/New_York";
+
 function dayStamp(value: Date) {
-  return value.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: AGENDA_TIME_ZONE }).format(value);
 }
 
 function classifyDate(date: string, today: string): AgendaBucket | null {
@@ -105,6 +107,7 @@ export function deriveOperationalAgenda(input: {
   }
 
   for (const event of input.events) {
+    if (event.sourceType === "task_due") continue;
     const start = event.start.slice(0, 10);
     const bucket = classifyDate(start, today);
     if (!bucket) continue;
@@ -117,7 +120,23 @@ export function deriveOperationalAgenda(input: {
     });
   }
 
-  return items.sort((a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label));
+  const intakeFollowUps = new Set(
+    input.tasks
+      .filter((task) => task.status !== "done" && task.dueDate && task.title.startsWith("Follow up: "))
+      .map((task) => `${task.dueDate!.slice(0, 10)}|${task.title.slice("Follow up: ".length)}`),
+  );
+
+  return items
+    .filter((item) => {
+      if (!item.id.startsWith("lead-")) return true;
+      const business = item.label.startsWith("Lead follow-up — ")
+        ? item.label.slice("Lead follow-up — ".length)
+        : item.label;
+      const titleLimit = 160 - "Follow up: ".length;
+      return !intakeFollowUps.has(`${item.date}|${business}`)
+        && !intakeFollowUps.has(`${item.date}|${business.slice(0, titleLimit)}`);
+    })
+    .sort((a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label));
 }
 
 export function periodFinancials(input: {

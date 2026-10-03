@@ -16,29 +16,39 @@ describe("locked Day / Night appearance", () => {
     expect(parseTheme("system")).toBe("light");
   });
 
-  it("uses Banner journey cream tokens for Day", () => {
+  it("uses the approved blue paper tokens for Day", () => {
     const day = resolveLivePalette("light");
     expect(day.id).toBe("sts-day");
     const vars = paletteCssVars(day);
-    expect(vars["--canvas"]).toBe("#FAF8F2");
-    expect(vars["--ink"]).toBe("#12372A");
-    expect(vars["--primary"]).toBe("#12372A");
-    expect(vars["--primary-hover"]).toBe("#1F6F5C");
-    expect(vars["--lavender"]).toBe("#EAF8F0");
-    expect(vars["--sage-light"]).toBe("#EAF8F0");
-    expect(vars["--sage-dark"]).toBe("#12372A");
-    expect(vars["--electric"]).toBe("#1F6F5C");
-    expect(vars["--chart-revenue"]).toBe("#1F6F5C");
+    expect(vars["--canvas"]).toBe("#F7F5EF");
+    expect(vars["--ink"]).toBe("#1B2A4A");
+    expect(vars["--primary"]).toBe("#3157B7");
+    expect(vars["--primary-hover"]).toBe("#274896");
+    expect(vars["--primary-ink"]).toBe("#FFFFFF");
+    expect(vars["--card"]).toBe("#FFFFFF");
+    expect(vars["--line"]).toBe("#D5DCD5");
+    expect(vars["--gold"]).toBe("#B99146");
+    expect(vars["--lavender"]).toBe("#EEECE5");
+    expect(vars["--sage-light"]).toBe("#EEECE5");
+    expect(vars["--sage-dark"]).toBe("#1B2A4A");
+    expect(vars["--electric"]).toBe("#3157B7");
+    expect(vars["--chart-revenue"]).toBe("#3157B7");
   });
 
-  it("uses Banner journey forest night for Night", () => {
+  it("uses the approved blue-charcoal tokens for Night", () => {
     const night = resolveLivePalette("dark");
     expect(night.id).toBe("sts-night");
     expect(night.atmosphere).toBe("night-luxury");
-    expect(night.tokens.obsidian).toBe("#050706");
-    expect(paletteCssVars(night)["--primary"]).toBe("#1F6F5C");
-    expect(paletteCssVars(night)["--electric"]).toBe("#9CF0D1");
-    expect(paletteCssVars(night)["--sage-dark"]).toBe("#1F6F5C");
+    expect(night.tokens.obsidian).toBe("#101722");
+    expect(night.tokens.card).toBe("#182231");
+    expect(night.tokens.ink).toBe("#F3F4EF");
+    expect(night.tokens.line).toBe("#40516A");
+    expect(paletteCssVars(night)["--primary"]).toBe("#8EACFF");
+    expect(paletteCssVars(night)["--primary-hover"]).toBe("#A9C0FF");
+    expect(paletteCssVars(night)["--primary-ink"]).toBe("#101722");
+    expect(paletteCssVars(night)["--electric"]).toBe("#A9C0FF");
+    expect(paletteCssVars(night)["--sage-dark"]).toBe("#A9C0FF");
+    expect(paletteCssVars(night)["--background-soft"]).toBe("#213047");
   });
 
   it("lets a lookbook preview override the locked pair", () => {
