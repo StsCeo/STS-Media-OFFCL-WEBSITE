@@ -1,9 +1,54 @@
 import { defaultBusinessProfile } from "./business-defaults";
 import { defaultTaxChecklist } from "../tax";
-import type { WorkspaceState } from "../types";
+import type { WorkspaceEstimate, WorkspaceState } from "../types";
 import { legalBodies } from "../content/trust";
+import { draftInvoiceFromAcceptedEstimate } from "../org/estimates-model";
 
 const now = "2026-09-11T14:00:00.000Z";
+
+function demoKickoffEstimate(): WorkspaceEstimate {
+  return {
+    id: "est-demo-kickoff",
+    estimateNumber: "EST-0001",
+    status: "accepted",
+    title: "Day 7 commercial kickoff quote",
+    description: "",
+    clientId: "client-scp",
+    issueDate: "2026-09-20",
+    expiresOn: "2026-10-15",
+    currency: "USD",
+    internalNotes: "",
+    customerNotes: "",
+    terms: "Net 15",
+    orgLegalName: "STS Media LLC",
+    orgDisplayName: "STS Media",
+    clientBusinessName: "State Collision Pro",
+    clientContactName: "",
+    clientEmail: "",
+    subtotalCents: 300000,
+    discountCents: 5000,
+    taxCents: 0,
+    totalCents: 295000,
+    lines: [
+      {
+        position: 1,
+        description: "Website rebuild",
+        quantity: 2,
+        unitCents: 150000,
+        discountCents: 5000,
+        lineTotalCents: 295000,
+      },
+    ],
+    sections: [],
+    readyAt: "2026-09-20T12:00:00.000Z",
+    acceptedAt: "2026-09-20T12:05:00.000Z",
+    declinedAt: null,
+    expiredAt: null,
+    archived: false,
+    createdAt: now,
+    updatedAt: "2026-09-20T12:05:00.000Z",
+  };
+}
 
 export function createSeedWorkspace(): WorkspaceState {
   return {
@@ -45,7 +90,7 @@ export function createSeedWorkspace(): WorkspaceState {
       founderName: "Owner",
       founderRole: "Founder",
       founderBio:
-        "Scars to Stars Media was built for operators and creators who have already done the hard part: surviving, serving, and showing up. The work now is making that substance visible online — without hype, without fake proof, and without disappearing after launch.",
+        "Scars to Stars Media was built for operators and creators who have already done the hard part: surviving, serving, and showing up. The work now is making that substance visible online, without hype, without fake proof, and without disappearing after launch.",
       email: "hello@stsmedia.co",
       phone: "",
       instagram: "https://instagram.com/stsmedia",
@@ -53,12 +98,12 @@ export function createSeedWorkspace(): WorkspaceState {
       facebook: "",
       tiktok: "",
       calendlyUrl: "",
-      accentColor: "#8FBEA5",
-      paletteId: "charcoal-sage",
+      accentColor: "#3157B7",
+      paletteId: "sts-day",
       logoText: "STS",
     },
     services: [
-      s("website-design-and-development", "Website design and development", "Custom websites that explain the business clearly and convert inquiries.", "A complete website designed around your offer, proof, and next step — not a generic template with extra pages.", true),
+      s("website-design-and-development", "Website design and development", "Custom websites that explain the business clearly and convert inquiries.", "A complete website designed around your offer, proof, and next step. Not a generic template with extra pages.", true),
       s("website-redesign", "Website redesign", "Replace an outdated or unclear site with a focused, current presence.", "Audit, rewrite, and rebuild so visitors can understand who you are and how to work with you.", true),
       s("website-maintenance", "Website maintenance", "Ongoing updates, monitoring, and practical improvements after launch.", "Keep the site current, backed up, and aligned with the business as it grows.", true),
       s("domain-and-dns-management", "Domain and DNS management", "Domain registration, DNS, and reliable routing.", "Set up and maintain domain records without leaving you to guess at TTL values."),
@@ -70,7 +115,7 @@ export function createSeedWorkspace(): WorkspaceState {
       s("content-updates", "Content updates", "Copy, photos, and page changes without a full rebuild.", "A practical way to keep the site honest as services and proof change."),
       s("social-media-content-support", "Social media content support", "Planning and creative support for owned channels.", "Hooks, captions, and visual direction you can actually publish."),
       s("qr-and-nfc", "QR and NFC digital tools", "Physical-to-digital tools for shops, events, and products.", "QR and NFC destinations that open the right page, not a dead link."),
-      s("analytics-setup", "Analytics setup", "Measurement you can trust.", "Property setup, conversion events, and a simple reporting view — no inflated dashboards."),
+      s("analytics-setup", "Analytics setup", "Measurement you can trust.", "Property setup, conversion events, and a simple reporting view. No inflated dashboards."),
       s("business-system-setup", "Business system setup", "Lightweight systems for leads, files, and follow-up.", "The operating pieces an owner actually needs, without enterprise bloat."),
       s("creator-collaboration", "Creator and brand collaboration support", "Pages and process for partnerships that need to look credible.", "Collaboration landing pages, asset collection, and a clean public story."),
     ],
@@ -130,7 +175,7 @@ export function createSeedWorkspace(): WorkspaceState {
         projectTitle: "Pilot website and maintenance partnership",
         serviceProvided: "Website design and development, website maintenance",
         challenge:
-          "State Collision Pro needed a public website that presented the shop as a serious, local collision-repair business — clear enough for a vehicle owner to understand the service and confident enough to make contact.",
+          "State Collision Pro needed a public website that presented the shop as a serious, local collision-repair business: clear enough for a vehicle owner to understand the service, and confident enough to make contact.",
         solution:
           "STS Media is building and maintaining a focused website as a pilot engagement: straightforward service explanation, mobile-friendly layout, and a maintenance plan so the site does not stall after launch.",
         deliverables: ["Custom website", "Mobile layout", "Contact path", "Ongoing maintenance"],
@@ -157,7 +202,7 @@ export function createSeedWorkspace(): WorkspaceState {
       { id: "pr-4", order: 4, title: "Design and build", summary: "Design and develop the site in a real environment.", detail: "The visual system is premium and quiet. The code is maintainable. Staging is shared as soon as it is useful." },
       { id: "pr-5", order: 5, title: "Client review", summary: "Review together, revise with intention, and lock the launch version.", detail: "Feedback is collected in one place. Revisions are tracked. Nothing ships on a guess." },
       { id: "pr-6", order: 6, title: "Launch", summary: "Go live with DNS, SSL, analytics, and a documented handoff.", detail: "Launch is an operating event, not a file transfer. You know what went live and how to request changes." },
-      { id: "pr-7", order: 7, title: "Maintenance and growth", summary: "Keep the site current and improve it as the business earns new proof.", detail: "Updates, monitoring, and the next useful improvement — without pretending a website is finished forever." },
+      { id: "pr-7", order: 7, title: "Maintenance and growth", summary: "Keep the site current and improve it as the business earns new proof.", detail: "Updates, monitoring, and the next useful improvement, without pretending a website is finished forever." },
     ],
     legal: [
       legal("privacy", "Privacy Policy", "How STS Media collects, uses, and stores information.", legalBodies.privacy),
@@ -167,6 +212,7 @@ export function createSeedWorkspace(): WorkspaceState {
       legal("client-portal", "How clients work with STS Media", "Clients do not receive a login. Work is handled by the owner through email, calls, and the contact form.", legalBodies["client-portal"]),
     ],
     contacts: [],
+    icps: [],
     clients: [
       {
         id: "client-scp",
@@ -400,6 +446,12 @@ export function createSeedWorkspace(): WorkspaceState {
         amountPaid: 0,
       },
     ],
+    workspaceInvoices: (() => {
+      const estimate = demoKickoffEstimate();
+      const invoice = draftInvoiceFromAcceptedEstimate(estimate, "winv-demo-kickoff", "2026-09-20T12:10:00.000Z");
+      return invoice ? [invoice] : [];
+    })(),
+    workspaceEstimates: [demoKickoffEstimate()],
     subscriptions: [
       {
         id: "sub-scp",

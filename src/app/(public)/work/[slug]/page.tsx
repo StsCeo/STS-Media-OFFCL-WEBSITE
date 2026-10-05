@@ -11,8 +11,8 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
   return (
     <div className="bg-ivory text-ink">
-      <div className="mx-auto max-w-4xl px-4 py-16">
-        <p className="text-xs uppercase tracking-[0.18em] text-forest">{item.industry}</p>
+      <div className="public-wrap max-w-4xl public-page">
+        <p className="public-kicker">{item.industry}</p>
         <h1 className="mt-3 font-display text-4xl md:text-5xl">{item.companyName}</h1>
         <p className="mt-3 text-lg text-muted">{item.projectTitle}</p>
         <p className="mt-2 text-sm">Service: {item.serviceProvided}</p>

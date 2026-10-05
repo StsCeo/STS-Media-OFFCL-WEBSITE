@@ -1,0 +1,288 @@
+.sts-pricing {
+  font-family: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  color: var(--ink);
+  scroll-margin-top: 5.5rem;
+}
+
+#pricing {
+  scroll-margin-top: 5.5rem;
+}
+
+.sts-pricing-kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sts-pricing-title {
+  margin: 0.75rem 0 0;
+  font-family: inherit;
+  font-size: clamp(1.85rem, 4vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.sts-pricing-lede {
+  margin: 1rem 0 0;
+  max-width: 40rem;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.sts-pricing-grid {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 2.5rem;
+}
+
+@media (min-width: 960px) {
+  .sts-pricing-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 1.5rem;
+  }
+}
+
+.sts-price-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.75rem 1.5rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: var(--card);
+}
+
+.sts-price-card h3 {
+  margin: 1rem 0 0;
+  font-family: inherit;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sts-price-amount {
+  margin: 0.35rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.sts-price-summary {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.sts-price-card ul {
+  margin: 1.15rem 0 0;
+  padding: 0;
+  list-style: none;
+  flex: 1;
+}
+
+.sts-price-card li,
+.sts-pricing-care li {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  margin: 0.55rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.sts-price-card li svg,
+.sts-pricing-care li svg {
+  flex: none;
+  margin-top: 0.1rem;
+  color: var(--sage-dark, var(--success));
+}
+
+.sts-price-icon {
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  background: var(--sage-light, var(--canvas));
+  color: var(--sage-dark, var(--ink));
+}
+
+.sts-price-badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
+  background: var(--sage-dark, var(--ink));
+  color: var(--white);
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sts-price-cta {
+  width: 100%;
+  margin-top: 1.35rem;
+  min-height: 2.75rem;
+  border-radius: 999px;
+}
+
+.sts-pricing-note {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.sts-pricing-care {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 2rem;
+  padding: 1.75rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+
+@media (min-width: 800px) {
+  .sts-pricing-care {
+    grid-template-columns: minmax(12rem, 0.9fr) minmax(0, 1.4fr);
+    align-items: start;
+  }
+
+  .sts-pricing-care .sts-price-cta {
+    grid-column: 1;
+  }
+}
+
+.sts-pricing-care h3 {
+  margin: 0.35rem 0 0;
+  font-family: inherit;
+  font-size: 1.65rem;
+  font-weight: 700;
+}
+
+.sts-pricing-care ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  columns: 1;
+}
+
+@media (min-width: 700px) {
+  .sts-pricing-care ul {
+    columns: 2;
+    column-gap: 1.5rem;
+  }
+
+  .sts-pricing-care li {
+    break-inside: avoid;
+  }
+}
+
+.sts-pricing-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-top: 2rem;
+}
+
+.sts-pricing-link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-underline-offset: 4px;
+}
+
+.sts-pricing-link:hover {
+  text-decoration: underline;
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-price-card.is-featured {
+  background: var(--sage-light);
+  border: 2px solid var(--sage-strong);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-price-card.is-featured .sts-price-icon {
+  background: var(--white);
+  color: var(--sage-dark);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing .btn-primary,
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing .sts-price-cta.btn-primary {
+  background-color: var(--sage-dark);
+  background-image: none;
+  color: var(--white);
+  box-shadow: none;
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing .btn-primary:hover,
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing .sts-price-cta.btn-primary:hover {
+  background-color: var(--sage);
+  background-image: none;
+  color: var(--white);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing .btn-primary:focus-visible {
+  outline: 2px solid var(--sage-dark);
+  outline-offset: 3px;
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing-care {
+  background: var(--sage-dark);
+  color: var(--white);
+  border-color: var(--sage-dark);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing-care .sts-pricing-kicker,
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing-care p,
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing-care li {
+  color: var(--white);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing-care li svg {
+  color: var(--white);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing-care .btn-secondary {
+  background: var(--white);
+  color: var(--sage-dark);
+  border-color: var(--white);
+}
+
+html[data-theme="light"][data-palette="sts-day"] .sts-pricing-care .btn-secondary:hover {
+  background: var(--sage-light);
+  color: var(--sage-dark);
+  border-color: var(--sage-light);
+}
+
+html[data-atmosphere="night-luxury"] .sts-price-card.is-featured {
+  background: color-mix(in srgb, var(--card) 92%, white 8%);
+  border: 1px solid var(--line);
+}
+
+html[data-atmosphere="night-luxury"] .sts-price-badge {
+  background: var(--card);
+  color: var(--ivory);
+  border: 1px solid var(--line);
+}
+
+html[data-atmosphere="night-luxury"] .sts-price-icon {
+  background: color-mix(in srgb, var(--card) 80%, white 6%);
+  color: var(--ivory);
+}
+
+html[data-atmosphere="night-luxury"] .sts-price-card li svg,
+html[data-atmosphere="night-luxury"] .sts-pricing-care li svg {
+  color: var(--lavender);
+}

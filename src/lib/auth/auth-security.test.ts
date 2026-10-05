@@ -19,6 +19,8 @@ import {
   submitContact,
   upsertExpense,
   upsertLead,
+  upsertIcp,
+  convertLeadToClient,
   upsertProject,
   upsertRevenue,
 } from "@/app/actions";
@@ -69,7 +71,20 @@ vi.mock("@supabase/ssr", () => ({
     auth: {
       signOut: () => supabaseSignOut(),
       getUser: async () => ({ data: { user: null }, error: null }),
+      mfa: {
+        getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: "aal1" }, error: null }),
+        listFactors: async () => ({ data: { totp: [], phone: [] }, error: null }),
+      },
     },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            limit: async () => ({ data: [], error: null }),
+          }),
+        }),
+      }),
+    }),
   })),
 }));
 
@@ -175,6 +190,9 @@ describe("protected owner writes", () => {
 
     await expect(upsertLead({ businessName: "Forged lead" })).rejects.toThrow("Unauthorized");
     expect(getWorkspace().leads.length).toBe(leads);
+    await expect(upsertIcp({ name: "Forged ICP" })).rejects.toThrow("Unauthorized");
+    expect(getWorkspace().icps.length).toBe(0);
+    await expect(convertLeadToClient("lead-scp")).rejects.toThrow("Unauthorized");
 
     await expect(upsertProject({ name: "Forged project" })).rejects.toThrow("Unauthorized");
     expect(getWorkspace().projects.length).toBe(projects);
@@ -196,9 +214,16 @@ describe("protected owner writes", () => {
     formData.set("message", "Need a new marketing site for the shop.");
     formData.set("consent", "on");
     formData.set("companyWebsite", "");
+    formData.set("submissionKey", "11111111-1111-4111-8111-111111111111");
+    const tasks = getWorkspace().tasks.length;
     const result = await submitContact(formData);
     expect(result).toEqual({ ok: true });
     expect(getWorkspace().leads.length).toBe(leads + 1);
+    expect(getWorkspace().tasks.length).toBe(tasks + 1);
+    const replay = await submitContact(formData);
+    expect(replay).toEqual({ ok: true });
+    expect(getWorkspace().leads.length).toBe(leads + 1);
+    expect(getWorkspace().tasks.length).toBe(tasks + 1);
   });
 
   it("allows an authenticated demo owner to save brand settings", async () => {
@@ -266,13 +291,19 @@ describe("sign-out and idle expiration", () => {
 
     const response = await proxy(dashboardRequest());
     expect(response.headers.get("location")).toContain("/login");
+    const accountant = await proxy(new NextRequest("http://localhost:3000/accountant"));
+    expect(accountant.headers.get("location")).toContain("/login");
+    const client = await proxy(new NextRequest("http://localhost:3000/client"));
+    expect(client.headers.get("location")).toContain("/login");
   });
 
   it("signs out of Supabase when it is configured", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "test-anon-key");
+    cookieStore.set("sb-127-auth-token", "session-blob");
     await clearCurrentAuth();
     expect(supabaseSignOut).toHaveBeenCalledTimes(1);
+    expect(cookieStore.has("sb-127-auth-token")).toBe(false);
   });
 
   it("terminates the session on idle expiration so /dashboard cannot be re-entered", async () => {

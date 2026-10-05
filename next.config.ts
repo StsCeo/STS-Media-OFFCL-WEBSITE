@@ -28,7 +28,7 @@ const securityHeaders = [
       "base-uri 'self'",
       "form-action 'self'",
       "object-src 'none'",
-      "upgrade-insecure-requests",
+      ...(isProd ? ["upgrade-insecure-requests"] : []),
     ].join("; "),
   },
   ...(isProd
@@ -38,6 +38,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Dev-only. Next.js ignores this outside `next dev`; it does not change production headers.
+  ...(!isProd ? { allowedDevOrigins: ["127.0.0.1"] } : {}),
   async headers() {
     return [
       {

@@ -14,11 +14,13 @@ async function action(_prev: State, formData: FormData): Promise<State> {
 export function ContactForm({
   services,
   calendlyUrl,
+  submissionKey,
   defaultAudience = "both",
   defaultService,
 }: {
   services: { slug: string; name: string }[];
   calendlyUrl: string;
+  submissionKey: string;
   defaultAudience?: "owner" | "creator" | "both";
   defaultService?: string;
 }) {
@@ -26,15 +28,16 @@ export function ContactForm({
   if (state.ok) {
     return (
       <div className="rounded-xl border border-success/30 bg-white p-8 text-ink" role="status">
-        <h2 className="font-display text-2xl">Message received</h2>
-        <p className="mt-3 text-sm text-muted">
-          Thank you. We will review this and respond using the contact method you selected. Nothing is auto-sent until the owner reviews it.
+        <h2 className="font-[family-name:var(--font-phase1-display)] text-[2rem] font-normal leading-[1.15] md:text-[2.25rem]">Message received</h2>
+        <p className="mt-3 max-w-[65ch] font-[family-name:var(--font-phase1-sans)] text-base leading-relaxed text-muted">
+          Your next step. We’ll review this and reply by the method you chose. You are not booked, and nothing is signed or paid.
         </p>
       </div>
     );
   }
   return (
-    <form action={formAction} className="space-y-4 rounded-xl border border-line bg-white p-6 text-ink">
+    <form action={formAction} className="space-y-4 rounded-xl border border-line bg-white p-6 font-[family-name:var(--font-phase1-sans)] text-base text-ink">
+      <input type="hidden" name="submissionKey" value={submissionKey} />
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Name" name="name">
           <input id="name" name="name" required autoComplete="name" className={inputClass} aria-invalid={state.error ? true : undefined} />
@@ -92,7 +95,7 @@ export function ContactForm({
       <Field label="How can we help?" name="message">
         <textarea id="message" name="message" required minLength={10} className={textareaClass} />
       </Field>
-      <Field label="Optional file" name="file" hint="PDF or image, 8MB max. Stored privately when storage is connected.">
+      <Field label="Optional file" name="file" hint="PDF or image, 8MB max. The file is checked here and is not stored yet.">
         <input id="file" name="file" type="file" accept="application/pdf,image/*" className="mt-1 block w-full text-sm" />
       </Field>
       <div className="hidden" aria-hidden>
@@ -125,7 +128,7 @@ export function ContactForm({
           Or <a className="text-forest underline" href={calendlyUrl}>book a call on Calendly</a>.
         </p>
       ) : (
-        <p className="text-sm text-muted">Calendly booking will appear here after the integration is connected. Use this form until then.</p>
+        <p className="text-sm text-muted">A booking link will appear here after it is connected. This form does not reserve a time.</p>
       )}
     </form>
   );
